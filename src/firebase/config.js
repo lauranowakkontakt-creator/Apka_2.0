@@ -1,18 +1,23 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
+import { getAuth, GoogleAuthProvider, connectAuthEmulator } from 'firebase/auth'
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator } from 'firebase/firestore'
 
-// Konfiguracja środowiska.
+// Konfiguracja środowiska — Apka 2.0.
 //
-// Uwaga o „sekretach": klucze webowe Firebase NIE są sekretem — i tak lądują
-// w bundlu, który każdy może pobrać. Prawdziwą ochroną danych są reguły
-// Firestore (firestore.rules), nie ukrywanie tych wartości. Dlatego domyślne
-// wartości zostają w repo: apka działa po `git clone` bez żadnego setupu.
+// Apka 2.0 jest CAŁKOWICIE odcięta od bazy starej Apki (repo Aplikacja).
+// Nie ma tu żadnego domyślnego projektu w chmurze. Są dwa tryby:
 //
-// Zmienne VITE_FB_* pozwalają podstawić INNY projekt Firebase bez dotykania
-// kodu — po to, żeby dev/staging nie pisały do produkcyjnej bazy. Wystarczy
-// plik .env.development.local albo .env.production.local (patrz .env.example);
-// te pliki są w .gitignore.
+//  1. TRYB LOKALNY (domyślny) — brak zmiennych VITE_FB_* w .env.
+//     Apka łączy się z emulatorami Firebase na tym komputerze
+//     (`npm run lokalnie`). Projekt nazywa się „demo-apka2": prefiks demo-
+//     sprawia, że SDK i emulatory nigdy nie kontaktują się z prawdziwą chmurą.
+//     Dane leżą w katalogu .dane-lokalne/ (poza repo).
+//
+//  2. WŁASNY PROJEKT — komplet sześciu zmiennych VITE_FB_* (patrz .env.example).
+//     Do użycia, gdy powstanie nowy, osobny projekt Firebase dla Apki 2.0.
+//
+// Klucze webowe Firebase nie są sekretem (lądują w bundlu); dane chronią
+// reguły Firestore (firestore.rules).
 const fromEnv = {
   apiKey:            import.meta.env.VITE_FB_API_KEY,
   authDomain:        import.meta.env.VITE_FB_AUTH_DOMAIN,
@@ -22,26 +27,28 @@ const fromEnv = {
   appId:             import.meta.env.VITE_FB_APP_ID,
 }
 
-const DEFAULT_CONFIG = {
-  apiKey: "AIzaSyDIuO8Q_gjmbWrUQc_pnigWfrEfT8FmGA0",
-  authDomain: "aplikacja-0.firebaseapp.com",
-  projectId: "aplikacja-0",
-  storageBucket: "aplikacja-0.firebasestorage.app",
-  messagingSenderId: "781228324479",
-  appId: "1:781228324479:web:ea109051fbea2f30ebf14a"
+export const LOCAL_PROJECT_ID = 'demo-apka2'
+
+// Konfiguracja dla emulatorów — wartości nie muszą być prawdziwe.
+const LOCAL_CONFIG = {
+  apiKey: 'demo-api-key',
+  authDomain: `${LOCAL_PROJECT_ID}.firebaseapp.com`,
+  projectId: LOCAL_PROJECT_ID,
+  storageBucket: `${LOCAL_PROJECT_ID}.appspot.com`,
+  messagingSenderId: '0',
+  appId: 'demo-app',
 }
 
-// Podstawiamy komplet albo nic. Wymieszanie połówek dwóch projektów
-// (np. apiKey ze stagingu + projectId z produkcji) daje błędy uwierzytelniania,
-// które bardzo trudno zdiagnozować — lepiej wymusić spójny zestaw.
+// Podstawiamy komplet albo nic. Wymieszanie połówek dwóch projektów daje
+// błędy uwierzytelniania, które bardzo trudno zdiagnozować.
 const hasFullEnvConfig = Object.values(fromEnv).every(v => typeof v === 'string' && v.length > 0)
-export const firebaseConfig = hasFullEnvConfig ? fromEnv : DEFAULT_CONFIG
 
-// Widoczne w konsoli, do którego projektu apka faktycznie pisze — pierwsza
-// rzecz, którą chce się wiedzieć przy „czemu nie widzę swoich danych".
-if (import.meta.env.DEV) {
-  console.info(`[firebase] projekt: ${firebaseConfig.projectId}${hasFullEnvConfig ? ' (z .env)' : ' (domyślny)'}`)
-}
+// Tryb lokalny: brak własnego projektu albo jawne VITE_USE_EMULATORS=1.
+export const USE_EMULATORS = !hasFullEnvConfig || import.meta.env.VITE_USE_EMULATORS === '1'
+export const firebaseConfig = hasFullEnvConfig ? fromEnv : LOCAL_CONFIG
+
+// Widoczne w konsoli, do którego projektu apka faktycznie pisze.
+console.info(`[firebase] projekt: ${firebaseConfig.projectId}${USE_EMULATORS ? ' (emulatory lokalne)' : ' (z .env)'}`)
 
 const app = initializeApp(firebaseConfig)
 
@@ -60,3 +67,15 @@ export const db = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true,
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 })
+
+// Podpięcie emulatorów (porty jak w firebase.json). Musi się wykonać przed
+// pierwszym zapytaniem — dlatego tutaj, zaraz po inicjalizacji.
+if (USE_EMULATORS) {
+  // Emulatory słuchają na 127.0.0.1. „localhost" bywa rozwiązywany na IPv6
+  // (::1) i wtedy połączenie nie dochodzi — zamieniamy go na adres IPv4.
+  // Inny host (np. IP komputera przy teście z telefonu) zostaje bez zmian.
+  const h = typeof location !== 'undefined' ? location.hostname : ''
+  const host = !h || h === 'localhost' ? '127.0.0.1' : h
+  connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true })
+  connectFirestoreEmulator(db, host, 8080)
+}

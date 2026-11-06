@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from './firebase/config'
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth, USE_EMULATORS } from './firebase/config'
 import Login from './components/Login'
 import Pulpit from './components/Pulpit'
 // Moduły ładowane leniwie — każdy trafia do osobnego chunka, więc start
@@ -24,8 +24,25 @@ import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from '
 import { getCurrencyCode, setCurrencyCode } from './utils/currency'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
 
-const DEV_USER = { uid: 'dev-user', displayName: 'Laura', photoURL: null, email: 'laura@mojswiat.app' }
-const DEV_MODE = import.meta.env.DEV
+// Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
+// się do emulatora Auth na jedno stałe konto lokalne. Zawsze to samo konto =
+// zawsze te same dane, także po „Wyloguj". Prawdziwe konto z emulatora daje
+// uid zgodne z regułami Firestore, więc lokalnie działają te same reguły
+// dostępu co docelowo w chmurze. Hasło nic nie chroni — konto istnieje tylko
+// w emulatorze na tym komputerze.
+const LOCAL_EMAIL = 'laura@lokalnie.dev'
+const LOCAL_PASSWORD = 'lokalnie-123'
+const DEV_USER = { displayName: 'Laura', photoURL: null, email: LOCAL_EMAIL }
+const asLocalUser = (u) => u ? { ...DEV_USER, uid: u.uid } : null
+
+async function signInLocal() {
+  try {
+    await signInWithEmailAndPassword(auth, LOCAL_EMAIL, LOCAL_PASSWORD)
+  } catch {
+    // Pierwsze uruchomienie: konta jeszcze nie ma — zakładamy je.
+    await createUserWithEmailAndPassword(auth, LOCAL_EMAIL, LOCAL_PASSWORD)
+  }
+}
 
 const MODULE_ACCENTS = {
   home:     '#7C8AF0',
@@ -59,8 +76,8 @@ function buildModules() {
 }
 
 export default function App() {
-  const [user, setUser] = useState(DEV_MODE ? DEV_USER : null)
-  const [loading, setLoading] = useState(!DEV_MODE)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
   // Po odświeżeniu wracamy do ostatnio otwartego modułu (walidacja po znanych id)
   const [activeModule, setActiveModule] = useState(() => {
     try {
@@ -111,11 +128,18 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (DEV_MODE) return
     const timeout = setTimeout(() => setLoading(false), 8000)
     const unsubscribe = onAuthStateChanged(auth, (u) => {
+      if (USE_EMULATORS && !u) {
+        signInLocal().catch((e) => {
+          console.error('[firebase] Nie udało się zalogować do emulatora. Czy działa `npm run lokalnie`?', e)
+          clearTimeout(timeout)
+          setLoading(false)
+        })
+        return
+      }
       clearTimeout(timeout)
-      setUser(u)
+      setUser(USE_EMULATORS ? asLocalUser(u) : u)
       setLoading(false)
     }, () => { clearTimeout(timeout); setLoading(false) })
     return () => { unsubscribe(); clearTimeout(timeout) }

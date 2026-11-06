@@ -23,3 +23,9 @@ dist
 * [0-9].json
 * [0-9].md
 * [0-9].css
+
+# Lokalna baza z emulatorów Firebase (npm run lokalnie) i logi emulatorów
+.dane-lokalne/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

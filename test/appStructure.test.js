@@ -766,3 +766,12 @@ test('Ukonczone i archiwum: dorobek na gorze, pozycje pod spodem', () => {
   // Akcje jako ikony: przy kilku pozycjach napisy robily ze sciane tekstu.
   assert.ok(!/smallBtn/.test(archive), 'stare przyciski z napisami maja zniknac')
 })
+
+test('Apka 2.0 nie łączy się z bazą starej Apki (aplikacja-0)', () => {
+  const hits = walk(join(ROOT, 'src'))
+    .filter(f => read(f.replace(ROOT + '/', '')).includes('aplikacja-0'))
+  assert.deepEqual(hits, [], 'w kodzie jest odwołanie do projektu starej Apki')
+  assert.ok(!read('.firebaserc').includes('aplikacja-0'), '.firebaserc wskazuje starą Apkę')
+  const cfg = read('src/firebase/config.js')
+  assert.match(cfg, /LOCAL_PROJECT_ID = 'demo-/, 'projekt lokalny musi mieć prefiks demo-')
+})

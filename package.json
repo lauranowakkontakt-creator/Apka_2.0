@@ -1,6 +1,6 @@
 {
-  "name": "aplikacja-budzet",
-  "version": "1.0.0",
+  "name": "apka-2",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -8,8 +8,10 @@
     "preview": "vite preview",
     "test": "node --test test/*.test.js",
     "check": "npm run lint && node --test test/*.test.js && vite build",
-    "deploy": "npm run check && gh-pages -d dist",
-    "lint": "eslint src test"
+    "deploy": "node scripts/sprawdz-projekt.js && npm run check && gh-pages -d dist",
+    "lint": "eslint src test",
+    "lokalnie": "node scripts/lokalnie.js",
+    "emulatory": "node scripts/lokalnie.js --tylko-emulatory"
   },
   "dependencies": {
     "date-fns": "^3.6.0",
@@ -22,6 +24,7 @@
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "firebase-tools": "^15.35.0",
     "gh-pages": "^6.1.1",
     "globals": "^17.12.0",
     "vite": "^5.3.1",

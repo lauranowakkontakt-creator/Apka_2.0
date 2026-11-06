@@ -1,4 +1,8 @@
-# Mój Świat („Apka")
+# Apka 2.0
+
+> Druga wersja „Apki", rozwijana osobno od pierwszej (repo `Aplikacja`).
+> **Nie korzysta z bazy starej Apki** — na razie działa wyłącznie lokalnie,
+> na emulatorach Firebase. Własny projekt Firebase dojdzie później.
 
 Osobista aplikacja PWA: budżet, nawyki, to-do, kalendarz, modlitwa, Biblia,
 osoby, sen, wdzięcznik i wspomnik — w jednym miejscu, na telefonie.
@@ -9,26 +13,42 @@ React 18 + Vite + Firebase (Auth i Firestore). Hostowana na GitHub Pages.
 
 ## Szybki start
 
+Wymagania: Node.js 20+ i **Java 21+** (emulator Firestore jest napisany
+w Javie; na Macu: `brew install openjdk@21`).
+
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run lokalnie   # apka: http://localhost:5173/Apka_2.0/
+                   # podgląd bazy: http://127.0.0.1:4000
 ```
 
-W trybie deweloperskim logowanie jest pominięte — apka wchodzi od razu jako
-użytkownik `dev-user` (`DEV_MODE` w [`src/App.jsx`](src/App.jsx)). Dzięki temu
-nie trzeba klikać przez Google przy każdym odświeżeniu.
+`npm run lokalnie` uruchamia emulatory Firebase (logowanie + baza) i serwer
+Vite naraz. Nic nie wychodzi do chmury — projekt nazywa się `demo-apka2`,
+a prefiks `demo-` gwarantuje, że Firebase nie połączy się z prawdziwym
+serwerem.
+
+- **Logowanie jest pominięte** — apka sama loguje się na stałe konto lokalne
+  (`laura@lokalnie.dev`), więc po każdym uruchomieniu widzisz te same dane.
+- **Dane zostają między uruchomieniami** — przy zamykaniu (**Ctrl+C**, raz
+  i poczekaj na „Export complete") baza zapisuje się do `.dane-lokalne/`,
+  a przy następnym starcie wczytuje. Ten katalog nie trafia do repo.
+- **Czysty start** — usuń `.dane-lokalne/`.
+- **Test na telefonie w tej samej sieci Wi‑Fi** — na razie niedostępny
+  (emulatory słuchają tylko na tym komputerze).
 
 ## Polecenia
 
 | Polecenie | Co robi |
 |---|---|
-| `npm run dev` | serwer deweloperski z hot reload |
+| `npm run lokalnie` | **emulatory + apka** — tak pracujemy na co dzień |
+| `npm run emulatory` | same emulatory (np. do `npm run preview`) |
+| `npm run dev` | sam serwer Vite (bez emulatorów apka się nie zaloguje) |
 | `npm run lint` | ESLint — łapie użycie nieistniejących nazw |
 | `npm test` | testy jednostkowe (`node --test`, bez dodatkowych bibliotek) |
 | `npm run build` | build produkcyjny do `dist/` |
 | `npm run check` | **lint + testy + build.** To jest bramka przed pushem |
 | `npm run preview` | podgląd zbudowanej wersji lokalnie |
-| `npm run deploy` | `check` + publikacja na GitHub Pages |
+| `npm run deploy` | `check` + publikacja na GitHub Pages — **zablokowane**, dopóki Apka 2.0 nie ma własnego projektu Firebase |
 
 ## Wdrożenie
 
@@ -140,23 +160,26 @@ przyciskiem kopiowania. Na telefonie nie ma konsoli, więc to jedyna droga,
 
 ## Środowiska i sekrety
 
-Klucze webowe Firebase **nie są sekretem** — trafiają do bundla, który każdy
-może pobrać. Dlatego domyślna konfiguracja siedzi wprost
-w [`src/firebase/config.js`](src/firebase/config.js) i apka działa zaraz po
-`git clone`, bez żadnej konfiguracji. Danych pilnują reguły Firestore, nie
-ukrywanie tych wartości.
+Apka 2.0 **nie ma żadnego domyślnego projektu w chmurze** — celowo, żeby
+nigdy nie dotknąć bazy starej Apki (`aplikacja-0`). Logika jest
+w [`src/firebase/config.js`](src/firebase/config.js):
 
-Osobny projekt Firebase (żeby zabawa w devie nie mieszała w produkcyjnych
-danych) podstawia się przez zmienne — wzór w [`.env.example`](.env.example):
+- brak zmiennych `VITE_FB_*` → **tryb lokalny** (emulatory, projekt `demo-apka2`),
+- komplet sześciu zmiennych `VITE_FB_*` → własny projekt Firebase.
+
+Gdy powstanie nowy projekt Firebase dla Apki 2.0, jego dane wpisuje się
+według wzoru z [`.env.example`](.env.example):
 
 ```bash
-cp .env.example .env.development.local   # i uzupełnij sześć wartości
+cp .env.example .env.production.local   # i uzupełnij sześć wartości
 ```
 
-Podać trzeba **komplet sześciu**; przy niepełnym zestawie kod świadomie wraca
-do domyślnego projektu, bo wymieszanie połówek dwóch projektów daje błędy
-uwierzytelniania, które bardzo trudno zdiagnozować. W konsoli deweloperskiej
-widać przy starcie, do którego projektu apka pisze.
+Podać trzeba **komplet sześciu**; przy niepełnym zestawie apka zostaje
+w trybie lokalnym. `npm run deploy` sprawdza ten plik i odmawia publikacji
+bez niego (albo gdy wpisany jest stary projekt `aplikacja-0`). Klucze webowe
+Firebase nie są sekretem (trafiają do bundla) — danych pilnują reguły
+Firestore. W konsoli przeglądarki widać przy starcie, do którego projektu
+apka pisze.
 
 Pliki `.env.*.local` oraz klucz deployu `.deploy_key` są w `.gitignore`
 i nigdy nie mają trafić do repo.
