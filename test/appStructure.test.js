@@ -86,11 +86,11 @@ test('Pulpit: agenda pomija pozycje z ukrytych modułów', () => {
   assert.match(PULPIT, /items\.filter\(it => shows\(it\.module\)\)/)
 })
 
-test('Nazwa aplikacji to Apka — wszędzie', () => {
-  assert.match(HTML, /<title>Apka<\/title>/)
-  assert.match(HTML, /content="Apka"/)
-  assert.match(VITE, /name: 'Apka'/)
-  assert.match(VITE, /short_name: 'Apka'/)
+test('Nazwa aplikacji to Apka 2.0 — wszędzie', () => {
+  assert.match(HTML, /<title>Apka 2\.0<\/title>/)
+  assert.match(HTML, /content="Apka 2\.0"/)
+  assert.match(VITE, /name: 'Apka 2\.0'/)
+  assert.match(VITE, /short_name: 'Apka 2\.0'/)
   const stale = walk(join(ROOT, 'src'))
     .filter(f => read(f.replace(ROOT + '/', '')).includes('Mój Świat'))
   assert.deepEqual(stale, [], 'gdzieś została stara nazwa')

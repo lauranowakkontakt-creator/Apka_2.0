@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 const isDev = process.env.NODE_ENV !== 'production'
 
 export default defineConfig({
-  base: '/Aplikacja/',
+  base: '/Apka_2.0/',
   build: {
     rollupOptions: {
       output: {
@@ -29,14 +29,14 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
       },
       manifest: {
-        name: 'Apka',
-        short_name: 'Apka',
+        name: 'Apka 2.0',
+        short_name: 'Apka 2.0',
         description: 'Budżet, nawyki, modlitwa i więcej',
         theme_color: '#D4A574',
         background_color: '#14110D',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/Aplikacja/',
+        start_url: '/Apka_2.0/',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }

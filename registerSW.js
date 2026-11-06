@@ -1,1 +1,1 @@
-if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/Aplikacja/sw.js', { scope: '/Aplikacja/' })})}
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/Apka_2.0/sw.js', { scope: '/Apka_2.0/' })})}
