@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-apka2"
+    "default": "demo-apka2",
+    "produkcja": "apka-2-6330c"
   }
 }

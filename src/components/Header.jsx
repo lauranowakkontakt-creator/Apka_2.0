@@ -14,7 +14,7 @@ export default function Header({ user, modules, activeModule, onModuleChange, on
           <IconAppMark size={28} />
         </div>
         <div className="header-logo-text">
-          <span className="header-logo-name">Apka</span>
+          <span className="header-logo-name">Apka 2.0</span>
           <span className="header-logo-sub">{displayName.toLowerCase()}</span>
         </div>
       </div>

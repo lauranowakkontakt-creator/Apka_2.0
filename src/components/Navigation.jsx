@@ -10,7 +10,7 @@ export default function Navigation({ active, onChange }) {
     <>
       {/* Sidebar na desktop */}
       <nav className="sidebar">
-        <div className="sidebar-logo">Apka</div>
+        <div className="sidebar-logo">Apka 2.0</div>
         {MODULES.map(m => (
           <button
             key={m.id}

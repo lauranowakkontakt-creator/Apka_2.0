@@ -181,7 +181,7 @@ export default function App() {
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1.1 }}>Apka</div>
+            <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1.1 }}>Apka 2.0</div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '.1em', textTransform: 'uppercase', marginTop: 2 }}>
               {user?.displayName || 'laura'}
             </div>
@@ -244,7 +244,7 @@ export default function App() {
             <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '.12em', textTransform: 'uppercase' }}>
               {modules.find(m => m.id === activeModule)?.label || ''}
             </div>
-            <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.02em', marginTop: 2 }}>Apka</div>
+            <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.02em', marginTop: 2 }}>Apka 2.0</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {headerExtras}
