@@ -36,7 +36,12 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
         { expense: DEFAULT_EXPENSE_CATEGORIES, income: DEFAULT_INCOME_CATEGORIES }))
     }).catch(e => {
       console.error('Import kopii: nie udało się wczytać bazy', e)
-      if (alive) setLoadErr('Nie udało się wczytać obecnych danych. Sprawdź połączenie i spróbuj ponownie.')
+      if (!alive) return
+      // Kod błędu wprost na ekranie — na telefonie nie ma konsoli.
+      const code = e?.code || e?.name || 'nieznany'
+      setLoadErr(code === 'permission-denied'
+        ? 'Baza odmówiła dostępu (permission-denied). Sprawdź, czy w Firebase jest utworzona baza Firestore i wgrane reguły.'
+        : `Nie udało się wczytać obecnych danych (${code}). Sprawdź połączenie i spróbuj ponownie.`)
     })
     return () => { alive = false }
   }, [user.uid, backup])
@@ -77,7 +82,7 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
       onDone()
     } catch (e) {
       console.error('Import kopii nie powiódł się:', e)
-      setError('Import przerwany. To, co się zapisało, zostaje — uruchom import jeszcze raz, a dopisze tylko brakujące.')
+      setError(`Import przerwany (${e?.code || 'błąd'}). To, co się zapisało, zostaje — uruchom import jeszcze raz, a dopisze tylko brakujące.`)
       setProgress(null)
     }
   }
