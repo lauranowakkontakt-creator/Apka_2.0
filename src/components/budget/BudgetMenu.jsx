@@ -9,6 +9,14 @@ const IconCurrency = (p) => (
   </svg>
 )
 
+const IconUpload = (p) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+)
+
 export default function BudgetMenu({ onAction, privateMode, onCurrencyChange }) {
   const [open, setOpen]         = useState(false)
   const [showCurrency, setShowCurrency] = useState(false)
@@ -33,6 +41,7 @@ export default function BudgetMenu({ onAction, privateMode, onCurrencyChange }) 
     { id: 'reminders',  Icon: IconBell,     label: 'Przypomnienia' },
     { id: 'debtors',    Icon: IconUsers,    label: 'Dłużnicy' },
     { id: 'categories', Icon: IconTag,      label: 'Zarządzaj kategoriami' },
+    { id: 'import',     Icon: IconUpload,   label: 'Import transakcji (CSV)' },
     { id: 'currency',   Icon: IconCurrency, label: `Waluta (${currentCurrency})` },
   ]
 

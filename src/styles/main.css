@@ -2997,3 +2997,39 @@ body { overscroll-behavior-y: none; }
 }
 .car-mode .pray-person-name { font-size: 19px; }
 .car-mode .pray-person-meta { font-size: 13px; }
+
+/* ===== IMPORT TRANSAKCJI (budżet) ===== */
+.imp-hint { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.imp-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 28px 16px; border: 1.5px dashed var(--border); border-radius: var(--r-md, 12px);
+  background: var(--surface2); cursor: pointer; text-align: center; transition: border-color .15s;
+}
+.imp-drop:hover { border-color: var(--accent); }
+.imp-drop-title { font-weight: 700; font-size: 15px; color: var(--text); }
+.imp-drop-sub { font-size: 12px; color: var(--text-muted); }
+.imp-link { background: none; border: none; color: var(--accent); font-size: 13px; cursor: pointer; padding: 2px 0; font-family: inherit; align-self: flex-start; }
+.imp-paste { font-family: ui-monospace, monospace; font-size: 13px; resize: vertical; }
+.imp-file { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: var(--surface2); border-radius: var(--r-sm); }
+.imp-file-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.imp-map { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; }
+.imp-map summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+.imp-warn { color: var(--expense); font-weight: 600; }
+.imp-map-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 6px 10px; align-items: center; margin-top: 10px; }
+.imp-map-label { font-size: 12px; color: var(--text-muted); }
+.imp-select { padding: 7px 10px; font-size: 14px; }
+.imp-summary { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; font-size: 13px; }
+.imp-dup-note { color: var(--text-muted); }
+.imp-bulk { display: flex; gap: 16px; margin-top: -10px; }
+.imp-errors { font-size: 12px; color: var(--text-muted); }
+.imp-errors summary { cursor: pointer; color: var(--expense); }
+.imp-errors ul { margin: 6px 0 0 18px; }
+.imp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.imp-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); }
+.imp-row.off { opacity: .5; }
+.imp-row input[type="checkbox"] { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+.imp-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.imp-row-top { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.imp-row-date { color: var(--text-muted); }
+.imp-row-desc { font-size: 13px; overflow-wrap: anywhere; }
+.imp-dup { margin-left: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 2px 6px; border-radius: 99px; background: var(--surface2); color: var(--text-muted); }

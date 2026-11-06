@@ -23,6 +23,7 @@ import Reminders from './budget/Reminders'
 import Debtors from './budget/Debtors'
 import CategoriesView from './budget/CategoriesView'
 import ShoppingList from './budget/ShoppingList'
+import ImportView from './budget/ImportView'
 import { IconTransfer, IconBank, IconChart, IconShopping, IconPlus, IconChevronLeft, IconEye, IconEyeOff, CatIcon } from './Icons'
 import { Donut, useNarrow } from './ChartPrimitives'
 import { fmt, getCurrencyCode, CURRENCIES, splitAmount } from '../utils/currency'
@@ -111,6 +112,7 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
     if (id === 'reminders')  return setModal('reminders')
     if (id === 'debtors')    return setModal('debtors')
     if (id === 'categories') return setModal('categories')
+    if (id === 'import')     return setModal('import')
     if (id === 'shopping')   return setActiveTab('shopping')
     if (id === 'regular')    return setActiveTab('regular')
   }
@@ -413,6 +415,7 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
       {modal === 'reminders'   && <Reminders      user={user} onClose={() => setModal(null)} />}
       {modal === 'debtors'     && <Debtors        user={user} onClose={() => setModal(null)} />}
       {modal === 'categories'  && <CategoriesView user={user} onClose={() => setModal(null)} />}
+      {modal === 'import'      && <ImportView     user={user} onClose={() => setModal(null)} />}
       {modal === 'stats'       && <StatsPanel     user={user} privateMode={privateMode} onClose={() => setModal(null)} />}
 
       {showForm && (
