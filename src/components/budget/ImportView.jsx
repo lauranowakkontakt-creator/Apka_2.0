@@ -10,13 +10,16 @@ import {
   rowsToTransactions, markDuplicates, balanceDeltas, chunk,
 } from '../../utils/budgetImport'
 import { IconClose, IconCheck } from '../Icons'
+import BackupImport from './BackupImport'
+import { isBackup } from '../../utils/backupImport'
 import { toast } from '../Toast'
 
 const PREVIEW_LIMIT = 300
 
 // Import transakcji z CSV: wybór pliku → dopasowanie kolumn i podgląd → zapis.
 export default function ImportView({ user, onClose }) {
-  const [step, setStep]         = useState('file')   // file | preview
+  const [step, setStep]         = useState('file')   // file | preview | backup
+  const [backup, setBackup]     = useState(null)
   const [fileName, setFileName] = useState('')
   const [pasted, setPasted]     = useState('')
   const [showPaste, setShowPaste] = useState(false)
@@ -51,6 +54,16 @@ export default function ImportView({ user, onClose }) {
   const account = accounts.find(a => a.id === accountId)
 
   const loadText = (text, name) => {
+    // Kopia JSON z apki → osobna ścieżka (konta, kategorie, przelewy).
+    if (/^\s*[{[]/.test(text)) {
+      let data = null
+      try { data = JSON.parse(text) } catch { /* nie JSON — spróbuj jako CSV */ }
+      if (data) {
+        if (!isBackup(data)) { setError('To nie wygląda na kopię z apki (brak listy transakcji i kont).'); return }
+        setBackup(data); setFileName(name); setError(''); setStep('backup')
+        return
+      }
+    }
     const all = parseCSV(text)
     if (!all.length) { setError('Plik jest pusty albo nie wygląda na CSV.'); return }
     let h = findHeaderRow(all)
@@ -194,13 +207,13 @@ export default function ImportView({ user, onClose }) {
         {step === 'file' && (
           <div className="form">
             <p className="imp-hint">
-              Wgraj plik CSV — wyciąg z banku (mBank, PKO, ING, Santander, Millennium,
-              Pekao, Revolut…) albo plik z eksportu tej apki. Kolumny rozpoznam sama,
-              a przed zapisem zobaczysz podgląd.
+              Wgraj wyciąg CSV z banku (mBank, PKO, ING, Santander, Millennium,
+              Pekao, Revolut…), eksport CSV z tej apki albo kopię danych JSON
+              (np. kopię uzupełnioną o historię). Przed zapisem zobaczysz podgląd.
             </p>
             <label className="imp-drop">
-              <input type="file" accept=".csv,.txt,text/csv,text/plain" onChange={onFile} hidden />
-              <span className="imp-drop-title">Wybierz plik CSV</span>
+              <input type="file" accept=".csv,.txt,.json,text/csv,text/plain,application/json" onChange={onFile} hidden />
+              <span className="imp-drop-title">Wybierz plik CSV lub JSON</span>
               <span className="imp-drop-sub">z telefonu lub komputera</span>
             </label>
             <button type="button" className="imp-link" onClick={() => setShowPaste(v => !v)}>
@@ -217,6 +230,11 @@ export default function ImportView({ user, onClose }) {
             )}
             {error && <p className="form-error">{error}</p>}
           </div>
+        )}
+
+        {step === 'backup' && backup && (
+          <BackupImport user={user} backup={backup} fileName={fileName}
+            onBack={() => { setBackup(null); setStep('file') }} onDone={onClose} />
         )}
 
         {step === 'preview' && (

@@ -41,7 +41,7 @@ export default function BudgetMenu({ onAction, privateMode, onCurrencyChange }) 
     { id: 'reminders',  Icon: IconBell,     label: 'Przypomnienia' },
     { id: 'debtors',    Icon: IconUsers,    label: 'Dłużnicy' },
     { id: 'categories', Icon: IconTag,      label: 'Zarządzaj kategoriami' },
-    { id: 'import',     Icon: IconUpload,   label: 'Import transakcji (CSV)' },
+    { id: 'import',     Icon: IconUpload,   label: 'Import danych (CSV / kopia)' },
     { id: 'currency',   Icon: IconCurrency, label: `Waluta (${currentCurrency})` },
   ]
 
