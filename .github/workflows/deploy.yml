@@ -1,12 +1,15 @@
 name: Deploy na GitHub Pages
 
-# URUCHAMIANY RĘCZNIE (zakładka Actions → Deploy → Run workflow).
+# Apka 2.0 publikuje się SAMA po każdym pushu na gałąź roboczą — zmiany
+# zrobione przez Claude od razu lądują pod
+# https://lauranowakkontakt-creator.github.io/Apka_2.0/
+# Można też odpalić ręcznie: Actions → Deploy na GitHub Pages → Run workflow.
 #
-# Celowo nie na każdy push do main: wtedy każdy commit szedłby od razu na
-# telefon, także taki w połowie roboty. Lokalne `npm run deploy` dalej działa
-# bez zmian — ten workflow jest alternatywą na wypadek, gdyby wygasł klucz
-# deployu albo trzeba było wdrożyć bez dostępu do swojego laptopa.
+# Dopóki w .env.production nie ma danych NOWEGO projektu Firebase, build
+# się wykonuje, ale publikacja jest pomijana (apka bez bazy byłaby pusta).
 on:
+  push:
+    branches: ['claude/zealous-edison-yiudqj']
   workflow_dispatch:
 
 permissions:
@@ -24,8 +27,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      gotowe: ${{ steps.projekt.outputs.gotowe }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Czy jest projekt Firebase?
+        id: projekt
+        run: |
+          if node scripts/sprawdz-projekt.js; then
+            echo "gotowe=tak" >> "$GITHUB_OUTPUT"
+          else
+            echo "gotowe=nie" >> "$GITHUB_OUTPUT"
+            echo "::warning::Brak projektu Firebase w .env.production — publikacja pominięta."
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -41,11 +56,13 @@ jobs:
         run: npm run build
 
       - uses: actions/upload-pages-artifact@v3
+        if: steps.projekt.outputs.gotowe == 'tak'
         with:
           path: dist
 
   deploy:
     needs: build
+    if: needs.build.outputs.gotowe == 'tak'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
