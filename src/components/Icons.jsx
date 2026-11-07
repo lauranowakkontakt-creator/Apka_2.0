@@ -700,204 +700,357 @@ export const IcQuestion    = (p) => (<Icon {...p}><circle cx="12" cy="12" r="9"/
 export const IcHourglass   = (p) => (<Icon {...p}><path d="M6 3h12M6 21h12M7 3v3l5 6-5 6v3M17 3v3l-5 6 5 6v3"/></Icon>)
 export const IcCompass     = (p) => (<Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></Icon>)
 
-// ── Icon catalog — ~175 icons with Polish labels & groups ─────────────────────
+// ── Nowe ikony (do 250 w katalogu) ───────────────────────────────────────────
+// Finanse
+export const IcBasket       = (p) => (<Icon {...p}><path d="M4 9h16l-1.5 10a2 2 0 0 1-2 1.7h-9a2 2 0 0 1-2-1.7z"/><path d="M8 9l3-5M16 9l-3-5M9 13v4M12 13v4M15 13v4"/></Icon>)
+export const IcShoppingBag  = (p) => (<Icon {...p}><path d="M5 8h14l-1 12H6z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></Icon>)
+export const IcDiamond      = (p) => (<Icon {...p}><path d="M6 4h12l3 5-9 11L3 9z"/><path d="M3 9h18M9 4L8 9l4 11 4-11-1-5"/></Icon>)
+export const IcInvoice      = (p) => (<Icon {...p}><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 11h7M9 14h7M9 17h4"/></Icon>)
+export const IcEuro         = (p) => (<Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M15 8.5a4 4 0 1 0 0 7M7.5 11h5M7.5 13.5h5"/></Icon>)
+export const IcGoldBar      = (p) => (<Icon {...p}><path d="M3 19l2.5-6h13l2.5 6z"/><path d="M8 13l2-6h4l2 6"/></Icon>)
+// Dom
+export const IcWindow       = (p) => (<Icon {...p}><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/></Icon>)
+export const IcShower       = (p) => (<Icon {...p}><path d="M5 21V7a4 4 0 0 1 4-4h1a3 3 0 0 1 3 3v1"/><path d="M9 7h8"/><path d="M10 11v1M13 11v1M16 11v1M11.5 15v1M14.5 15v1M13 19v1"/></Icon>)
+export const IcIron         = (p) => (<Icon {...p}><path d="M3 18h18v-4a6 6 0 0 0-6-6H9a5 5 0 0 0-5 4z"/><path d="M8 8V5h9"/></Icon>)
+export const IcHanger       = (p) => (<Icon {...p}><path d="M10 5a2 2 0 1 1 2 2v2"/><path d="M12 9l-8.5 6.5A1.5 1.5 0 0 0 4.4 18h15.2a1.5 1.5 0 0 0 .9-2.5z"/></Icon>)
+export const IcBucket       = (p) => (<Icon {...p}><path d="M4 8l2 12h12l2-12"/><ellipse cx="12" cy="8" rx="8" ry="2"/><path d="M6 7a6 6 0 0 1 12 0"/></Icon>)
+export const IcHammer       = (p) => (<Icon {...p}><path d="M13 3l8 8-3 3-8-8z"/><path d="M11.5 9.5L4 17a1.4 1.4 0 0 0 2 2l7.5-7.5"/></Icon>)
+export const IcPlug         = (p) => (<Icon {...p}><path d="M9 3v5M15 3v5"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v4"/></Icon>)
+// Jedzenie
+export const IcCarrot       = (p) => (<Icon {...p}><path d="M16 8a3 3 0 0 0-4 0L3 21l13-9a3 3 0 0 0 0-4z"/><path d="M16 8l1-4M16 8l4-2M16 8l4 1"/><path d="M9 12l2 2M6.5 15.5L8 17"/></Icon>)
+export const IcCherry       = (p) => (<Icon {...p}><circle cx="7" cy="17" r="3.5"/><circle cx="16.5" cy="18" r="3"/><path d="M7 13.5C8 9 11 5 16 3M16.5 15c0-4-1-8-.5-12M16 3l3 1"/></Icon>)
+export const IcPot          = (p) => (<Icon {...p}><path d="M4 9h16v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"/><path d="M2 11h2M20 11h2M6 6h12M12 4v2"/></Icon>)
+export const IcCutlery      = (p) => (<Icon {...p}><path d="M5 3v5a2 2 0 0 0 4 0V3M7 3v18"/><path d="M17 21V3c-2 1-3 4-3 7v2h3"/></Icon>)
+export const IcBeer         = (p) => (<Icon {...p}><path d="M6 8h10v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M16 11h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2"/><path d="M6 8a2.5 2.5 0 0 1 2.5-3 3 3 0 0 1 5 0A2.5 2.5 0 0 1 16 8"/><path d="M9.5 12v5M12.5 12v5"/></Icon>)
+export const IcDonut        = (p) => (<Icon {...p}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M6 9l1 .5M8.5 5.8l.5 1M15.5 5.8l-.5 1M18 9l-1 .5M17.5 15l-1-.5M6.5 15l1-.5"/></Icon>)
+export const IcCandy        = (p) => (<Icon {...p}><circle cx="12" cy="12" r="4"/><path d="M8 12L3 8v8zM16 12l5-4v8z"/></Icon>)
+// Podróże
+export const IcSuitcase     = (p) => (<Icon {...p}><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V4h6v3M8 7v13M16 7v13"/></Icon>)
+export const IcMap          = (p) => (<Icon {...p}><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></Icon>)
+export const IcPassport     = (p) => (<Icon {...p}><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M9 10h6M12 7c-1 1.5-1 4.5 0 6M12 7c1 1.5 1 4.5 0 6M9 17h6"/></Icon>)
+export const IcSailboat     = (p) => (<Icon {...p}><path d="M12 3v13M12 3l7 12h-7M12 6l-6 9h6"/><path d="M3 18h18l-2 3H5z"/></Icon>)
+export const IcRoad         = (p) => (<Icon {...p}><path d="M8 3L4 21M16 3l4 18M12 4v2M12 10v3M12 17v3"/></Icon>)
+export const IcTram         = (p) => (<Icon {...p}><rect x="5" y="6" width="14" height="13" rx="2"/><path d="M5 12h14M9 3h6M12 3v3M8 19l-2 2M16 19l2 2"/><circle cx="9" cy="15.5" r=".6" fill="currentColor"/><circle cx="15" cy="15.5" r=".6" fill="currentColor"/></Icon>)
+export const IcPalm         = (p) => (<Icon {...p}><path d="M12 21c0-5 0-9-1-12M8 21h8"/><path d="M11 9C9 6 5 6 3 8c3-.5 5 0 8 1z"/><path d="M11 9c2-3 6-3 8-1-3-.3-5 0-8 1z"/><path d="M11 9c-1-3 0-5 2-6-1 2-1 4-2 6z"/></Icon>)
+export const IcSignpost     = (p) => (<Icon {...p}><path d="M12 3v18M8 21h8"/><path d="M12 5h7l2 2-2 2h-7zM12 11H5l-2 2 2 2h7"/></Icon>)
+export const IcCaravan      = (p) => (<Icon {...p}><path d="M3 16V8a2 2 0 0 1 2-2h11a4 4 0 0 1 4 4v6z"/><path d="M20 16h2M6 9h4v3H6zM13 9h3v7"/><circle cx="8" cy="18" r="2"/></Icon>)
+// Zdrowie i sport
+export const IcBone         = (p) => (<Icon {...p}><path d="M15 9l-6 6"/><circle cx="16.5" cy="5.5" r="2"/><circle cx="18.5" cy="7.5" r="2"/><circle cx="5.5" cy="16.5" r="2"/><circle cx="7.5" cy="18.5" r="2"/></Icon>)
+export const IcGlassWater   = (p) => (<Icon {...p}><path d="M6 3h12l-1.5 17a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1z"/><path d="M6.7 10c2-1 3.5 1 5.3 0s3.3-1 5.3 0"/></Icon>)
+export const IcSleep        = (p) => (<Icon {...p}><path d="M3 7h5l-5 6h5"/><path d="M11 12h4l-4 5h4"/><path d="M17 4h4l-4 4.5h4"/></Icon>)
+export const IcTennis       = (p) => (<Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6a9 9 0 0 1 0 12.8M18.4 5.6a9 9 0 0 0 0 12.8"/></Icon>)
+export const IcMedKit       = (p) => (<Icon {...p}><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M12 10.5v6M9 13.5h6"/></Icon>)
+export const IcBathScale    = (p) => (<Icon {...p}><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 10a4.5 4.5 0 0 1 7 0M12 10.5l1.2-2"/></Icon>)
+// Praca i nauka
+export const IcPaperclip    = (p) => (<Icon {...p}><path d="M20 11l-8.5 8.5a5 5 0 0 1-7-7L13 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L14 7"/></Icon>)
+export const IcRuler        = (p) => (<Icon {...p}><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></Icon>)
+export const IcBackpack     = (p) => (<Icon {...p}><path d="M6 10a6 6 0 0 1 12 0v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"/><path d="M10 4V2.5h4V4M9 14h6v4H9z"/></Icon>)
+export const IcAtom         = (p) => (<Icon {...p}><circle cx="12" cy="12" r="1.2" fill="currentColor"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/></Icon>)
+export const IcFlask        = (p) => (<Icon {...p}><path d="M9 3h6M10 3v6L4.5 18.5A1.6 1.6 0 0 0 6 21h12a1.6 1.6 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/></Icon>)
+export const IcPresentation = (p) => (<Icon {...p}><path d="M3 4h18M4 4v10h16V4M12 14v3M8 21l4-4 4 4"/><path d="M8 11l3-3 2 2 3-3"/></Icon>)
+export const IcDocument     = (p) => (<Icon {...p}><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/></Icon>)
+// Ludzie
+export const IcBalloon      = (p) => (<Icon {...p}><path d="M12 3a6 6 0 0 0-6 6c0 4 3 7 6 7s6-3 6-7a6 6 0 0 0-6-6z"/><path d="M12 16l-1 2h2zM12 18c0 2-2 2-2 4"/></Icon>)
+export const IcCrown        = (p) => (<Icon {...p}><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/></Icon>)
+export const IcStroller     = (p) => (<Icon {...p}><path d="M13 3a7 7 0 0 1 7 7h-7z"/><path d="M3 5h2l2 5h13a5 5 0 0 1-5 5H9a2 2 0 0 1-2-2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></Icon>)
+export const IcCat          = (p) => (<Icon {...p}><path d="M5 11V4l4 3h6l4-3v7a7 7 0 0 1-14 0z"/><circle cx="9.5" cy="12" r=".6" fill="currentColor"/><circle cx="14.5" cy="12" r=".6" fill="currentColor"/><path d="M11 15h2l-1 1zM2 14h3M2 17l3-1M22 14h-3M22 17l-3-1"/></Icon>)
+export const IcDog          = (p) => (<Icon {...p}><path d="M8 5h8l1 3v6a5 5 0 0 1-10 0V8z"/><path d="M8 5L4 7l1 6 2.5-2M16 5l4 2-1 6-2.5-2"/><circle cx="10" cy="11" r=".6" fill="currentColor"/><circle cx="14" cy="11" r=".6" fill="currentColor"/><path d="M11 15h2l-1 1.2z"/></Icon>)
+export const IcBird         = (p) => (<Icon {...p}><path d="M16 7h.01"/><path d="M3.5 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.5-2L3 18"/><path d="M20 7l2 .5-2 .5M8 18v3M12 18v3"/></Icon>)
+export const IcFrown        = (p) => (<Icon {...p}><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r=".6" fill="currentColor"/><circle cx="15" cy="10" r=".6" fill="currentColor"/><path d="M8.5 16c1-1 2.2-1.5 3.5-1.5s2.5.5 3.5 1.5"/></Icon>)
+export const IcHeartBroken  = (p) => (<Icon {...p}><path d="M12 20s-8-4.5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6.5-8 11-8 11z"/><path d="M12 6.2l-1.5 4 3 2-1.5 3.5"/></Icon>)
+export const IcHearts       = (p) => (<Icon {...p}><path d="M9 19s-6-3.5-6-8a3.3 3.3 0 0 1 6-2 3.3 3.3 0 0 1 6 2c0 4.5-6 8-6 8z"/><path d="M14 5.5A3.3 3.3 0 0 1 21 7.5c0 3.5-4 6.5-4 6.5"/></Icon>)
+export const IcMegaphone    = (p) => (<Icon {...p}><path d="M3 10v4h3l9 5V5L6 10z"/><path d="M6 14l1.5 5h2.5L9 15.5M18 9a3 3 0 0 1 0 6"/></Icon>)
+export const IcUserPlus     = (p) => (<Icon {...p}><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></Icon>)
+// Natura
+export const IcCactus       = (p) => (<Icon {...p}><path d="M9 21V6a3 3 0 0 1 6 0v15"/><path d="M9 13H7a3 3 0 0 1-3-3V8M15 11h2a3 3 0 0 0 3-3V6M6 21h12"/></Icon>)
+export const IcPineTree     = (p) => (<Icon {...p}><path d="M12 2l5 6h-3l5 6h-3l4 5H4l4-5H5l5-6H7z"/><path d="M12 19v3"/></Icon>)
+export const IcButterfly    = (p) => (<Icon {...p}><path d="M12 8v11"/><path d="M12 11C10 5 4 3 3.5 6.5S6 12 12 12"/><path d="M12 11c2-6 8-8 8.5-4.5S18 12 12 12"/><path d="M12 12c-5 0-7 3-5.5 5s4.5 0 5.5-3M12 12c5 0 7 3 5.5 5s-4.5 0-5.5-3"/><path d="M12 8l-2-3M12 8l2-3"/></Icon>)
+export const IcSunrise      = (p) => (<Icon {...p}><path d="M5 17a7 7 0 0 1 14 0M2 21h20M12 2v5M9.5 4.5L12 2l2.5 2.5M4 11l1.5 1.5M20 11l-1.5 1.5"/></Icon>)
+export const IcPlanet       = (p) => (<Icon {...p}><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="3.2" transform="rotate(-20 12 12)"/></Icon>)
+export const IcFeather      = (p) => (<Icon {...p}><path d="M20 4C11 4 6 10 6 18"/><path d="M20 4c0 9-6 14-14 14L3 21M10 14h5M13 10h4"/></Icon>)
+export const IcCloudSun     = (p) => (<Icon {...p}><path d="M8 3v1.5M3.5 5.5l1 1M2 10h1.5M12.5 5.5l-1 1"/><path d="M5.2 12.5a3.5 3.5 0 0 1 6-3.5"/><path d="M8 20h9a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.4 1.5A3.3 3.3 0 0 0 8 20z"/></Icon>)
+export const IcClover       = (p) => (<Icon {...p}><circle cx="12" cy="7.5" r="3.2"/><circle cx="7.5" cy="12" r="3.2"/><circle cx="16.5" cy="12" r="3.2"/><circle cx="12" cy="16.5" r="3.2"/><path d="M14 18l3 4"/></Icon>)
+export const IcBee          = (p) => (<Icon {...p}><ellipse cx="12" cy="14.5" rx="5" ry="6"/><path d="M7.3 12.5h9.4M7.3 16.5h9.4M10.5 5l1.5 3.5L13.5 5"/><path d="M8 10C5 9 3 7 4 5s4 0 5 4M16 10c3-1 5-3 4-5s-4 0-5 4"/></Icon>)
+export const IcSparkles     = (p) => (<Icon {...p}><path d="M10 3l1.5 4.5L16 9l-4.5 1.5L10 15l-1.5-4.5L4 9l4.5-1.5z"/><path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z"/></Icon>)
+// Hobby
+export const IcBrush        = (p) => (<Icon {...p}><path d="M18 3l3 3-9 9-3-3z"/><path d="M9 12c-3 0-5 2-5 5 0 1.5-1 2.5-2 3 4 1 10 0 10-5"/></Icon>)
+export const IcScissors     = (p) => (<Icon {...p}><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.5L20 18M8.5 16.5L20 6"/></Icon>)
+export const IcYarn         = (p) => (<Icon {...p}><circle cx="12" cy="12" r="8"/><path d="M6 7c4 1 8 5 9 12M9 4.6c3 2 6 6 7 13M18 6.5C15 8 11 13 10 20"/><path d="M20 12l2 4"/></Icon>)
+export const IcChess        = (p) => (<Icon {...p}><path d="M6 21h12M7.5 18h9M8.5 18l.8-8h5.4l.8 8M7 4h2.5v2H11V4h2v2h1.5V4H17v4l-2 2H9L7 8z"/></Icon>)
+export const IcPopcorn      = (p) => (<Icon {...p}><path d="M6 9l1.5 12h9L18 9z"/><path d="M10 9l.5 12M14 9l-.5 12"/><path d="M6 9a2 2 0 0 1 1-3.7 2.5 2.5 0 0 1 4.5-1.5 2.5 2.5 0 0 1 4 .5A2 2 0 0 1 18 9"/></Icon>)
+export const IcPiano        = (p) => (<Icon {...p}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 14v5M12 14v5M16 14v5"/><path d="M7 5h2v9H7zM11 5h2v9h-2zM15 5h2v9h-2z" fill="currentColor"/></Icon>)
+export const IcFishingRod   = (p) => (<Icon {...p}><path d="M4 21L18 4v11"/><path d="M18 15a2 2 0 1 1-2 2"/><circle cx="7.5" cy="16.5" r="1.8"/></Icon>)
+// Różne
+export const IcChurch       = (p) => (<Icon {...p}><path d="M12 2v4M10 4h4"/><path d="M7 21V11l5-4 5 4v10"/><path d="M3 21h18M3 21v-6l4-3M21 21v-6l-4-3M10 21v-4a2 2 0 0 1 4 0v4"/></Icon>)
+export const IcDove         = (p) => (<Icon {...p}><path d="M3 15c3 0 5-1 7-4l3-5a3 3 0 0 1 5 1l2 1-2 1v3a7 7 0 0 1-7 7H6z"/><path d="M10 11C8 9 7 6 8 3c3 1 5 3 5 6"/></Icon>)
+export const IcInfinity     = (p) => (<Icon {...p}><path d="M12 12c-2-3-4-4.5-6-4.5a4.5 4.5 0 0 0 0 9c2 0 4-1.5 6-4.5s4-4.5 6-4.5a4.5 4.5 0 0 1 0 9c-2 0-4-1.5-6-4.5z"/></Icon>)
+
+// ── Katalog ikon — 250 ikon w 10 kategoriach po 25 ─────────────────────────
+// Jeden katalog dla całej aplikacji: każdy wybór ikony (nawyki, kategorie,
+// listy, osoby, moduły…) pokazuje te same ikony w tych samych kategoriach.
+export const ICON_GROUPS = ['Finanse', 'Dom', 'Jedzenie', 'Podróże', 'Zdrowie i sport', 'Praca i nauka', 'Ludzie i zwierzęta', 'Natura', 'Hobby', 'Wiara i inne']
+
 export const ICON_CATALOG = [
-  { key: 'IcWallet',      label: 'portfel',      group: 'Finanse',              Component: IcWallet },
-  { key: 'IcCoins',       label: 'monety',       group: 'Finanse',              Component: IcCoins },
-  { key: 'IcChart',       label: 'wykres',       group: 'Finanse',              Component: IcChart },
-  { key: 'IcPieChart',    label: 'kołowy',       group: 'Finanse',              Component: IcPieChart },
-  { key: 'IcReceipt',     label: 'paragon',      group: 'Finanse',              Component: IcReceipt },
-  { key: 'IcTarget',      label: 'cel',          group: 'Finanse',              Component: IcTarget },
-  { key: 'IcScale',       label: 'waga',         group: 'Finanse',              Component: IcScale },
-  { key: 'IcPercent',     label: 'procent',      group: 'Finanse',              Component: IcPercent },
-  { key: 'IcVault',       label: 'sejf',         group: 'Finanse',              Component: IcVault },
-  { key: 'IconSavings',   label: 'oszczędności', group: 'Finanse',              Component: IconSavings },
-  { key: 'IconBank',      label: 'bank',         group: 'Finanse',              Component: IconBank },
-  { key: 'IconCash',      label: 'gotówka',      group: 'Finanse',              Component: IconCash },
-  { key: 'IconCard',      label: 'karta',        group: 'Finanse',              Component: IconCard },
-
-  { key: 'IcSofa',        label: 'sofa',         group: 'Dom i przedmioty',     Component: IcSofa },
-  { key: 'IcBed',         label: 'łóżko',        group: 'Dom i przedmioty',     Component: IcBed },
-  { key: 'IcLamp',        label: 'lampa',        group: 'Dom i przedmioty',     Component: IcLamp },
-  { key: 'IcKey',         label: 'klucz',        group: 'Dom i przedmioty',     Component: IcKey },
-  { key: 'IcDoor',        label: 'drzwi',        group: 'Dom i przedmioty',     Component: IcDoor },
-  { key: 'IcWashing',     label: 'pralka',       group: 'Dom i przedmioty',     Component: IcWashing },
-  { key: 'IcPlant',       label: 'roślina',      group: 'Dom i przedmioty',     Component: IcPlant },
-  { key: 'IcBroom',       label: 'miotła',       group: 'Dom i przedmioty',     Component: IcBroom },
-  { key: 'IcTools',       label: 'narzędzia',    group: 'Dom i przedmioty',     Component: IcTools },
-  { key: 'IcThermo',      label: 'termometr',    group: 'Dom i przedmioty',     Component: IcThermo },
-  { key: 'IconHome',      label: 'dom',          group: 'Dom i przedmioty',     Component: IconHome },
-
-  { key: 'IcPizza',       label: 'pizza',        group: 'Jedzenie',             Component: IcPizza },
-  { key: 'IcBurger',      label: 'burger',       group: 'Jedzenie',             Component: IcBurger },
-  { key: 'IcApple',       label: 'jabłko',       group: 'Jedzenie',             Component: IcApple },
-  { key: 'IcWine',        label: 'wino',         group: 'Jedzenie',             Component: IcWine },
-  { key: 'IcCup',         label: 'kubek',        group: 'Jedzenie',             Component: IcCup },
-  { key: 'IcIceCream',    label: 'lody',         group: 'Jedzenie',             Component: IcIceCream },
-  { key: 'IcCake',        label: 'ciasto',       group: 'Jedzenie',             Component: IcCake },
-  { key: 'IcFish',        label: 'ryba',         group: 'Jedzenie',             Component: IcFish },
-  { key: 'IcEgg',         label: 'jajko',        group: 'Jedzenie',             Component: IcEgg },
-  { key: 'IcBread',       label: 'chleb',        group: 'Jedzenie',             Component: IcBread },
-  { key: 'IconCoffee',    label: 'kawa',         group: 'Jedzenie',             Component: IconCoffee },
-
-  { key: 'IcCar',         label: 'samochód',     group: 'Transport',            Component: IcCar },
-  { key: 'IcBus',         label: 'autobus',      group: 'Transport',            Component: IcBus },
-  { key: 'IcTrain',       label: 'pociąg',       group: 'Transport',            Component: IcTrain },
-  { key: 'IcPlane',       label: 'samolot',      group: 'Transport',            Component: IcPlane },
-  { key: 'IcBike',        label: 'rower',        group: 'Transport',            Component: IcBike },
-  { key: 'IcScooter',     label: 'hulajnoga',    group: 'Transport',            Component: IcScooter },
-  { key: 'IcShip',        label: 'statek',       group: 'Transport',            Component: IcShip },
-  { key: 'IcRocket',      label: 'rakieta',      group: 'Transport',            Component: IcRocket },
-  { key: 'IcTaxi',        label: 'taksówka',     group: 'Transport',            Component: IcTaxi },
-  { key: 'IcParking',     label: 'parking',      group: 'Transport',            Component: IcParking },
-  { key: 'IconFuel',      label: 'paliwo',       group: 'Transport',            Component: IconFuel },
-
-  { key: 'IcPill',        label: 'tabletka',     group: 'Zdrowie i ciało',      Component: IcPill },
-  { key: 'IcHeartbeat',   label: 'puls',         group: 'Zdrowie i ciało',      Component: IcHeartbeat },
-  { key: 'IcStethoscope', label: 'stetoskop',    group: 'Zdrowie i ciało',      Component: IcStethoscope },
-  { key: 'IcTooth',       label: 'ząb',          group: 'Zdrowie i ciało',      Component: IcTooth },
-  { key: 'IcDumbbell',    label: 'hantle',       group: 'Zdrowie i ciało',      Component: IcDumbbell },
-  { key: 'IcYoga',        label: 'joga',         group: 'Zdrowie i ciało',      Component: IcYoga },
-  { key: 'IcBrain',       label: 'mózg',         group: 'Zdrowie i ciało',      Component: IcBrain },
-  { key: 'IcLeaf',        label: 'liść',         group: 'Zdrowie i ciało',      Component: IcLeaf },
-  { key: 'IcDrop',        label: 'kropla',       group: 'Zdrowie i ciało',      Component: IcDrop },
-  { key: 'IcMoon',        label: 'księżyc',      group: 'Zdrowie i ciało',      Component: IcMoon },
-
-  { key: 'IcBriefcase',   label: 'teczka',       group: 'Praca i technologia',  Component: IcBriefcase },
-  { key: 'IcLaptop',      label: 'laptop',       group: 'Praca i technologia',  Component: IcLaptop },
-  { key: 'IcPhoneDev',    label: 'telefon',      group: 'Praca i technologia',  Component: IcPhoneDev },
-  { key: 'IcMonitor',     label: 'monitor',      group: 'Praca i technologia',  Component: IcMonitor },
-  { key: 'IcCode',        label: 'kod',          group: 'Praca i technologia',  Component: IcCode },
-  { key: 'IcKeyboard',    label: 'klawiatura',   group: 'Praca i technologia',  Component: IcKeyboard },
-  { key: 'IcServer',      label: 'serwer',       group: 'Praca i technologia',  Component: IcServer },
-  { key: 'IcWifi',        label: 'wifi',         group: 'Praca i technologia',  Component: IcWifi },
-  { key: 'IcBattery',     label: 'bateria',      group: 'Praca i technologia',  Component: IcBattery },
-  { key: 'IconSearch',    label: 'szukaj',       group: 'Praca i technologia',  Component: IconSearch },
-
-  { key: 'IcUser',        label: 'osoba',        group: 'Ludzie i społeczność', Component: IcUser },
-  { key: 'IcUsersGrp',    label: 'ludzie',       group: 'Ludzie i społeczność', Component: IcUsersGrp },
-  { key: 'IcChat',        label: 'czat',         group: 'Ludzie i społeczność', Component: IcChat },
-  { key: 'IcMail',        label: 'mail',         group: 'Ludzie i społeczność', Component: IcMail },
-  { key: 'IcHandshake',   label: 'uścisk',       group: 'Ludzie i społeczność', Component: IcHandshake },
-  { key: 'IcSmile',       label: 'uśmiech',      group: 'Ludzie i społeczność', Component: IcSmile },
-  { key: 'IcBaby',        label: 'dziecko',      group: 'Ludzie i społeczność', Component: IcBaby },
-  { key: 'IcRing',        label: 'pierścionek',  group: 'Ludzie i społeczność', Component: IcRing },
-  { key: 'IconHeart',     label: 'serce',        group: 'Ludzie i społeczność', Component: IconHeart },
-  { key: 'IcGlasses',     label: 'okulary',      group: 'Ludzie i społeczność', Component: IcGlasses },
-
-  { key: 'IcSun',         label: 'słońce',       group: 'Natura i pogoda',      Component: IcSun },
-  { key: 'IcCloud',       label: 'chmura',       group: 'Natura i pogoda',      Component: IcCloud },
-  { key: 'IcRain',        label: 'deszcz',       group: 'Natura i pogoda',      Component: IcRain },
-  { key: 'IcSnow',        label: 'śnieg',        group: 'Natura i pogoda',      Component: IcSnow },
-  { key: 'IcTree',        label: 'drzewo',       group: 'Natura i pogoda',      Component: IcTree },
-  { key: 'IcFlower',      label: 'kwiat',        group: 'Natura i pogoda',      Component: IcFlower },
-  { key: 'IcMountain',    label: 'góra',         group: 'Natura i pogoda',      Component: IcMountain },
-  { key: 'IcWave',        label: 'fala',         group: 'Natura i pogoda',      Component: IcWave },
-  { key: 'IcFire',        label: 'ogień',        group: 'Natura i pogoda',      Component: IcFire },
-  { key: 'IcBolt',        label: 'błyskawica',   group: 'Natura i pogoda',      Component: IcBolt },
-
-  { key: 'IcMusic',       label: 'muzyka',       group: 'Aktywności i hobby',   Component: IcMusic },
-  { key: 'IcCamera',      label: 'aparat',       group: 'Aktywności i hobby',   Component: IcCamera },
-  { key: 'IcBookOpen',    label: 'książka',      group: 'Aktywności i hobby',   Component: IcBookOpen },
-  { key: 'IcGame',        label: 'gra',          group: 'Aktywności i hobby',   Component: IcGame },
-  { key: 'IcPalette',     label: 'paleta',       group: 'Aktywności i hobby',   Component: IcPalette },
-  { key: 'IcFilm',        label: 'film',         group: 'Aktywności i hobby',   Component: IcFilm },
-  { key: 'IcHeadphones',  label: 'słuchawki',    group: 'Aktywności i hobby',   Component: IcHeadphones },
-  { key: 'IcMic',         label: 'mikrofon',     group: 'Aktywności i hobby',   Component: IcMic },
-  { key: 'IconStar',      label: 'gwiazda',      group: 'Aktywności i hobby',   Component: IconStar },
-  { key: 'IconShopping',  label: 'zakupy',       group: 'Aktywności i hobby',   Component: IconShopping },
-  { key: 'IconClothing',  label: 'ubrania',      group: 'Aktywności i hobby',   Component: IconClothing },
-
-  { key: 'IconMore',      label: 'inne',         group: 'Interfejs i różne',    Component: IconMore },
-  { key: 'IconTag',       label: 'etykieta',     group: 'Interfejs i różne',    Component: IconTag },
-  { key: 'IconBell',      label: 'dzwonek',      group: 'Interfejs i różne',    Component: IconBell },
-  { key: 'IcAlarm',       label: 'budzik',       group: 'Interfejs i różne',    Component: IcAlarm },
-  { key: 'IconCalendar',  label: 'kalendarz',    group: 'Interfejs i różne',    Component: IconCalendar },
-  { key: 'IcShield',      label: 'tarcza',       group: 'Interfejs i różne',    Component: IcShield },
-  { key: 'IcGlobe',       label: 'globus',       group: 'Interfejs i różne',    Component: IcGlobe },
-  { key: 'IcMapPin',      label: 'pinezka',      group: 'Interfejs i różne',    Component: IcMapPin },
-  { key: 'IconNote',      label: 'notatka',      group: 'Interfejs i różne',    Component: IconNote },
-  { key: 'IcPin',         label: 'przypięcie',   group: 'Interfejs i różne',    Component: IcPin },
-  { key: 'IconFlag',      label: 'flaga',        group: 'Interfejs i różne',    Component: IconFlag },
-  { key: 'IconRepeat',    label: 'cyklicznie',   group: 'Interfejs i różne',    Component: IconRepeat },
-  { key: 'IcCross',       label: 'krzyż',        group: 'Interfejs i różne',    Component: IcCross },
-  { key: 'IcPray',        label: 'modlitwa',     group: 'Interfejs i różne',    Component: IcPray },
-  { key: 'IconSettings',  label: 'ustawienia',   group: 'Interfejs i różne',    Component: IconSettings },
-  { key: 'IcGift2',       label: 'prezent',      group: 'Interfejs i różne',    Component: IcGift2 },
-
-  // ── Rozszerzona baza ──
-  { key: 'IcBanknote',    label: 'banknot',      group: 'Finanse',              Component: IcBanknote },
-  { key: 'IcTrendUp',     label: 'wzrost',       group: 'Finanse',              Component: IcTrendUp },
-  { key: 'IcTrendDown',   label: 'spadek',       group: 'Finanse',              Component: IcTrendDown },
-  { key: 'IcCalculator',  label: 'kalkulator',   group: 'Finanse',              Component: IcCalculator },
-  { key: 'IcPiggy',       label: 'skarbonka',    group: 'Finanse',              Component: IcPiggy },
-  { key: 'IcHandCoin',    label: 'datek',        group: 'Finanse',              Component: IcHandCoin },
-
-  { key: 'IcTv',          label: 'telewizor',    group: 'Dom i przedmioty',     Component: IcTv },
-  { key: 'IcFridge',      label: 'lodówka',      group: 'Dom i przedmioty',     Component: IcFridge },
-  { key: 'IcBath',        label: 'wanna',        group: 'Dom i przedmioty',     Component: IcBath },
-  { key: 'IcTrash',       label: 'kosz',         group: 'Dom i przedmioty',     Component: IcTrash },
-  { key: 'IcCandle',      label: 'świeca',       group: 'Dom i przedmioty',     Component: IcCandle },
-  { key: 'IcClockWall',   label: 'zegar',        group: 'Dom i przedmioty',     Component: IcClockWall },
-  { key: 'IcChair',       label: 'krzesło',      group: 'Dom i przedmioty',     Component: IcChair },
-
-  { key: 'IcMilk',        label: 'mleko',        group: 'Jedzenie',             Component: IcMilk },
-  { key: 'IcBottle',      label: 'butelka',      group: 'Jedzenie',             Component: IcBottle },
-  { key: 'IcCookie',      label: 'ciastko',      group: 'Jedzenie',             Component: IcCookie },
-  { key: 'IcMeat',        label: 'mięso',        group: 'Jedzenie',             Component: IcMeat },
-  { key: 'IcTea',         label: 'herbata',      group: 'Jedzenie',             Component: IcTea },
-  { key: 'IcCheese',      label: 'ser',          group: 'Jedzenie',             Component: IcCheese },
-  { key: 'IcSalad',       label: 'sałatka',      group: 'Jedzenie',             Component: IcSalad },
-
-  { key: 'IcTruck',       label: 'ciężarówka',   group: 'Transport',            Component: IcTruck },
-  { key: 'IcMotorbike',   label: 'motor',        group: 'Transport',            Component: IcMotorbike },
-  { key: 'IcTraffic',     label: 'sygnalizacja', group: 'Transport',            Component: IcTraffic },
-  { key: 'IcAnchor',      label: 'kotwica',      group: 'Transport',            Component: IcAnchor },
-  { key: 'IcWalk',        label: 'spacer',       group: 'Transport',            Component: IcWalk },
-
-  { key: 'IcRun',         label: 'bieganie',     group: 'Zdrowie i ciało',      Component: IcRun },
-  { key: 'IcSwim',        label: 'pływanie',     group: 'Zdrowie i ciało',      Component: IcSwim },
-  { key: 'IcSyringe',     label: 'zastrzyk',     group: 'Zdrowie i ciało',      Component: IcSyringe },
-  { key: 'IcVirus',       label: 'wirus',        group: 'Zdrowie i ciało',      Component: IcVirus },
-  { key: 'IcSoap',        label: 'mydło',        group: 'Zdrowie i ciało',      Component: IcSoap },
-  { key: 'IcBandage',     label: 'plaster',      group: 'Zdrowie i ciało',      Component: IcBandage },
-
-  { key: 'IcPrinter',     label: 'drukarka',     group: 'Praca i technologia',  Component: IcPrinter },
-  { key: 'IcMouse',       label: 'myszka',       group: 'Praca i technologia',  Component: IcMouse },
-  { key: 'IcRobot',       label: 'robot',        group: 'Praca i technologia',  Component: IcRobot },
-  { key: 'IcBug',         label: 'błąd',         group: 'Praca i technologia',  Component: IcBug },
-  { key: 'IcFolder',      label: 'folder',       group: 'Praca i technologia',  Component: IcFolder },
-  { key: 'IcClipboard',   label: 'schowek',      group: 'Praca i technologia',  Component: IcClipboard },
-  { key: 'IcPen',         label: 'długopis',     group: 'Praca i technologia',  Component: IcPen },
-  { key: 'IcIdea',        label: 'pomysł',       group: 'Praca i technologia',  Component: IcIdea },
-
-  { key: 'IcPhoneCall',   label: 'rozmowa',      group: 'Ludzie i społeczność', Component: IcPhoneCall },
-  { key: 'IcThumbsUp',    label: 'kciuk',        group: 'Ludzie i społeczność', Component: IcThumbsUp },
-  { key: 'IcGradCap',     label: 'absolwent',    group: 'Ludzie i społeczność', Component: IcGradCap },
-  { key: 'IcPaw',         label: 'łapka',        group: 'Ludzie i społeczność', Component: IcPaw },
-
-  { key: 'IcRainbow',     label: 'tęcza',        group: 'Natura i pogoda',      Component: IcRainbow },
-  { key: 'IcUmbrella',    label: 'parasol',      group: 'Natura i pogoda',      Component: IcUmbrella },
-  { key: 'IcSprout',      label: 'kiełek',       group: 'Natura i pogoda',      Component: IcSprout },
-  { key: 'IcMushroom',    label: 'grzyb',        group: 'Natura i pogoda',      Component: IcMushroom },
-  { key: 'IcWind',        label: 'wiatr',        group: 'Natura i pogoda',      Component: IcWind },
-
-  { key: 'IcGuitar',      label: 'gitara',       group: 'Aktywności i hobby',   Component: IcGuitar },
-  { key: 'IcBasketball',  label: 'koszykówka',   group: 'Aktywności i hobby',   Component: IcBasketball },
-  { key: 'IcSoccer',      label: 'piłka',        group: 'Aktywności i hobby',   Component: IcSoccer },
-  { key: 'IcDice',        label: 'kość',         group: 'Aktywności i hobby',   Component: IcDice },
-  { key: 'IcTent',        label: 'namiot',       group: 'Aktywności i hobby',   Component: IcTent },
-  { key: 'IcTicket',      label: 'bilet',        group: 'Aktywności i hobby',   Component: IcTicket },
-  { key: 'IcTrophy',      label: 'puchar',       group: 'Aktywności i hobby',   Component: IcTrophy },
-  { key: 'IcPuzzle',      label: 'puzzle',       group: 'Aktywności i hobby',   Component: IcPuzzle },
-  { key: 'IcBooks',       label: 'książki',      group: 'Aktywności i hobby',   Component: IcBooks },
-
-  { key: 'IcLock',        label: 'kłódka',       group: 'Interfejs i różne',    Component: IcLock },
-  { key: 'IcCheckCircle', label: 'ptaszek',      group: 'Interfejs i różne',    Component: IcCheckCircle },
-  { key: 'IcInfo',        label: 'info',         group: 'Interfejs i różne',    Component: IcInfo },
-  { key: 'IcQuestion',    label: 'pytanie',      group: 'Interfejs i różne',    Component: IcQuestion },
-  { key: 'IcHourglass',   label: 'klepsydra',    group: 'Interfejs i różne',    Component: IcHourglass },
-  { key: 'IcCompass',     label: 'kompas',       group: 'Interfejs i różne',    Component: IcCompass },
+  // Finanse
+  { key: 'IcWallet',      label: 'portfel',        group: 'Finanse', Component: IcWallet },
+  { key: 'IcCoins',       label: 'monety',         group: 'Finanse', Component: IcCoins },
+  { key: 'IcChart',       label: 'wykres',         group: 'Finanse', Component: IcChart },
+  { key: 'IcPieChart',    label: 'kołowy',         group: 'Finanse', Component: IcPieChart },
+  { key: 'IcReceipt',     label: 'paragon',        group: 'Finanse', Component: IcReceipt },
+  { key: 'IcTarget',      label: 'cel',            group: 'Finanse', Component: IcTarget },
+  { key: 'IcScale',       label: 'waga',           group: 'Finanse', Component: IcScale },
+  { key: 'IcPercent',     label: 'procent',        group: 'Finanse', Component: IcPercent },
+  { key: 'IcVault',       label: 'sejf',           group: 'Finanse', Component: IcVault },
+  { key: 'IconSavings',   label: 'oszczędności',   group: 'Finanse', Component: IconSavings },
+  { key: 'IconBank',      label: 'bank',           group: 'Finanse', Component: IconBank },
+  { key: 'IconCash',      label: 'gotówka',        group: 'Finanse', Component: IconCash },
+  { key: 'IconCard',      label: 'karta',          group: 'Finanse', Component: IconCard },
+  { key: 'IcBanknote',    label: 'banknot',        group: 'Finanse', Component: IcBanknote },
+  { key: 'IcTrendUp',     label: 'wzrost',         group: 'Finanse', Component: IcTrendUp },
+  { key: 'IcTrendDown',   label: 'spadek',         group: 'Finanse', Component: IcTrendDown },
+  { key: 'IcCalculator',  label: 'kalkulator',     group: 'Finanse', Component: IcCalculator },
+  { key: 'IcPiggy',       label: 'skarbonka',      group: 'Finanse', Component: IcPiggy },
+  { key: 'IcHandCoin',    label: 'datek',          group: 'Finanse', Component: IcHandCoin },
+  { key: 'IcBasket',      label: 'koszyk',         group: 'Finanse', Component: IcBasket },
+  { key: 'IcShoppingBag', label: 'torba',          group: 'Finanse', Component: IcShoppingBag },
+  { key: 'IcDiamond',     label: 'diament',        group: 'Finanse', Component: IcDiamond },
+  { key: 'IcInvoice',     label: 'faktura',        group: 'Finanse', Component: IcInvoice },
+  { key: 'IcEuro',        label: 'euro',           group: 'Finanse', Component: IcEuro },
+  { key: 'IcGoldBar',     label: 'złoto',          group: 'Finanse', Component: IcGoldBar },
+  // Dom
+  { key: 'IcSofa',        label: 'sofa',           group: 'Dom', Component: IcSofa },
+  { key: 'IcBed',         label: 'łóżko',          group: 'Dom', Component: IcBed },
+  { key: 'IcLamp',        label: 'lampa',          group: 'Dom', Component: IcLamp },
+  { key: 'IcKey',         label: 'klucz',          group: 'Dom', Component: IcKey },
+  { key: 'IcDoor',        label: 'drzwi',          group: 'Dom', Component: IcDoor },
+  { key: 'IcWashing',     label: 'pralka',         group: 'Dom', Component: IcWashing },
+  { key: 'IcPlant',       label: 'roślina',        group: 'Dom', Component: IcPlant },
+  { key: 'IcBroom',       label: 'miotła',         group: 'Dom', Component: IcBroom },
+  { key: 'IcTools',       label: 'narzędzia',      group: 'Dom', Component: IcTools },
+  { key: 'IcThermo',      label: 'termometr',      group: 'Dom', Component: IcThermo },
+  { key: 'IconHome',      label: 'dom',            group: 'Dom', Component: IconHome },
+  { key: 'IcTv',          label: 'telewizor',      group: 'Dom', Component: IcTv },
+  { key: 'IcFridge',      label: 'lodówka',        group: 'Dom', Component: IcFridge },
+  { key: 'IcBath',        label: 'wanna',          group: 'Dom', Component: IcBath },
+  { key: 'IcTrash',       label: 'kosz',           group: 'Dom', Component: IcTrash },
+  { key: 'IcCandle',      label: 'świeca',         group: 'Dom', Component: IcCandle },
+  { key: 'IcClockWall',   label: 'zegar',          group: 'Dom', Component: IcClockWall },
+  { key: 'IcChair',       label: 'krzesło',        group: 'Dom', Component: IcChair },
+  { key: 'IcWindow',      label: 'okno',           group: 'Dom', Component: IcWindow },
+  { key: 'IcShower',      label: 'prysznic',       group: 'Dom', Component: IcShower },
+  { key: 'IcIron',        label: 'żelazko',        group: 'Dom', Component: IcIron },
+  { key: 'IcHanger',      label: 'wieszak',        group: 'Dom', Component: IcHanger },
+  { key: 'IcBucket',      label: 'wiadro',         group: 'Dom', Component: IcBucket },
+  { key: 'IcHammer',      label: 'młotek',         group: 'Dom', Component: IcHammer },
+  { key: 'IcPlug',        label: 'wtyczka',        group: 'Dom', Component: IcPlug },
+  // Jedzenie
+  { key: 'IcPizza',       label: 'pizza',          group: 'Jedzenie', Component: IcPizza },
+  { key: 'IcBurger',      label: 'burger',         group: 'Jedzenie', Component: IcBurger },
+  { key: 'IcApple',       label: 'jabłko',         group: 'Jedzenie', Component: IcApple },
+  { key: 'IcWine',        label: 'wino',           group: 'Jedzenie', Component: IcWine },
+  { key: 'IcCup',         label: 'kubek',          group: 'Jedzenie', Component: IcCup },
+  { key: 'IcIceCream',    label: 'lody',           group: 'Jedzenie', Component: IcIceCream },
+  { key: 'IcCake',        label: 'ciasto',         group: 'Jedzenie', Component: IcCake },
+  { key: 'IcFish',        label: 'ryba',           group: 'Jedzenie', Component: IcFish },
+  { key: 'IcEgg',         label: 'jajko',          group: 'Jedzenie', Component: IcEgg },
+  { key: 'IcBread',       label: 'chleb',          group: 'Jedzenie', Component: IcBread },
+  { key: 'IconCoffee',    label: 'kawa',           group: 'Jedzenie', Component: IconCoffee },
+  { key: 'IcMilk',        label: 'mleko',          group: 'Jedzenie', Component: IcMilk },
+  { key: 'IcBottle',      label: 'butelka',        group: 'Jedzenie', Component: IcBottle },
+  { key: 'IcCookie',      label: 'ciastko',        group: 'Jedzenie', Component: IcCookie },
+  { key: 'IcMeat',        label: 'mięso',          group: 'Jedzenie', Component: IcMeat },
+  { key: 'IcTea',         label: 'herbata',        group: 'Jedzenie', Component: IcTea },
+  { key: 'IcCheese',      label: 'ser',            group: 'Jedzenie', Component: IcCheese },
+  { key: 'IcSalad',       label: 'sałatka',        group: 'Jedzenie', Component: IcSalad },
+  { key: 'IcCarrot',      label: 'marchewka',      group: 'Jedzenie', Component: IcCarrot },
+  { key: 'IcCherry',      label: 'wiśnie',         group: 'Jedzenie', Component: IcCherry },
+  { key: 'IcPot',         label: 'garnek',         group: 'Jedzenie', Component: IcPot },
+  { key: 'IcCutlery',     label: 'sztućce',        group: 'Jedzenie', Component: IcCutlery },
+  { key: 'IcBeer',        label: 'piwo',           group: 'Jedzenie', Component: IcBeer },
+  { key: 'IcDonut',       label: 'pączek',         group: 'Jedzenie', Component: IcDonut },
+  { key: 'IcCandy',       label: 'cukierek',       group: 'Jedzenie', Component: IcCandy },
+  // Podróże
+  { key: 'IcCar',         label: 'samochód',       group: 'Podróże', Component: IcCar },
+  { key: 'IcBus',         label: 'autobus',        group: 'Podróże', Component: IcBus },
+  { key: 'IcTrain',       label: 'pociąg',         group: 'Podróże', Component: IcTrain },
+  { key: 'IcPlane',       label: 'samolot',        group: 'Podróże', Component: IcPlane },
+  { key: 'IcBike',        label: 'rower',          group: 'Podróże', Component: IcBike },
+  { key: 'IcScooter',     label: 'hulajnoga',      group: 'Podróże', Component: IcScooter },
+  { key: 'IcShip',        label: 'statek',         group: 'Podróże', Component: IcShip },
+  { key: 'IcRocket',      label: 'rakieta',        group: 'Podróże', Component: IcRocket },
+  { key: 'IcTaxi',        label: 'taksówka',       group: 'Podróże', Component: IcTaxi },
+  { key: 'IcParking',     label: 'parking',        group: 'Podróże', Component: IcParking },
+  { key: 'IconFuel',      label: 'paliwo',         group: 'Podróże', Component: IconFuel },
+  { key: 'IcTruck',       label: 'ciężarówka',     group: 'Podróże', Component: IcTruck },
+  { key: 'IcMotorbike',   label: 'motor',          group: 'Podróże', Component: IcMotorbike },
+  { key: 'IcTraffic',     label: 'sygnalizacja',   group: 'Podróże', Component: IcTraffic },
+  { key: 'IcAnchor',      label: 'kotwica',        group: 'Podróże', Component: IcAnchor },
+  { key: 'IcWalk',        label: 'spacer',         group: 'Podróże', Component: IcWalk },
+  { key: 'IcSuitcase',    label: 'walizka',        group: 'Podróże', Component: IcSuitcase },
+  { key: 'IcMap',         label: 'mapa',           group: 'Podróże', Component: IcMap },
+  { key: 'IcPassport',    label: 'paszport',       group: 'Podróże', Component: IcPassport },
+  { key: 'IcSailboat',    label: 'żaglówka',       group: 'Podróże', Component: IcSailboat },
+  { key: 'IcRoad',        label: 'droga',          group: 'Podróże', Component: IcRoad },
+  { key: 'IcTram',        label: 'tramwaj',        group: 'Podróże', Component: IcTram },
+  { key: 'IcPalm',        label: 'palma',          group: 'Podróże', Component: IcPalm },
+  { key: 'IcSignpost',    label: 'drogowskaz',     group: 'Podróże', Component: IcSignpost },
+  { key: 'IcCaravan',     label: 'przyczepa',      group: 'Podróże', Component: IcCaravan },
+  // Zdrowie i sport
+  { key: 'IcPill',        label: 'tabletka',       group: 'Zdrowie i sport', Component: IcPill },
+  { key: 'IcHeartbeat',   label: 'puls',           group: 'Zdrowie i sport', Component: IcHeartbeat },
+  { key: 'IcStethoscope', label: 'stetoskop',      group: 'Zdrowie i sport', Component: IcStethoscope },
+  { key: 'IcTooth',       label: 'ząb',            group: 'Zdrowie i sport', Component: IcTooth },
+  { key: 'IcDumbbell',    label: 'hantle',         group: 'Zdrowie i sport', Component: IcDumbbell },
+  { key: 'IcYoga',        label: 'joga',           group: 'Zdrowie i sport', Component: IcYoga },
+  { key: 'IcBrain',       label: 'mózg',           group: 'Zdrowie i sport', Component: IcBrain },
+  { key: 'IcLeaf',        label: 'liść',           group: 'Zdrowie i sport', Component: IcLeaf },
+  { key: 'IcDrop',        label: 'kropla',         group: 'Zdrowie i sport', Component: IcDrop },
+  { key: 'IcMoon',        label: 'księżyc',        group: 'Zdrowie i sport', Component: IcMoon },
+  { key: 'IcRun',         label: 'bieganie',       group: 'Zdrowie i sport', Component: IcRun },
+  { key: 'IcSwim',        label: 'pływanie',       group: 'Zdrowie i sport', Component: IcSwim },
+  { key: 'IcSyringe',     label: 'zastrzyk',       group: 'Zdrowie i sport', Component: IcSyringe },
+  { key: 'IcVirus',       label: 'wirus',          group: 'Zdrowie i sport', Component: IcVirus },
+  { key: 'IcSoap',        label: 'mydło',          group: 'Zdrowie i sport', Component: IcSoap },
+  { key: 'IcBandage',     label: 'plaster',        group: 'Zdrowie i sport', Component: IcBandage },
+  { key: 'IcBasketball',  label: 'koszykówka',     group: 'Zdrowie i sport', Component: IcBasketball },
+  { key: 'IcSoccer',      label: 'piłka',          group: 'Zdrowie i sport', Component: IcSoccer },
+  { key: 'IcBone',        label: 'kość',           group: 'Zdrowie i sport', Component: IcBone },
+  { key: 'IcGlassWater',  label: 'woda',           group: 'Zdrowie i sport', Component: IcGlassWater },
+  { key: 'IcSleep',       label: 'sen',            group: 'Zdrowie i sport', Component: IcSleep },
+  { key: 'IcTennis',      label: 'tenis',          group: 'Zdrowie i sport', Component: IcTennis },
+  { key: 'IcMedKit',      label: 'apteczka',       group: 'Zdrowie i sport', Component: IcMedKit },
+  { key: 'IcBathScale',   label: 'waga ciała',     group: 'Zdrowie i sport', Component: IcBathScale },
+  { key: 'IconEye',       label: 'oko',            group: 'Zdrowie i sport', Component: IconEye },
+  // Praca i nauka
+  { key: 'IcBriefcase',   label: 'teczka',         group: 'Praca i nauka', Component: IcBriefcase },
+  { key: 'IcLaptop',      label: 'laptop',         group: 'Praca i nauka', Component: IcLaptop },
+  { key: 'IcPhoneDev',    label: 'telefon',        group: 'Praca i nauka', Component: IcPhoneDev },
+  { key: 'IcMonitor',     label: 'monitor',        group: 'Praca i nauka', Component: IcMonitor },
+  { key: 'IcCode',        label: 'kod',            group: 'Praca i nauka', Component: IcCode },
+  { key: 'IcKeyboard',    label: 'klawiatura',     group: 'Praca i nauka', Component: IcKeyboard },
+  { key: 'IcServer',      label: 'serwer',         group: 'Praca i nauka', Component: IcServer },
+  { key: 'IcWifi',        label: 'wifi',           group: 'Praca i nauka', Component: IcWifi },
+  { key: 'IcBattery',     label: 'bateria',        group: 'Praca i nauka', Component: IcBattery },
+  { key: 'IconSearch',    label: 'szukaj',         group: 'Praca i nauka', Component: IconSearch },
+  { key: 'IcPrinter',     label: 'drukarka',       group: 'Praca i nauka', Component: IcPrinter },
+  { key: 'IcMouse',       label: 'myszka',         group: 'Praca i nauka', Component: IcMouse },
+  { key: 'IcRobot',       label: 'robot',          group: 'Praca i nauka', Component: IcRobot },
+  { key: 'IcBug',         label: 'błąd',           group: 'Praca i nauka', Component: IcBug },
+  { key: 'IcFolder',      label: 'folder',         group: 'Praca i nauka', Component: IcFolder },
+  { key: 'IcClipboard',   label: 'schowek',        group: 'Praca i nauka', Component: IcClipboard },
+  { key: 'IcPen',         label: 'długopis',       group: 'Praca i nauka', Component: IcPen },
+  { key: 'IcIdea',        label: 'pomysł',         group: 'Praca i nauka', Component: IcIdea },
+  { key: 'IcPaperclip',   label: 'spinacz',        group: 'Praca i nauka', Component: IcPaperclip },
+  { key: 'IcRuler',       label: 'linijka',        group: 'Praca i nauka', Component: IcRuler },
+  { key: 'IcBackpack',    label: 'plecak',         group: 'Praca i nauka', Component: IcBackpack },
+  { key: 'IcAtom',        label: 'atom',           group: 'Praca i nauka', Component: IcAtom },
+  { key: 'IcFlask',       label: 'kolba',          group: 'Praca i nauka', Component: IcFlask },
+  { key: 'IcPresentation', label: 'prezentacja',    group: 'Praca i nauka', Component: IcPresentation },
+  { key: 'IcDocument',    label: 'dokument',       group: 'Praca i nauka', Component: IcDocument },
+  // Ludzie i zwierzęta
+  { key: 'IcUser',        label: 'osoba',          group: 'Ludzie i zwierzęta', Component: IcUser },
+  { key: 'IcUsersGrp',    label: 'ludzie',         group: 'Ludzie i zwierzęta', Component: IcUsersGrp },
+  { key: 'IcChat',        label: 'czat',           group: 'Ludzie i zwierzęta', Component: IcChat },
+  { key: 'IcMail',        label: 'mail',           group: 'Ludzie i zwierzęta', Component: IcMail },
+  { key: 'IcHandshake',   label: 'uścisk',         group: 'Ludzie i zwierzęta', Component: IcHandshake },
+  { key: 'IcSmile',       label: 'uśmiech',        group: 'Ludzie i zwierzęta', Component: IcSmile },
+  { key: 'IcBaby',        label: 'dziecko',        group: 'Ludzie i zwierzęta', Component: IcBaby },
+  { key: 'IcRing',        label: 'pierścionek',    group: 'Ludzie i zwierzęta', Component: IcRing },
+  { key: 'IconHeart',     label: 'serce',          group: 'Ludzie i zwierzęta', Component: IconHeart },
+  { key: 'IcGlasses',     label: 'okulary',        group: 'Ludzie i zwierzęta', Component: IcGlasses },
+  { key: 'IcPhoneCall',   label: 'rozmowa',        group: 'Ludzie i zwierzęta', Component: IcPhoneCall },
+  { key: 'IcThumbsUp',    label: 'kciuk',          group: 'Ludzie i zwierzęta', Component: IcThumbsUp },
+  { key: 'IcGradCap',     label: 'absolwent',      group: 'Ludzie i zwierzęta', Component: IcGradCap },
+  { key: 'IcPaw',         label: 'łapka',          group: 'Ludzie i zwierzęta', Component: IcPaw },
+  { key: 'IcBalloon',     label: 'balon',          group: 'Ludzie i zwierzęta', Component: IcBalloon },
+  { key: 'IcCrown',       label: 'korona',         group: 'Ludzie i zwierzęta', Component: IcCrown },
+  { key: 'IcStroller',    label: 'wózek',          group: 'Ludzie i zwierzęta', Component: IcStroller },
+  { key: 'IcCat',         label: 'kot',            group: 'Ludzie i zwierzęta', Component: IcCat },
+  { key: 'IcDog',         label: 'pies',           group: 'Ludzie i zwierzęta', Component: IcDog },
+  { key: 'IcBird',        label: 'ptak',           group: 'Ludzie i zwierzęta', Component: IcBird },
+  { key: 'IcFrown',       label: 'smutek',         group: 'Ludzie i zwierzęta', Component: IcFrown },
+  { key: 'IcHeartBroken', label: 'złamane serce',  group: 'Ludzie i zwierzęta', Component: IcHeartBroken },
+  { key: 'IcHearts',      label: 'serca',          group: 'Ludzie i zwierzęta', Component: IcHearts },
+  { key: 'IcMegaphone',   label: 'megafon',        group: 'Ludzie i zwierzęta', Component: IcMegaphone },
+  { key: 'IcUserPlus',    label: 'nowa osoba',     group: 'Ludzie i zwierzęta', Component: IcUserPlus },
+  // Natura
+  { key: 'IcSun',         label: 'słońce',         group: 'Natura', Component: IcSun },
+  { key: 'IcCloud',       label: 'chmura',         group: 'Natura', Component: IcCloud },
+  { key: 'IcRain',        label: 'deszcz',         group: 'Natura', Component: IcRain },
+  { key: 'IcSnow',        label: 'śnieg',          group: 'Natura', Component: IcSnow },
+  { key: 'IcTree',        label: 'drzewo',         group: 'Natura', Component: IcTree },
+  { key: 'IcFlower',      label: 'kwiat',          group: 'Natura', Component: IcFlower },
+  { key: 'IcMountain',    label: 'góra',           group: 'Natura', Component: IcMountain },
+  { key: 'IcWave',        label: 'fala',           group: 'Natura', Component: IcWave },
+  { key: 'IcFire',        label: 'ogień',          group: 'Natura', Component: IcFire },
+  { key: 'IcBolt',        label: 'błyskawica',     group: 'Natura', Component: IcBolt },
+  { key: 'IcRainbow',     label: 'tęcza',          group: 'Natura', Component: IcRainbow },
+  { key: 'IcUmbrella',    label: 'parasol',        group: 'Natura', Component: IcUmbrella },
+  { key: 'IcSprout',      label: 'kiełek',         group: 'Natura', Component: IcSprout },
+  { key: 'IcMushroom',    label: 'grzyb',          group: 'Natura', Component: IcMushroom },
+  { key: 'IcWind',        label: 'wiatr',          group: 'Natura', Component: IcWind },
+  { key: 'IcCactus',      label: 'kaktus',         group: 'Natura', Component: IcCactus },
+  { key: 'IcPineTree',    label: 'świerk',         group: 'Natura', Component: IcPineTree },
+  { key: 'IcButterfly',   label: 'motyl',          group: 'Natura', Component: IcButterfly },
+  { key: 'IcSunrise',     label: 'wschód',         group: 'Natura', Component: IcSunrise },
+  { key: 'IcPlanet',      label: 'planeta',        group: 'Natura', Component: IcPlanet },
+  { key: 'IcFeather',     label: 'pióro',          group: 'Natura', Component: IcFeather },
+  { key: 'IcCloudSun',    label: 'pochmurno',      group: 'Natura', Component: IcCloudSun },
+  { key: 'IcClover',      label: 'koniczyna',      group: 'Natura', Component: IcClover },
+  { key: 'IcBee',         label: 'pszczoła',       group: 'Natura', Component: IcBee },
+  { key: 'IcSparkles',    label: 'iskry',          group: 'Natura', Component: IcSparkles },
+  // Hobby
+  { key: 'IcMusic',       label: 'muzyka',         group: 'Hobby', Component: IcMusic },
+  { key: 'IcCamera',      label: 'aparat',         group: 'Hobby', Component: IcCamera },
+  { key: 'IcBookOpen',    label: 'książka',        group: 'Hobby', Component: IcBookOpen },
+  { key: 'IcGame',        label: 'gra',            group: 'Hobby', Component: IcGame },
+  { key: 'IcPalette',     label: 'paleta',         group: 'Hobby', Component: IcPalette },
+  { key: 'IcFilm',        label: 'film',           group: 'Hobby', Component: IcFilm },
+  { key: 'IcHeadphones',  label: 'słuchawki',      group: 'Hobby', Component: IcHeadphones },
+  { key: 'IcMic',         label: 'mikrofon',       group: 'Hobby', Component: IcMic },
+  { key: 'IconStar',      label: 'gwiazda',        group: 'Hobby', Component: IconStar },
+  { key: 'IconShopping',  label: 'zakupy',         group: 'Hobby', Component: IconShopping },
+  { key: 'IconClothing',  label: 'ubrania',        group: 'Hobby', Component: IconClothing },
+  { key: 'IcGuitar',      label: 'gitara',         group: 'Hobby', Component: IcGuitar },
+  { key: 'IcDice',        label: 'kość',           group: 'Hobby', Component: IcDice },
+  { key: 'IcTent',        label: 'namiot',         group: 'Hobby', Component: IcTent },
+  { key: 'IcTicket',      label: 'bilet',          group: 'Hobby', Component: IcTicket },
+  { key: 'IcTrophy',      label: 'puchar',         group: 'Hobby', Component: IcTrophy },
+  { key: 'IcPuzzle',      label: 'puzzle',         group: 'Hobby', Component: IcPuzzle },
+  { key: 'IcBooks',       label: 'książki',        group: 'Hobby', Component: IcBooks },
+  { key: 'IcBrush',       label: 'pędzel',         group: 'Hobby', Component: IcBrush },
+  { key: 'IcScissors',    label: 'nożyczki',       group: 'Hobby', Component: IcScissors },
+  { key: 'IcYarn',        label: 'włóczka',        group: 'Hobby', Component: IcYarn },
+  { key: 'IcChess',       label: 'szachy',         group: 'Hobby', Component: IcChess },
+  { key: 'IcPopcorn',     label: 'popcorn',        group: 'Hobby', Component: IcPopcorn },
+  { key: 'IcPiano',       label: 'pianino',        group: 'Hobby', Component: IcPiano },
+  { key: 'IcFishingRod',  label: 'wędka',          group: 'Hobby', Component: IcFishingRod },
+  // Wiara i inne
+  { key: 'IconMore',      label: 'inne',           group: 'Wiara i inne', Component: IconMore },
+  { key: 'IconTag',       label: 'etykieta',       group: 'Wiara i inne', Component: IconTag },
+  { key: 'IconBell',      label: 'dzwonek',        group: 'Wiara i inne', Component: IconBell },
+  { key: 'IcAlarm',       label: 'budzik',         group: 'Wiara i inne', Component: IcAlarm },
+  { key: 'IconCalendar',  label: 'kalendarz',      group: 'Wiara i inne', Component: IconCalendar },
+  { key: 'IcShield',      label: 'tarcza',         group: 'Wiara i inne', Component: IcShield },
+  { key: 'IcGlobe',       label: 'globus',         group: 'Wiara i inne', Component: IcGlobe },
+  { key: 'IcMapPin',      label: 'pinezka',        group: 'Wiara i inne', Component: IcMapPin },
+  { key: 'IconNote',      label: 'notatka',        group: 'Wiara i inne', Component: IconNote },
+  { key: 'IcPin',         label: 'przypięcie',     group: 'Wiara i inne', Component: IcPin },
+  { key: 'IconFlag',      label: 'flaga',          group: 'Wiara i inne', Component: IconFlag },
+  { key: 'IconRepeat',    label: 'cyklicznie',     group: 'Wiara i inne', Component: IconRepeat },
+  { key: 'IcCross',       label: 'krzyż',          group: 'Wiara i inne', Component: IcCross },
+  { key: 'IcPray',        label: 'modlitwa',       group: 'Wiara i inne', Component: IcPray },
+  { key: 'IconSettings',  label: 'ustawienia',     group: 'Wiara i inne', Component: IconSettings },
+  { key: 'IcGift2',       label: 'prezent',        group: 'Wiara i inne', Component: IcGift2 },
+  { key: 'IcLock',        label: 'kłódka',         group: 'Wiara i inne', Component: IcLock },
+  { key: 'IcCheckCircle', label: 'ptaszek',        group: 'Wiara i inne', Component: IcCheckCircle },
+  { key: 'IcInfo',        label: 'info',           group: 'Wiara i inne', Component: IcInfo },
+  { key: 'IcQuestion',    label: 'pytanie',        group: 'Wiara i inne', Component: IcQuestion },
+  { key: 'IcHourglass',   label: 'klepsydra',      group: 'Wiara i inne', Component: IcHourglass },
+  { key: 'IcCompass',     label: 'kompas',         group: 'Wiara i inne', Component: IcCompass },
+  { key: 'IcChurch',      label: 'kościół',        group: 'Wiara i inne', Component: IcChurch },
+  { key: 'IcDove',        label: 'gołąb',          group: 'Wiara i inne', Component: IcDove },
+  { key: 'IcInfinity',    label: 'nieskończoność', group: 'Wiara i inne', Component: IcInfinity },
 ]
 
 // Key → Component lookup (for CatIcon)

@@ -7,8 +7,7 @@
 //
 // Osobny plik, a nie people.js: tamten ciąga Firebase, przez co nie da się go
 // zaimportować w teście jednostkowym.
-export const PERSON_COLORS = [
-  '#E74C3C', '#E91E63', '#9C27B0', '#8B5CF6', '#3F51B5', '#2196F3',
-  '#00BCD4', '#009688', '#4CAF50', '#F59E0B', '#FF9800', '#FF5722',
-  '#EC4899', '#14B8A6', '#84CC16', '#6366F1',
-]
+import { APP_COLORS } from './palette.js'
+
+// Te same 50 kolorów co w całej aplikacji.
+export const PERSON_COLORS = APP_COLORS

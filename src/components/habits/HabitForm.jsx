@@ -3,8 +3,10 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, Timestamp, query, orderB
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import { format } from 'date-fns'
-import { ICON_CATALOG, CatIcon, IconClose, IconTrash, IconArchive, IconRestore, IconEdit, IconPlus, IconCheck } from '../Icons'
+import { CatIcon, IconClose, IconTrash, IconArchive, IconRestore, IconEdit, IconPlus, IconCheck } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
+import { IconPicker, ColorPicker } from '../Pickers'
+import { APP_COLORS } from '../../utils/palette'
 import { toast } from '../Toast'
 import HabitCategoryManager from './HabitCategoryManager'
 import RoutineManager from './RoutineManager'
@@ -21,14 +23,6 @@ export const HABIT_CATEGORIES = [
 ]
 export const DEFAULT_HABIT_CATEGORIES = HABIT_CATEGORIES
 
-const HABIT_COLORS = [
-  '#C94B28','#E05A2B','#F97316','#F59E0B','#EAB308','#84CC16',
-  '#22C55E','#10B981','#14B8A6','#06B6D4','#3B82F6','#6366F1',
-  '#8B5CF6','#A855F7','#EC4899','#F43F5E','#64748B','#6B7280',
-  '#92400E','#059669','#0EA5E9','#DC2626','#7C3AED','#0D9488',
-  '#4F46E5','#BE185D','#6B9E72','#4A90D9','#1ABC9C','#E74C3C',
-]
-
 const FREQ_DAYS = [
   { id: 1, label: 'Pn' }, { id: 2, label: 'Wt' }, { id: 3, label: 'Śr' },
   { id: 4, label: 'Cz' }, { id: 5, label: 'Pt' }, { id: 6, label: 'So' }, { id: 0, label: 'Nd' },
@@ -37,8 +31,7 @@ const FREQ_DAYS = [
 export default function HabitForm({ user, onClose, editData }) {
   const [name, setName]           = useState(editData?.name || '')
   const [iconKey, setIconKey]     = useState(editData?.emoji || 'IcTarget')
-  const [iconSearch, setIconSearch] = useState('')
-  const [color, setColor]         = useState(editData?.color || HABIT_COLORS[1])
+  const [color, setColor]         = useState(editData?.color || APP_COLORS[12])
   const [category, setCategory]   = useState(editData?.category || 'health')
   const [frequency, setFrequency] = useState(editData?.frequency || 'daily')
   const [freqDays, setFreqDays]   = useState(editData?.frequencyDays || [1,2,3,4,5,6,0])
@@ -76,10 +69,6 @@ export default function HabitForm({ user, onClose, editData }) {
   }, [user.uid])
 
   const categories = [...HABIT_CATEGORIES, ...customCats]
-
-  const filteredIcons = iconSearch.trim()
-    ? ICON_CATALOG.filter(ic => ic.label.toLowerCase().includes(iconSearch.toLowerCase()) || ic.group.toLowerCase().includes(iconSearch.toLowerCase()))
-    : ICON_CATALOG
 
   const toggleDay = (id) =>
     setFreqDays(prev => prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id])
@@ -162,39 +151,28 @@ export default function HabitForm({ user, onClose, editData }) {
         </div>
         <form onSubmit={handleSubmit} className="form">
 
-          {/* Ikona */}
+          {/* Nazwa — na samej górze, obok podgląd ikony w wybranym kolorze */}
           <div className="form-group">
-            <label>Ikona</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <label>Nazwa</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 44, height: 44, borderRadius: 10, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color, border: `2px solid ${color}`, flexShrink: 0 }}>
                 <CatIcon categoryId={null} emoji={iconKey} size={24} />
               </div>
-              <input type="text" className="form-input" value={iconSearch} onChange={e => setIconSearch(e.target.value)}
-                placeholder="Szukaj ikony..." style={{ margin: 0, flex: 1 }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, maxHeight: 168, overflowY: 'auto' }}>
-              {filteredIcons.map(ic => (
-                <button key={ic.key} type="button"
-                  onClick={() => setIconKey(ic.key)}
-                  title={ic.label}
-                  style={{
-                    width: '100%', aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    border: `2px solid ${iconKey === ic.key ? color : 'var(--border)'}`,
-                    background: iconKey === ic.key ? color + '22' : 'transparent',
-                    color: iconKey === ic.key ? color : 'var(--text-muted)',
-                    padding: 0
-                  }}>
-                  <CatIcon categoryId={null} emoji={ic.key} size={18} />
-                </button>
-              ))}
+              <input type="text" className="form-input" value={name} autoFocus={!editData}
+                onChange={e => setName(e.target.value)} placeholder="np. Czytanie, Bieganie..." maxLength={40} style={{ margin: 0, flex: 1 }} />
             </div>
           </div>
 
-          {/* Nazwa */}
+          {/* Ikona */}
           <div className="form-group">
-            <label>Nazwa</label>
-            <input type="text" className="form-input" value={name}
-              onChange={e => setName(e.target.value)} placeholder="np. Czytanie, Bieganie..." maxLength={40} />
+            <label>Ikona</label>
+            <IconPicker value={iconKey} onChange={setIconKey} color={color} />
+          </div>
+
+          {/* Kolor */}
+          <div className="form-group">
+            <label>Kolor</label>
+            <ColorPicker value={color} onChange={setColor} />
           </div>
 
           {/* Kategoria */}
@@ -244,20 +222,6 @@ export default function HabitForm({ user, onClose, editData }) {
                   onClick={() => setRoutineId(r.id)}>
                   <span>{r.name}</span>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Kolor */}
-          <div className="form-group">
-            <label>Kolor</label>
-            <div className="color-picker">
-              {HABIT_COLORS.map(c => (
-                <button key={c} type="button"
-                  className={`color-dot ${color === c ? 'active' : ''}`}
-                  style={{ background: c }}
-                  onClick={() => setColor(c)}
-                />
               ))}
             </div>
           </div>

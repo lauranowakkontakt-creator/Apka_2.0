@@ -1,31 +1,17 @@
 import { db } from '../../firebase/config'
-import { CatIcon, ICON_CATALOG, IconClose } from '../Icons'
+import { IconClose } from '../Icons'
+import { IconPicker, ColorPicker } from '../Pickers'
 import { Timestamp, addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { useState } from 'react'
 
 // Formularz listy zadań.
 
-// Paleta kolorów listy zadań. Używa jej wyłącznie ten formularz —
-// wspólny plik dla jednego konsumenta byłby tylko rozproszeniem.
-const LIST_COLORS = [
-  '#C94B28','#E05A2B','#F97316','#F59E0B','#EAB308','#84CC16',
-  '#22C55E','#10B981','#14B8A6','#06B6D4','#3B82F6','#6366F1',
-  '#8B5CF6','#A855F7','#EC4899','#F43F5E','#64748B','#6B7280',
-  '#059669','#0EA5E9','#DC2626','#7C3AED','#0D9488','#4F46E5',
-  '#BE185D','#6B9E72','#4A90D9','#1ABC9C','#E74C3C','#92400E',
-]
-
 export default function ListForm({ user, onClose, editData }) {
   const [name, setName]         = useState(editData?.name || '')
   const [iconKey, setIconKey]   = useState(editData?.icon || 'IcBriefcase')
-  const [iconSearch, setIconSearch] = useState('')
   const [color, setColor]       = useState(editData?.color || '#6366f1')
   const [saving, setSaving]     = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-
-  const filteredIcons = iconSearch.trim()
-    ? ICON_CATALOG.filter(ic => ic.label.toLowerCase().includes(iconSearch.toLowerCase()) || ic.group.toLowerCase().includes(iconSearch.toLowerCase()))
-    : ICON_CATALOG
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -64,39 +50,11 @@ export default function ListForm({ user, onClose, editData }) {
           </div>
           <div className="form-group">
             <label>Ikona</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color, border: `2px solid ${color}` }}>
-                <CatIcon categoryId={null} emoji={iconKey} size={22} />
-              </div>
-              <input type="text" className="form-input" value={iconSearch} onChange={e => setIconSearch(e.target.value)}
-                placeholder="Szukaj ikony..." style={{ margin: 0, flex: 1 }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
-              {filteredIcons.map(ic => (
-                <button key={ic.key} type="button"
-                  onClick={() => setIconKey(ic.key)}
-                  title={ic.label}
-                  style={{
-                    width: '100%', aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    border: `2px solid ${iconKey === ic.key ? color : 'var(--border)'}`,
-                    background: iconKey === ic.key ? color + '22' : 'transparent',
-                    color: iconKey === ic.key ? color : 'var(--text-muted)', padding: 0
-                  }}>
-                  <CatIcon categoryId={null} emoji={ic.key} size={17} />
-                </button>
-              ))}
-            </div>
+            <IconPicker value={iconKey} onChange={setIconKey} color={color} />
           </div>
           <div className="form-group">
             <label>Kolor</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {LIST_COLORS.map(c => (
-                <button key={c} type="button" onClick={() => setColor(c)} style={{
-                  width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer',
-                  border: `3px solid ${color === c ? 'var(--text)' : 'transparent'}`
-                }} />
-              ))}
-            </div>
+            <ColorPicker value={color} onChange={setColor} />
           </div>
           <button type="submit" className="btn-save" disabled={saving || !name.trim()}>
             {saving ? 'Zapisywanie...' : editData ? 'Zapisz zmiany' : 'Utwórz listę'}

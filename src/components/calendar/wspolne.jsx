@@ -2,6 +2,7 @@
 // Konfiguracja i drobne pomocniki używane przez kilka widoków Kalendarza.
 // Osobny plik zamiast importów „w bok" między widokami — tak nie powstaje
 // cykl importów przy kolejnym podziale.
+import { APP_COLORS } from '../../utils/palette'
 
 export const DEFAULT_CATEGORIES = [
   { slug: 'work',     label: 'Praca',     icon: 'IcBriefcase', color: '#3b82f6' },
@@ -32,13 +33,8 @@ export const PRAYER_PRIOS = [
   { v: 1, label: 'Mała',    color: '#9E9E9E' },
 ]
 
-export const CAT_COLORS = [
-  '#C94B28','#E05A2B','#F97316','#F59E0B','#EAB308','#84CC16',
-  '#22C55E','#10B981','#14B8A6','#06B6D4','#3B82F6','#6366F1',
-  '#8B5CF6','#A855F7','#EC4899','#F43F5E','#64748B','#607D8B',
-  '#059669','#0EA5E9','#DC2626','#7C3AED','#0D9488','#4F46E5',
-  '#BE185D','#A78BFA','#92400E','#4A90D9','#1ABC9C','#E74C3C',
-]
+// Paleta kategorii = wspólna paleta aplikacji (50 kolorów, 10 w rzędzie).
+export const CAT_COLORS = APP_COLORS
 export const WEEKDAYS = ['Pn','Wt','Śr','Cz','Pt','So','Nd']
 
 export const findCat = (cats, id)   => cats.find(c => c.id === id)

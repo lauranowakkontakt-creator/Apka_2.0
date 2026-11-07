@@ -1,7 +1,8 @@
 import { db } from '../../firebase/config'
 import { confirmDialog } from '../ConfirmModal'
-import { CatIcon, ICON_CATALOG, IconClose, IconEdit, IconTrash } from '../Icons'
-import { CAT_COLORS } from './wspolne'
+import { CatIcon, IconClose, IconEdit, IconTrash } from '../Icons'
+import { IconPicker, ColorPicker } from '../Pickers'
+import { DEFAULT_COLOR } from '../../utils/palette'
 import { Timestamp, addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { useState } from 'react'
 
@@ -11,16 +12,11 @@ export default function CategoryManager({ user, categories, onClose }) {
   const [editId, setEditId] = useState(null)
   const [icon, setIcon]     = useState('IconCalendar')
   const [label, setLabel]   = useState('')
-  const [color, setColor]   = useState(CAT_COLORS[0])
+  const [color, setColor]   = useState(DEFAULT_COLOR)
   const [saving, setSaving] = useState(false)
-  const [iconSearch, setIconSearch] = useState('')
 
-  const filteredIcons = iconSearch.trim()
-    ? ICON_CATALOG.filter(ic => ic.label.toLowerCase().includes(iconSearch.toLowerCase()) || ic.group.toLowerCase().includes(iconSearch.toLowerCase()))
-    : ICON_CATALOG
-
-  const resetForm = () => { setEditId(null); setLabel(''); setIcon('IconCalendar'); setColor(CAT_COLORS[0]); setIconSearch('') }
-  const startEdit = (cat) => { setEditId(cat.id); setLabel(cat.label); setIcon(cat.icon || 'IconCalendar'); setColor(cat.color || CAT_COLORS[0]); setIconSearch('') }
+  const resetForm = () => { setEditId(null); setLabel(''); setIcon('IconCalendar'); setColor(DEFAULT_COLOR) }
+  const startEdit = (cat) => { setEditId(cat.id); setLabel(cat.label); setIcon(cat.icon || 'IconCalendar'); setColor(cat.color || DEFAULT_COLOR) }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -73,36 +69,11 @@ export default function CategoryManager({ user, categories, onClose }) {
             </div>
             <div className="form-group">
               <label>Ikona</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 10, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color, border: `2px solid ${color}`, flexShrink: 0 }}>
-                  <CatIcon categoryId={null} emoji={icon} size={22} />
-                </div>
-                <input type="text" className="form-input" value={iconSearch} onChange={e => setIconSearch(e.target.value)}
-                  placeholder="Szukaj ikony..." style={{ margin: 0, flex: 1 }} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, maxHeight: 150, overflowY: 'auto' }}>
-                {filteredIcons.map(ic => (
-                  <button key={ic.key} type="button" title={ic.label} onClick={() => setIcon(ic.key)} style={{
-                    width: '100%', aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-                    border: `2px solid ${icon === ic.key ? color : 'var(--border)'}`,
-                    background: icon === ic.key ? color + '22' : 'transparent',
-                    color: icon === ic.key ? color : 'var(--text-muted)'
-                  }}>
-                    <CatIcon categoryId={null} emoji={ic.key} size={17} />
-                  </button>
-                ))}
-              </div>
+              <IconPicker key={editId || "nowa"} value={icon} onChange={setIcon} color={color} />
             </div>
             <div className="form-group">
               <label>Kolor</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {CAT_COLORS.map(c => (
-                  <button key={c} type="button" onClick={() => setColor(c)} style={{
-                    width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer',
-                    border: `3px solid ${color === c ? 'var(--text)' : 'transparent'}`
-                  }} />
-                ))}
-              </div>
+              <ColorPicker value={color} onChange={setColor} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" className="btn-save" disabled={saving || !label.trim()} style={{ flex: 1 }}>
