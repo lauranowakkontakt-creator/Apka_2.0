@@ -14,11 +14,12 @@ const BibleDashboard    = lazy(() => import('./components/bible/BibleDashboard')
 const PeopleHub         = lazy(() => import('./components/people/PeopleHub'))
 const DreamDashboard    = lazy(() => import('./components/dream/DreamDashboard'))
 const GratitudeDashboard = lazy(() => import('./components/gratitude/GratitudeDashboard'))
+const MoodDashboard     = lazy(() => import('./components/mood/MoodDashboard'))
 import SettingsDrawer from './components/SettingsDrawer'
 import MoreSheet from './components/MoreSheet'
 import ErrorBoundary from './components/ErrorBoundary'
 import PasekPolaczenia from './components/PasekPolaczenia'
-import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun } from './components/Icons'
+import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun, IconMood } from './components/Icons'
 import { getModuleIcons, resolveIcon } from './utils/iconPrefs'
 import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from './utils/moduleLayout'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
@@ -54,6 +55,7 @@ const MODULE_ACCENTS = {
   people:   '#D98B5F',
   dream:    '#6366F1',
   gratitude:'#E8A33D',
+  mood:     '#E8607A',
 }
 
 // Pełna lista modułów. To, które trafią na dolny pasek i czy w ogóle są
@@ -71,6 +73,7 @@ function buildModules() {
     { id: 'people',   label: 'Osoby',     Icon: resolveIcon(prefs.people,   IconUsers) },
     { id: 'dream',    label: 'Sen',       Icon: resolveIcon(prefs.dream,    IconMoon) },
     { id: 'gratitude',label: 'Wdzięcznik',Icon: resolveIcon(prefs.gratitude, IcSun) },
+    { id: 'mood',     label: 'Nastrój',   Icon: resolveIcon(prefs.mood, IconMood) },
   ]
 }
 
@@ -270,6 +273,7 @@ export default function App() {
             {activeModule === 'people'   && <PeopleHub user={user} onOpenDream={openDream} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'dream'    && <DreamDashboard user={user} focusId={dreamFocus} onFocusConsumed={() => setDreamFocus(null)} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'gratitude'&& <GratitudeDashboard user={user} setHeaderExtras={setHeaderExtras} />}
+            {activeModule === 'mood'     && <MoodDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             </Suspense>
             </ErrorBoundary>
           </div>

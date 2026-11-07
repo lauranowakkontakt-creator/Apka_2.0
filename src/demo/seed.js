@@ -258,7 +258,7 @@ export function seedDemoData(put, Timestamp) {
       recurrence: i === 14 ? 'weekly' : i === 18 ? 'monthly' : null,
       subtasks: chance(0.3) ? [{ id: 's1', title: 'Pierwszy krok', done: true }, { id: 's2', title: 'Drugi krok', done: false }, { id: 's3', title: 'Trzeci krok', done: false }] : [],
       peopleIds: chance(0.2) ? [pick(people).id] : [],
-      done, doneAt: done ? created(int(0, 10)) : null,
+      done, doneAt: done ? created(int(0, 10)) : null, starred: !done && chance(0.2),
       createdAt: created(int(1, 60)), updatedAt: created(1),
     })
   })

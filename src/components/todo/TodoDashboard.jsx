@@ -3,7 +3,7 @@ import { bladSubskrypcji } from '../../utils/polaczenie'
 import { nextOccurrence, pOrder, zadaniaUkonczone } from '../../utils/todoLogic'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { confirmDialog } from '../ConfirmModal'
-import { CatIcon, IconChevronDown, IconChevronLeft, IconChevronRight, IconEdit, IconPlus } from '../Icons'
+import { CatIcon, IconChevronDown, IconChevronLeft, IconChevronRight, IconEdit, IconPlus, IconStar } from '../Icons'
 import StatTiles from '../StatTiles'
 import { toast } from '../Toast'
 import ListForm from './ListForm'
@@ -38,6 +38,9 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showLists, setShowLists]   = useState(false)
+  // Filtr „Wybrane" — zadania oznaczone gwiazdką, żeby przy długiej liście nie
+  // szukać tego, co naprawdę chcesz dziś zrobić.
+  const [tylkoWybrane, setTylkoWybrane] = useState(false)
 
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'todos'), orderBy('createdAt', 'desc'))
@@ -75,6 +78,10 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
     })
   }
 
+  const toggleStar = async (todo) => {
+    await updateDoc(doc(db, 'users', user.uid, 'todos', todo.id), { starred: !todo.starred, updatedAt: Timestamp.now() })
+  }
+
   const toggleSubtask = async (todo, subId) => {
     const subtasks = (todo.subtasks || []).map(s => s.id === subId ? { ...s, done: !s.done } : s)
     await updateDoc(doc(db, 'users', user.uid, 'todos', todo.id), { subtasks, updatedAt: Timestamp.now() })
@@ -86,7 +93,9 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
     await deleteDoc(doc(db, 'users', user.uid, 'todos', id))
   }
 
+  // Wybrane (gwiazdka) zawsze na górze, dalej jak dotąd: termin, potem priorytet.
   const sortActive = (arr) => [...arr].sort((a, b) => {
+    if (!!a.starred !== !!b.starred) return a.starred ? -1 : 1
     const aDate = a.dueDate ? parseISO(a.dueDate) : null
     const bDate = b.dueDate ? parseISO(b.dueDate) : null
     if (aDate && bDate) return aDate - bDate
@@ -97,7 +106,8 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
 
   const byList   = activeList ? todos.filter(t => t.listId === activeList) : todos
   const bySearch = searchQuery.trim() ? byList.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())) : byList
-  const filtered = bySearch
+  const filtered = tylkoWybrane ? bySearch.filter(t => t.starred) : bySearch
+  const ileWybranych = byList.filter(t => t.starred && !t.done).length
   const active   = sortActive(filtered.filter(t => !t.done))
   const done     = filtered.filter(t => t.done)
   // Osobny ekran ukończonych pokazuje wszystko, bo nie ma tam wyboru listy
@@ -171,7 +181,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
                   <TodoItem key={todo.id} todo={todo} lists={lists} peopleById={peopleById}
                     onToggle={toggleDone} onToggleSubtask={toggleSubtask}
                     onEdit={() => { setEditTodo(todo); setShowForm(true) }}
-                    onDelete={handleDelete} />
+                    onDelete={handleDelete} onStar={toggleStar} />
                 ))}
               </div>
             </div>
@@ -192,7 +202,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
             </div>
           )}
           {/* Wybór listy (kategorie) — zwinięte, rozwijasz „Listy" */}
-          <div style={{ position: 'relative', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ position: 'relative', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <button onClick={() => setShowLists(s => !s)} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 99, cursor: 'pointer',
               fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
@@ -202,6 +212,17 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
             }}>
               {activeListObj ? <><CatIcon categoryId={null} emoji={activeListObj.icon} size={13} /> {activeListObj.name}</> : 'Wszystkie zadania'}
               <IconChevronDown size={13} style={{ opacity: 0.7 }} />
+            </button>
+            <button onClick={() => setTylkoWybrane(v => !v)} aria-pressed={tylkoWybrane}
+              title={tylkoWybrane ? 'Pokaż wszystkie zadania' : 'Pokaż tylko wybrane (z gwiazdką)'}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 99, cursor: 'pointer',
+                fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                border: `1px solid ${tylkoWybrane ? 'var(--warn)' : 'var(--border-strong)'}`,
+                background: tylkoWybrane ? 'color-mix(in oklab, var(--warn) 16%, transparent)' : 'var(--surface2)',
+                color: tylkoWybrane ? 'var(--warn)' : 'var(--text-sub)',
+              }}>
+              <IconStar size={13} style={tylkoWybrane ? { fill: 'currentColor' } : undefined} /> Wybrane{ileWybranych ? ` · ${ileWybranych}` : ''}
             </button>
             {activeListObj && (
               <button className="icon-btn" style={{ width: 32, height: 32 }} title="Edytuj listę" onClick={() => setEditList(activeListObj)}><IconEdit size={13} /></button>
@@ -238,13 +259,19 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
                   <TodoItem key={todo.id} todo={todo} lists={lists} peopleById={peopleById}
                     onToggle={toggleDone} onToggleSubtask={toggleSubtask}
                     onEdit={() => { setEditTodo(todo); setShowForm(true) }}
-                    onDelete={handleDelete} />
+                    onDelete={handleDelete} onStar={toggleStar} />
                 ))}
               </div>
             </div>
           )}
 
-          {active.length === 0 && done.length === 0 && (
+          {tylkoWybrane && active.length === 0 && (
+            <div className="list-empty">
+              <p>Brak wybranych zadań</p>
+              <p className="list-empty-hint">Kliknij gwiazdkę przy zadaniu, żeby trafiło tutaj</p>
+            </div>
+          )}
+          {!tylkoWybrane && active.length === 0 && done.length === 0 && (
             <div className="list-empty">
               <p>Brak zadań</p>
               <p className="list-empty-hint">Kliknij „+" u góry, aby dodać zadanie</p>

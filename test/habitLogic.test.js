@@ -1020,3 +1020,20 @@ test('byRecentlyClosed: bez sladu na koniec, remis alfabetycznie', () => {
   ].sort(byRecentlyClosed)
   assert.deepEqual(lista.map(h => h.name), ['Alfa', 'Zebra', 'Bez sladu'])
 })
+
+import { szybkieDodatki, liczbaZPola } from '../src/utils/habitLogic.js'
+
+test('szybkieDodatki — czas: +5 +15 +30 +60 +2h', () => {
+  assert.deepEqual(szybkieDodatki('min').map(x => x.label), ['+5', '+15', '+30', '+60', '+2h'])
+  assert.equal(szybkieDodatki('min').at(-1).v, 120)
+  assert.deepEqual(szybkieDodatki('km').map(x => x.v), [1, 5, 10])
+  assert.deepEqual(szybkieDodatki('własna').map(x => x.v), [1, 5, 10])
+})
+
+test('liczbaZPola — puste pole to zero, bez wiodącego zera', () => {
+  assert.equal(liczbaZPola(''), 0)
+  assert.equal(liczbaZPola('045'), 45)
+  assert.equal(liczbaZPola('2,5'), 2.5)
+  assert.equal(liczbaZPola('abc'), 0)
+  assert.equal(liczbaZPola('-3'), 0)
+})

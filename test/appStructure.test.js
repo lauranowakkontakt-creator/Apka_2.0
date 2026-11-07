@@ -136,22 +136,13 @@ test('Nawyki: dzień zrobiony mimo wyjazdu ma własne oznaczenie', () => {
   }
 })
 
-test('Nastrój nie jest osobną apką — mieszka w Nawykach', () => {
-  assert.ok(!moduleIds.includes('mood'), 'Nastrój nadal jest osobnym modułem')
-  assert.ok(!APP.includes('MoodDashboard'), 'App nadal renderuje Nastrój jako moduł')
+test('Nastrój jest osobną aplikacją — nie siedzi już w Nawykach', () => {
+  assert.ok(moduleIds.includes('mood'), 'brak modułu Nastrój w buildModules')
+  assert.match(APP, /lazy\(\(\) => import\('\.\/components\/mood\/MoodDashboard'\)\)/)
   const habits = read('src/components/habits/HabitsDashboard.jsx')
-  assert.match(habits, /import\('\.\.\/mood\/MoodDashboard'\)/, 'Nawyki nie ładują Nastroju')
-  // Wejście do Nastroju to mała twarz w belce — bez podpisu i bez kafelka.
-  assert.match(habits, /hdr-mood/, 'brak ikonki nastroju w belce Nawyków')
-  assert.ok(!/mood-tile/.test(habits), 'kafelek nastroju powinien zniknąć')
-  assert.ok(!/jak się dziś masz/.test(habits), 'ikonka nastroju nie ma mieć podpisu')
-  // Jedna belka na oba widoki: Nastrój wstrzyka swoje akcje do tej samej
-  // belki co Nawyki. Osobny pasek arkusza chowal sie pod belka aplikacji
-  // i nie dalo sie wyjsc z Nastroju.
-  assert.match(habits, /setHeaderExtras=\{setMoodExtras\}/)
-  assert.ok(!/mood-sheet/.test(habits), 'Nastrój nie może wracać jako osobny arkusz')
-  assert.match(habits, /if \(moodOpen\) \{/, 'Nastrój ma się renderować w miejscu treści Nawyków')
-  assert.match(habits, /setMoodOpen\(o => !o\)/, 'twarz musi przełączać w obie strony')
+  assert.ok(!/MoodDashboard/.test(habits), 'Nawyki nadal ładują Nastrój')
+  assert.ok(!/hdr-mood/.test(habits), 'w belce Nawyków nadal jest twarz nastroju')
+  assert.ok(!/moodLogs/.test(habits), 'Nawyki nadal czytają wpisy nastroju')
 })
 
 test('Nowe kolekcje wchodzą do kopii danych', () => {
@@ -308,7 +299,8 @@ test('Nastroj: kafelki licza sie z wybranego okresu, nie z calej historii', () =
   const mood = read('src/components/mood/MoodDashboard.jsx')
   assert.match(mood, /from '\.\.\/\.\.\/utils\/moodStats'/, 'statystyki nastroju bez wydzielonej logiki')
   assert.match(mood, /tileMode/, 'kafelki nie wiedza, jaki okres jest na ekranie')
-  assert.match(mood, /id: 'all', label: 'Łącznie'/, 'brak trybu „Łącznie" w analizie nastroju')
+  // Analiza nastroju: tylko Miesiąc i Rok (bez Tygodnia i „Łącznie").
+  assert.match(mood, /items=\{\[\{ id: 'month', label: 'Miesiąc' \}, \{ id: 'year', label: 'Rok' \}\]\}/)
   // Suma wszystkiego liczona obok przelacznika okresu byla wlasnie tym bledem.
   assert.ok(!/const moodCount = logs\.length/.test(mood), 'kafelki znow licza z calej historii')
 })
@@ -394,9 +386,10 @@ test('Wyzwania: wlasny ekran pod flaga w belce, obok nastroju', () => {
   assert.match(habits, /import HabitExtras from '\.\/HabitExtras'/)
   assert.match(habits, /if \(extrasOpen\) \{/, 'brak renderu widoku wyzwan')
   assert.match(habits, /<HabitExtras/)
-  // Dwa widoki nie moga byc otwarte naraz — kazdy przycisk gasi drugi.
-  assert.match(habits, /setMoodOpen\(false\); setExtrasOpen/)
-  assert.match(habits, /setExtrasOpen\(false\); setMoodOpen/)
+  // Flaga przełącza w obie strony; menu ⋮ działa też na ekranie wyzwań.
+  assert.match(habits, /setExtrasOpen\(o => !o\)/)
+  assert.match(habits, /extras=\{extrasOpen\}/)
+  assert.match(habits, /\{modale\}/, 'okna spod ⋮ muszą działać także w Wyzwaniach')
   // Na ekranie wyzwan swiadomie NIE MA serii ani rekordu.
   assert.ok(!/getStreak|getBestStreak|IconFlame/.test(extras),
     'wyzwania nie maja miec serii — liczy sie „ile razy"')
@@ -571,7 +564,9 @@ test('Czas/ilosc: dodawanie I odejmowanie jest mozliwe', () => {
   const extras = read('src/components/habits/HabitExtras.jsx')
   assert.match(sheet, /setWartosc\(w => Math\.max\(0, w - skok\)\)/, 'brak odejmowania')
   assert.match(sheet, /setWartosc\(w => w \+ skok\)/, 'brak dodawania')
-  assert.match(sheet, /type="number"/, 'brak pola na konkretna liczbe')
+  // Pole tekstowe z klawiaturą numeryczną: puste pole nie wraca do „0".
+  assert.match(sheet, /inputMode="numeric" value=\{tekst\}/, 'brak pola na konkretna liczbe')
+  assert.match(sheet, /szybkieDodatki\(unit\)/, 'brak szybkich przycisków +5 +15 +30…')
   assert.match(sheet, /Cały cel/)
   assert.match(sheet, /Wyczyść/)
   // Okno jest podpiete w obu modulach, nie tylko w Nawykach.
@@ -610,7 +605,7 @@ test('Kolejnosc ukladamy tylko dla tego, co robisz teraz', () => {
   const habits = read('src/components/habits/HabitsDashboard.jsx')
   assert.match(habits, /reorderable = activeHabits\.filter\(h => habitLifecycle\(h, TODAY\) !== 'ended'\)/)
   assert.match(habits, /<HabitReorderModal user=\{user\} habits=\{reorderable\}/)
-  assert.match(habits, /canReorder=\{reorderable\.length > 1\}/)
+  assert.match(habits, /canReorder=\{\(extrasOpen \? extraHabits\.length : reorderable\.length\) > 1\}/)
 })
 
 test('Zacznij od nowa: najpierw dorobek, potem zamkniecie', () => {
@@ -641,8 +636,7 @@ test('Wyzwania: ekran wyglada jak Nawyki — hero z postepem i kalendarzem', () 
   const extras = read('src/components/habits/HabitExtras.jsx')
   const dzis = extras.split("tab === 'stats'")[0]
   assert.match(dzis, /<Ring value=\{dzien\.pct\}/, 'brak pierscienia postepu dnia')
-  assert.match(dzis, /Wyzwania dnia/)
-  assert.match(dzis, /className="g2-br"/, 'hero ma ten sam uklad dwoch kart co Nawyki')
+  assert.match(dzis, /className="habit-hero"/, 'hero ma ten sam uklad dwoch kart co Nawyki')
   // Seria swiadomie NIE wraca — przy wyzwaniu przerwa w ciagu nie jest porazka.
   assert.ok(!/getStreak|IconFlame/.test(extras), 'wyzwania nie maja serii')
 })

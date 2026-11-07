@@ -9,7 +9,7 @@ import { byHabitOrder, isRequiredHabit, isOptionalHabit, habitOrderUpdates } fro
 
 // Ustawianie kolejności, w jakiej nawyki mają się pojawiać (przeciąganie za uchwyt).
 // Zapisuje pole `order` = pozycja na liście dla wszystkich nawyków jednym batchem.
-export default function HabitReorderModal({ user, habits, onClose }) {
+export default function HabitReorderModal({ user, habits, onClose, startTab = 'required' }) {
   // Nawyki i wyzwania ustawia się OSOBNO: na ekranach też są rozdzielone, więc
   // jedna wspólna lista kazała przeplatać rzeczy, których nigdy nie widać obok
   // siebie. Kolejność zapisujemy dalej jednym ciągiem `order` (nawyki, potem
@@ -18,7 +18,7 @@ export default function HabitReorderModal({ user, habits, onClose }) {
     required: [...habits].filter(isRequiredHabit).sort(byHabitOrder),
     optional: [...habits].filter(isOptionalHabit).sort(byHabitOrder),
   }))
-  const [tab, setTab] = useState('required')
+  const [tab, setTab] = useState(startTab)
   const [saving, setSaving] = useState(false)
 
   const maWyzwania = grupy.optional.length > 0

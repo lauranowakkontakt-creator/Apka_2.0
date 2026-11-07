@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { format, addDays, subDays } from 'date-fns'
+import { format, addDays, subDays, addMonths, addYears } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import { CatIcon, IconFlag, IconCheck, IconPlus, IconStar, IconEdit } from '../Icons'
+import { CatIcon, IconFlag, IconCheck, IconPlus, IconStar, IconEdit, IconChevronLeft, IconChevronRight } from '../Icons'
 import { optionalProgress, optionalSummary, optionalDayCount, hasAmountGoal,
   amountTotals, isOptionalActiveOn, optionalDayScore, isDayComplete,
-  amountShortLabel, dayAmount, amountStats, formatAmount } from '../../utils/habitLogic'
+  amountShortLabel, dayAmount, amountStats, formatAmount, pauseForDay, pauseReasonMeta } from '../../utils/habitLogic'
 import { habitPeriodLabel, optionalRange, optionalBuckets } from '../../utils/habitStats'
 import { BarChartSVG, Ring } from '../ChartPrimitives'
 import StatTiles from '../StatTiles'
@@ -29,30 +29,39 @@ import AmountSheet from './AmountSheet'
 //  - wykres pokazuje LICZBĘ zaliczeń, nie procent: nie ma planu, z którego
 //    dałoby się policzyć „ile z ilu”,
 //  - pusta kratka nie jest porażką, tylko dniem, w którym się nie zdarzyło,
-//    więc nie ma tu obwódek „pominięte” ani stanów pauzy.
+//    więc nie ma tu obwódek „pominięte”. Pauzy (wyjazd, choroba) są wspólne
+//    z Nawykami i widać je w kalendarzach także tutaj.
 //
 // Dzień jest wspólny z listą dnia Nawyków (ten sam `selectedDay` z modułu), więc
 // przejście tam i z powrotem nie gubi miejsca, w którym jesteś.
 export default function HabitExtras({
-  habits = [], archived = [], today, selectedDay, onSelectDay, onToggle, onSetAmount, onEdit, onAdd,
+  habits = [], archived = [], today, selectedDay, onSelectDay, onToggle, onSetAmount, onEdit, onAdd, pauses = [],
 }) {
   const [tab, setTab]       = useState('today')
   const [amountFor, setAmountFor] = useState(null)   // wyzwanie w oknie „ile dziś"
   const [period, setPeriod] = useState('month')
+  // Statystyki mają własną kotwicę — strzałkami cofasz się o miesiąc albo rok,
+  // niezależnie od dnia wybranego na liście „Dziś".
+  const [kotwica, setKotwica] = useState(selectedDay)
+  const kotwicaDate = new Date(kotwica + 'T12:00:00')
+  const przesun = (kier) => setKotwica(format(period === 'year' ? addYears(kotwicaDate, kier) : addMonths(kotwicaDate, kier), 'yyyy-MM-dd'))
+  const naKoncu = period === 'year' ? format(kotwicaDate, 'yyyy') >= today.slice(0, 4) : format(kotwicaDate, 'yyyy-MM') >= today.slice(0, 7)
 
   const selDate  = new Date(selectedDay + 'T12:00:00')
   const isToday  = selectedDay === today
   const isFuture = selectedDay > today
   const dayLabel = format(selDate, 'EEEE, d MMMM', { locale: pl })
 
-  const { start, end } = optionalRange(period, selectedDay)
+  // Na liście dnia liczymy miesiąc wybranego dnia, w Statystykach — okres spod strzałek.
+  const { start, end } = tab !== 'today' ? optionalRange(period, kotwica) : optionalRange('month', selectedDay)
   const dzien = optionalDayScore(habits, selectedDay)
   const sum     = optionalSummary(habits, start, end)
-  const okresLabel = period === 'week'
-    ? `${format(new Date(start + 'T12:00:00'), 'd MMM', { locale: pl })} – ${format(new Date(end + 'T12:00:00'), 'd MMM', { locale: pl })}`
-    : period === 'year'
-      ? format(selDate, 'yyyy')
-      : format(selDate, 'LLLL yyyy', { locale: pl })
+  const okresLabel = period === 'year'
+    ? format(kotwicaDate, 'yyyy')
+    : format(kotwicaDate, 'LLLL yyyy', { locale: pl })
+
+  // Dzień w pauzie (wyjazd / choroba ustawione w Nawykach) dostaje kolor powodu.
+  const pauzaDnia = (d) => { const p = pauseForDay(d, pauses); return p ? pauseReasonMeta(p) : null }
 
   const fmtDzien = (d) => format(new Date(d + 'T12:00:00'), 'd MMM', { locale: pl })
 
@@ -66,9 +75,11 @@ export default function HabitExtras({
       return { bg: 'transparent', border: '1px solid transparent', color: 'var(--text-muted)',
         ring: false, title: `${d} — poza wyzwaniem` }
     }
+    const pz = pauzaDnia(d)
     if (isDayComplete(habit, d)) {
-      return { bg: color, border: `1px solid ${color}`, color: '#fff', ring: d === today, title: `${d} — zaliczone` }
+      return { bg: color, border: pz ? `2px solid ${pz.color}` : `1px solid ${color}`, color: '#fff', ring: d === today, title: `${d} — zaliczone${pz ? ` (${pz.label.toLowerCase()})` : ''}` }
     }
+    if (pz) return { bg: pz.color + '33', border: `1px ${d > today ? 'dashed' : 'solid'} ${pz.color}66`, color: 'var(--text-muted)', ring: d === today, title: `${d} — ${pz.label.toLowerCase()}` }
     return {
       bg: 'transparent',
       border: d > today ? '1px dashed var(--border)' : '1px solid var(--border)',
@@ -88,6 +99,10 @@ export default function HabitExtras({
       return { bg: 'transparent', border: '1px solid transparent', color: 'var(--text-muted)',
         ring: d === today, title: `${d} — poza wyzwaniami` }
     }
+    const pz = pauzaDnia(d)
+    if (n === 0 && pz) {
+      return { bg: pz.color + '33', border: `1px ${d > today ? 'dashed' : 'solid'} ${pz.color}66`, color: 'var(--text-muted)', ring: d === today, title: `${d} — ${pz.label.toLowerCase()}` }
+    }
     if (n === 0) {
       return {
         bg: 'transparent',
@@ -98,7 +113,7 @@ export default function HabitExtras({
     const udzial = Math.min(1, n / Math.max(1, habits.length))
     return {
       bg: `color-mix(in oklab, var(--warn) ${Math.round(22 + udzial * 78)}%, var(--surface2))`,
-      border: '1px solid transparent',
+      border: pz ? `2px solid ${pz.color}` : '1px solid transparent',
       color: udzial > 0.55 ? '#fff' : 'var(--text)',
       ring: d === today,
       title: `${d} — ${n} ${n === 1 ? 'zaliczenie' : 'zaliczenia'}`,
@@ -152,36 +167,32 @@ export default function HabitExtras({
           {/* Hero — ten sam układ co na liście dnia Nawyków: postęp dnia obok
               mini-kalendarza miesiąca. Wyzwania mają wyglądać jak nawyki;
               różni je to, co liczymy, nie to, jak to wygląda. */}
-          <div className="g2-br" data-stagger style={{ gap: 12, alignItems: 'start' }}>
-            <div className="card card-hover-glow" style={{
-              padding: 18, display: 'flex', alignItems: 'center', gap: 16,
+          <div className="habit-hero" data-stagger style={{ margin: 0 }}>
+            <div className="card card-hover-glow habit-hero-progress" style={{
               borderTop: '2px solid color-mix(in oklab, var(--warn) 80%, transparent)',
               background: 'linear-gradient(140deg, var(--surface) 45%, color-mix(in oklab, var(--warn) 7%, var(--surface)) 100%)',
             }}>
-              <Ring value={dzien.pct} size={88} thickness={8} color="var(--warn)" label="dziś" />
+              <Ring value={dzien.pct} size={64} thickness={6} color="var(--warn)" label="dziś" />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {dayLabel}
                 </div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 6 }}>
-                  Wyzwania dnia
-                </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 30, fontWeight: 700, lineHeight: 1 }}>{dzien.done}</span>
-                  <span style={{ fontSize: 15, color: 'var(--text-muted)' }}>/ {dzien.total}</span>
+                  <span style={{ fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{dzien.done}</span>
+                  <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/ {dzien.total}</span>
                 </div>
-                {/* Bez serii — przy wyzwaniu przerwa w ciagu nie jest porazka. */}
-                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 6 }}>
-                  {sum.done}x w tym okresie
+                {/* Bez serii — przy wyzwaniu przerwa w ciągu nie jest porażką. */}
+                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 5 }}>
+                  {sum.done}x w tym miesiącu
                 </div>
               </div>
             </div>
 
-            <div className="card card-hover-glow" style={{ padding: 16 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 10 }}>
-                Kalendarz
+            <div className="card card-hover-glow habit-hero-cal">
+              <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', textAlign: 'center', marginBottom: 6 }}>
+                {format(selDate, 'LLL yyyy', { locale: pl })}
               </div>
-              <MonthCalendar month={selDate} renderCell={cellForAll} cellH={20} font={8.5} maxWidth={266} />
+              <MonthCalendar month={selDate} renderCell={cellForAll} cellH={15} gap={2} font={7.5} maxWidth={240} />
             </div>
           </div>
 
@@ -277,11 +288,14 @@ export default function HabitExtras({
       {tab === 'stats' && (
         <>
           <SegTabs
-            items={[{ id: 'week', label: 'Tydzień' }, { id: 'month', label: 'Miesiąc' }, { id: 'year', label: 'Rok' }]}
+            items={[{ id: 'month', label: 'Miesiąc' }, { id: 'year', label: 'Rok' }]}
             active={period} onChange={setPeriod}
           />
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.18em', textTransform: 'uppercase' }}>
-            Jak poszło · {okresLabel}
+          {/* Przewijanie okresu — wstecz bez ograniczeń, do przodu do bieżącego. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button className="icon-btn" onClick={() => przesun(-1)} title={period === 'year' ? 'Poprzedni rok' : 'Poprzedni miesiąc'}><IconChevronLeft size={16} /></button>
+            <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600, textTransform: 'capitalize' }}>{okresLabel}</span>
+            <button className="icon-btn" onClick={() => przesun(1)} disabled={naKoncu} style={{ opacity: naKoncu ? 0.3 : 1 }} title={period === 'year' ? 'Następny rok' : 'Następny miesiąc'}><IconChevronRight size={16} /></button>
           </div>
           {/* „Ile na to poszlo" — sumy czasu i ilosci, kazda jednostka osobno. */}
           {amountTotals(habits, start, end).length > 0 && (
@@ -309,7 +323,7 @@ export default function HabitExtras({
           <div className="card" style={{ padding: 14 }}>
             {period === 'month' ? (
               <>
-                <MonthCalendar month={selDate} renderCell={cellForAll} cellH={30} gap={4} font={11} />
+                <MonthCalendar month={kotwicaDate} renderCell={cellForAll} cellH={30} gap={4} font={11} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10, justifyContent: 'flex-end' }}>
                   <span style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>mniej</span>
                   {[0, 0.35, 0.6, 0.85, 1].map((v, i) => (
@@ -322,13 +336,13 @@ export default function HabitExtras({
                 </div>
               </>
             ) : (
-              <BarChartSVG data={optionalBuckets(habits, period, selectedDay)} accent="var(--warn)" height={130}
+              <BarChartSVG data={optionalBuckets(habits, period, kotwica)} accent="var(--warn)" height={130}
                 fmt={(v) => `${v} ${v === 1 ? 'raz' : 'razy'}`} />
             )}
           </div>
 
           {/* Karty wyzwań — jak karty nawyków w statystykach: siatka dni przy
-              miesiącu, przy tygodniu i roku sam licznik. */}
+              miesiącu, przy roku sam licznik. */}
           <div data-stagger style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10 }}>
             {habits.map(h => {
               const p = optionalProgress(h, start, end)
@@ -377,7 +391,7 @@ export default function HabitExtras({
                     )
                   })()}
                   {period === 'month'
-                    ? <MonthCalendar month={selDate} renderCell={cellForHabit(h, color)} cellH={18} gap={3} font={8} />
+                    ? <MonthCalendar month={kotwicaDate} renderCell={cellForHabit(h, color)} cellH={18} gap={3} font={8} />
                     : okres && <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{okres}</div>}
                 </div>
               )

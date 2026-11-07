@@ -18,6 +18,7 @@ const SINGLE_DOCS = [
   ['settings', 'shopCategories'],
   ['settings', 'tithe'],
   ['settings', 'calendar'],
+  ['settings', 'habitPauses'],
 ]
 
 // Firestore Timestamp → ISO string (czytelne i odtwarzalne)

@@ -32,7 +32,7 @@ export default function HabitDayGrid({ habit, pauses = [], start, end, today, co
         if (future) {
           // Zaplanowana pauza (wyjazd/choroba) widoczna już przed terminem.
           if (status === 'paused') {
-            const m = pauseReasonMeta(pauseForDay(d, pauses)?.reason)
+            const m = pauseReasonMeta(pauseForDay(d, pauses))
             bg = m.color + '22'; border = `1px dashed ${m.color}88`; title = `${d} • ${m.label.toLowerCase()} (zaplanowane)`
           } else {
             border = '1px dashed var(--border)'
@@ -43,7 +43,7 @@ export default function HabitDayGrid({ habit, pauses = [], start, end, today, co
             // Zrobione, choć trwał wyjazd/choroba — wypełnienie jak zawsze,
             // ale obwódka w kolorze powodu, żeby było widać, że to nie był
             // zwykły dzień.
-            const m = pauseReasonMeta(pauseForDay(d, pauses)?.reason)
+            const m = pauseReasonMeta(pauseForDay(d, pauses))
             bg = color; border = `2px solid ${m.color}`
             pauseRing = m.color
             title = `${d} • zrobione mimo: ${m.label.toLowerCase()}`
@@ -53,7 +53,7 @@ export default function HabitDayGrid({ habit, pauses = [], start, end, today, co
             title = `${d} • zrobione${bonus ? ' (dodatkowo)' : ''}`
           }
         } else if (status === 'paused') {
-          const m = pauseReasonMeta(pauseForDay(d, pauses)?.reason)
+          const m = pauseReasonMeta(pauseForDay(d, pauses))
           bg = m.color + '33'; border = `1px solid ${m.color}66`; title = `${d} • ${m.label.toLowerCase()}`
         } else if (status === 'due') {
           border = '1px solid var(--border-strong)'; title = `${d} • pominięte`

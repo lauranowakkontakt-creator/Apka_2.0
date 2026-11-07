@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { IconClose, IconCheck, IconTrash } from '../Icons'
-import { formatAmount, amountStep, unitMeta, dayAmount } from '../../utils/habitLogic'
+import { formatAmount, amountStep, unitMeta, dayAmount, szybkieDodatki, liczbaZPola } from '../../utils/habitLogic'
 
 // Okno ustawiania wykonania dla nawyku na czas albo ilość.
 //
@@ -13,7 +13,15 @@ export default function AmountSheet({ habit, dateStr, onSet, onClose }) {
   const unit   = habit.unit || 'szt'
   const skok   = amountStep(target, unit)
   const color  = habit.color || 'var(--accent)'
-  const [wartosc, setWartosc] = useState(() => dayAmount(habit, dateStr))
+  // Pole trzyma TEKST, a liczbę liczymy z niego. Wcześniej trzymało liczbę,
+  // więc wyczyszczone pole od razu wracało do „0" i każda wpisana cyfra lądowała
+  // za tym zerem („045"). Pusty dzień zaczyna od pustego pola.
+  const [tekst, setTekst] = useState(() => { const v = dayAmount(habit, dateStr); return v > 0 ? String(v) : '' })
+  const wartosc = liczbaZPola(tekst)
+  const setWartosc = (f) => setTekst(t => {
+    const v = Math.max(0, Math.round(typeof f === 'function' ? f(liczbaZPola(t)) : f))
+    return v > 0 ? String(v) : ''
+  })
 
   const zapisz = (v) => {
     const liczba = Math.max(0, Math.round(Number(v) || 0))
@@ -44,8 +52,10 @@ export default function AmountSheet({ habit, dateStr, onSet, onClose }) {
 
             <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
               <input
-                type="number" inputMode="numeric" min="0" value={wartosc}
-                onChange={(e) => setWartosc(Math.max(0, Number(e.target.value) || 0))}
+                type="text" inputMode="numeric" value={tekst} placeholder="0" autoFocus
+                aria-label={`Ile (${unitMeta(unit).label})`}
+                onChange={(e) => setTekst(e.target.value.replace(/[^\d.,]/g, ''))}
+                onFocus={(e) => e.target.select()}
                 style={{
                   width: '100%', textAlign: 'center', fontSize: 30, fontWeight: 700,
                   background: 'none', border: 'none', color: 'var(--text)',
@@ -61,6 +71,17 @@ export default function AmountSheet({ habit, dateStr, onSet, onClose }) {
               onClick={() => setWartosc(w => w + skok)}
               title={`+${formatAmount(skok, unit)}`}
               style={{ width: 44, height: 44, fontSize: 20, flexShrink: 0 }}>+</button>
+          </div>
+
+          {/* Szybkie dodawanie — każdy klik dokłada do tego, co już jest. */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            {szybkieDodatki(unit).map(d => (
+              <button key={d.v} type="button" className="btn-outline"
+                style={{ flex: '1 1 0', minWidth: 52, padding: '8px 0', fontWeight: 700, color: color, borderColor: `color-mix(in oklab, ${color} 45%, var(--border))` }}
+                onClick={() => setWartosc(w => w + d.v)}>
+                {d.label}
+              </button>
+            ))}
           </div>
 
           {/* Pasek postępu — ten sam język co pierścień w liście dnia. */}

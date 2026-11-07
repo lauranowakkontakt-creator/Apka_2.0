@@ -539,7 +539,7 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
 
       {/* Tryb (Miesiąc / Rok) + wspólna nawigacja obu wykresów */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SegTabs items={[{ id: 'month', label: 'Miesiąc' }, { id: 'year', label: 'Rok' }, { id: 'all', label: 'Łącznie' }]} active={viewMode} onChange={setViewMode} style={{ maxWidth: 300, flex: 1, minWidth: 0 }} />
+        <SegTabs items={[{ id: 'month', label: 'Miesiąc' }, { id: 'year', label: 'Rok' }]} active={viewMode} onChange={setViewMode} style={{ maxWidth: 300, flex: 1, minWidth: 0 }} />
         {viewMode !== 'all' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
             <button className="month-btn" style={{ width: 30, height: 30 }} onClick={() => nav(-1)}><IconChevronLeft size={14} /></button>

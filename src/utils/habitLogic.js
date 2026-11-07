@@ -9,8 +9,23 @@ export const PAUSE_REASONS = [
   { id: 'other',    label: 'Inne',             icon: 'IconMore', color: '#64748B' }, // szary
 ]
 
-export function pauseReasonMeta(reasonId) {
-  return PAUSE_REASONS.find(r => r.id === reasonId) || PAUSE_REASONS.find(r => r.id === 'other')
+// Wygląd powodu przerwy. Przyjmuje id powodu ALBO całą pauzę — własne powody
+// (dopisane przez użytkowniczkę) nie są na liście wbudowanych, więc ich nazwa,
+// kolor i ikona jadą w samej pauzie (reasonLabel / reasonColor / reasonIcon).
+export function pauseReasonMeta(reasonOrPause) {
+  const pauza = reasonOrPause && typeof reasonOrPause === 'object' ? reasonOrPause : null
+  const id = pauza ? pauza.reason : reasonOrPause
+  const wbudowany = PAUSE_REASONS.find(r => r.id === id)
+  if (wbudowany) return wbudowany
+  const inne = PAUSE_REASONS.find(r => r.id === 'other')
+  if (!pauza) return inne
+  return { id, label: pauza.reasonLabel || inne.label, icon: pauza.reasonIcon || inne.icon, color: pauza.reasonColor || inne.color }
+}
+
+// Lista powodów do wyboru: wbudowane (bez „Inne") + własne + „Inne" na końcu.
+export function powodyPauz(wlasne = []) {
+  const inne = PAUSE_REASONS.find(r => r.id === 'other')
+  return [...PAUSE_REASONS.filter(r => r.id !== 'other'), ...wlasne.filter(r => r?.id && r?.label), inne]
 }
 
 // Zwraca pauzę obejmującą dany dzień (albo null)
@@ -574,6 +589,21 @@ export function optionalDayScore(habits = [], dateStr) {
 // jedną minutę, a klikanie minuta po minucie nie ma sensu — czas chodzi w
 // piątkach. Dlatego dla `min` zaokrąglamy skok do pełnych pięciu minut i nigdy
 // nie schodzimy niżej (przy celu 10 minut skok to 5, nie 3).
+// Szybkie przyciski „+" pod polem kwoty. Dla czasu: +5, +15, +30, +60 min
+// i +2 h; dla stron — porcje typowe dla czytania; dla reszty małe liczby.
+export function szybkieDodatki(unit) {
+  const meta = unitMeta(unit)
+  if (meta.time) return [5, 15, 30, 60, 120].map(v => ({ v, label: v === 120 ? '+2h' : `+${v}` }))
+  if (unit === 'str') return [5, 10, 20, 50].map(v => ({ v, label: `+${v}` }))
+  return [1, 5, 10].map(v => ({ v, label: `+${v}` }))
+}
+
+// Tekst z pola kwoty → liczba ≥ 0. Puste pole to 0, przecinek działa jak kropka.
+export function liczbaZPola(tekst) {
+  const n = Number(String(tekst ?? '').replace(',', '.').trim())
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
 export function amountStep(target, unit) {
   const t = Number(target) || 0
   const czas = unitMeta(unit).time === true

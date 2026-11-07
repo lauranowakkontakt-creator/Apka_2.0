@@ -21,7 +21,7 @@ export function getPauseIcon(pauses, dateStr) {
 
 export function getPauseColor(pauses, dateStr) {
   const p = pauseForDay(dateStr, pauses)
-  return p ? pauseReasonMeta(p.reason).color : null
+  return p ? pauseReasonMeta(p).color : null
 }
 
 export const ymd = (d) => format(d, 'yyyy-MM-dd')
