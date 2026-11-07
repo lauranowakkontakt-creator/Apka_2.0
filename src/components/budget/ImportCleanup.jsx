@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, doc, getDoc, getDocs, setDoc, writeBatch, query, where, limit } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { wPaczkach } from '../../utils/zapisWPaczkach'
+import { restartPolaczenia } from '../../utils/restartPolaczenia'
 import { planImportCleanup } from '../../utils/importCleanup'
 import { toast } from '../Toast'
 
@@ -53,7 +54,7 @@ export default function ImportCleanup({ user }) {
     const base = ['users', user.uid]
     try {
       const refs = [...plan.transactions.map(id => doc(db, ...base, 'transactions', id)), ...plan.accounts.map(a => doc(db, ...base, 'accounts', a.id))]
-      await wPaczkach(refs, { makeBatch: () => writeBatch(db), apply: (b, r) => b.delete(r), onProgress: (d, t) => setProg(`${d} / ${t}`) })
+      await wPaczkach(refs, { makeBatch: () => writeBatch(db), onStall: restartPolaczenia, apply: (b, r) => b.delete(r), onProgress: (d, t) => setProg(`${d} / ${t}`) })
       if (plan.categories) await setDoc(doc(db, ...base, 'settings', 'categories'), plan.categories)
       const msg = `Usunięto ${plan.transactions.length} transakcji z importu${plan.accounts.length ? ` i ${plan.accounts.length} pustych kont` : ''}.`
       toast.success(msg); setDone(msg); setOpen(false); setPlan(null); setHasImport(false)

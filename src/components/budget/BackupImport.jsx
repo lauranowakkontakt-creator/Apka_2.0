@@ -4,6 +4,7 @@ import { db } from '../../firebase/config'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '../../utils/categories'
 import { planBackupImport, EXTRA_COLLECTIONS, EXTRA_SINGLES } from '../../utils/backupImport'
 import { wPaczkach } from '../../utils/zapisWPaczkach'
+import { restartPolaczenia } from '../../utils/restartPolaczenia'
 import { log } from '../../utils/logger'
 import { toast } from '../Toast'
 
@@ -70,7 +71,7 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
     setProgress({ done: 0, total })
     try {
       await wPaczkach(writes, {
-        makeBatch: () => writeBatch(db),
+        makeBatch: () => writeBatch(db), onStall: restartPolaczenia,
         apply: (b, [ref, data, opt]) => opt ? b.set(ref, data, opt) : b.set(ref, data),
         onProgress: (d) => { setWaiting(null); setProgress({ done: Math.max(0, d - pre), total }) },
         onWait: (code, proba) => { setWaiting(proba); log.warn('import', 'paczka zapisu ponawiana', { code, proba }) },
@@ -139,7 +140,7 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
           <span>{progress.done} / {progress.total}</span>
         </div>
       )}
-      {busy && <p className="imp-hint">{waiting ? `Serwer odpowiada wolno — ponawiam (${waiting}/3)…` : 'Zapisuję małymi paczkami. Możesz zamknąć okno — przy kolejnym imporcie dopiszę tylko brakujące.'}</p>}
+      {busy && <p className="imp-hint">{waiting ? `Połączenie stanęło — łączę się z serwerem od nowa (${waiting}/5)…` : 'Zapisuję małymi paczkami. Możesz zamknąć okno — przy kolejnym imporcie dopiszę tylko brakujące.'}</p>}
       {error && <p className="form-error">{error}</p>}
       <button type="button" className="btn-save" disabled={busy || (!transactions.length && !newAccounts.length && !newCategories.length && !extraCount)} onClick={run}>
         {busy ? 'Importowanie…' : transactions.length ? `Importuj ${transactions.length} transakcji` : extraCount || newAccounts.length || newCategories.length ? 'Importuj' : 'Nic nowego do dodania'}

@@ -18,6 +18,7 @@ import { buildReview, defaultDecisions, resolveReview, assignCategory, reviewKey
 import { isBackup } from '../../utils/backupImport'
 import { toast } from '../Toast'
 import { wPaczkach } from '../../utils/zapisWPaczkach'
+import { restartPolaczenia } from '../../utils/restartPolaczenia'
 import { log } from '../../utils/logger'
 
 const PREVIEW_LIMIT = 300
@@ -279,7 +280,7 @@ export default function ImportView({ user, onClose }) {
           return [doc(collection(db, ...base, 'transactions')), data]
       })
       await wPaczkach(writes, {
-        makeBatch: () => writeBatch(db),
+        makeBatch: () => writeBatch(db), onStall: restartPolaczenia,
         apply: (b, [ref, data]) => b.set(ref, data),
         onProgress: (done) => setProgress({ done, total: chosen.length }),
         onWait: (code, proba) => log.warn('import', 'paczka zapisu ponawiana', { code, proba }),
@@ -331,7 +332,7 @@ export default function ImportView({ user, onClose }) {
             updatedAt: now,
           }]
       })
-      await wPaczkach(writes, { makeBatch: () => writeBatch(db), apply: (b, [ref, data]) => b.set(ref, data) })
+      await wPaczkach(writes, { makeBatch: () => writeBatch(db), onStall: restartPolaczenia, apply: (b, [ref, data]) => b.set(ref, data) })
       if (updateBalance) {
         const deltas = balanceDeltas(chosen)
         const batch = writeBatch(db)

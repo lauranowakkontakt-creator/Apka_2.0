@@ -30,3 +30,10 @@ test('błąd uprawnień nie jest ponawiany', async () => {
   const db = fakeDb({ 0: 'permission-denied' })
   await assert.rejects(wPaczkach([1], { makeBatch: db.makeBatch, apply: (b, x) => b.set(x), czekaj: async () => {} }), (e) => e.code === 'permission-denied')
 })
+
+test('zawieszona paczka: restart połączenia (onStall), potem dalej', async () => {
+  const db = fakeDb({ 1: 'hang' }); let stalls = 0
+  await wPaczkach([1, 2, 3, 4], { makeBatch: db.makeBatch, apply: (b, x) => b.set(x), size: 2, timeoutMs: 10, czekaj: async () => {}, onStall: async () => { stalls++ } })
+  assert.deepEqual(db.written, [1, 2, 3, 4])
+  assert.equal(stalls, 1)
+})
