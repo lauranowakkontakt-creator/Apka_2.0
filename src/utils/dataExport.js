@@ -3,8 +3,9 @@ import { db } from '../firebase/config'
 
 // Wszystkie podkolekcje użytkownika
 const COLLECTIONS = [
-  'accounts', 'transactions', 'regularPayments', 'savingsGoals', 'shoppingItems',
-  'habits', 'habitPauses', 'habitCategories',
+  'accounts', 'transactions', 'regularPayments', 'savingsGoals', 'shoppingItems', 'debtors',
+  'habits', 'habitPauses', 'habitCategories', 'habitRoutines',
+  'dreams', 'dreamCategories', 'dreamSymbols',
   'moodLogs', 'todos', 'todoLists',
   'calendarEvents', 'calendarPeople', 'calendarCategories',
   'prayerIntentions', 'prayerPeople', 'bibleNotes',
@@ -16,6 +17,7 @@ const SINGLE_DOCS = [
   ['settings', 'categories'],
   ['settings', 'shopCategories'],
   ['settings', 'tithe'],
+  ['settings', 'calendar'],
 ]
 
 // Firestore Timestamp → ISO string (czytelne i odtwarzalne)

@@ -8,6 +8,7 @@ import { CURRENCIES, getCurrencyCode, setCurrencyCode } from '../utils/currency'
 import { exportAllJSON, exportTransactionsCSV } from '../utils/dataExport'
 import { toast } from './Toast'
 import Diagnostyka from './Diagnostyka'
+import ClearModuleData from './ClearModuleData'
 
 export default function SettingsDrawer({ open, onClose, activeModule, modules, onModuleChange, onIconChange, onCurrencyChange, user, layout, onLayoutChange }) {
   const handleLogout = () => { signOut(auth); onClose() }
@@ -103,6 +104,12 @@ export default function SettingsDrawer({ open, onClose, activeModule, modules, o
         <div className="drawer-section">
           <p className="drawer-section-title">Kopia danych</p>
           <DataBackup uid={user.uid} />
+        </div>
+
+        {/* Czyszczenie danych modułu */}
+        <div className="drawer-section">
+          <p className="drawer-section-title">Wyczyść dane modułu</p>
+          <ClearModuleData uid={user.uid} />
         </div>
 
         {/* Diagnostyka */}
