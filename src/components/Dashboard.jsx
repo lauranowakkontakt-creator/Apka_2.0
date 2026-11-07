@@ -289,12 +289,12 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
                         <CatIcon categoryId={t.categoryId} emoji={t.categoryIcon} size={18} />
                       </span>
                       <div className="rev-row-main">
-                        <div className="rev-row-name">{t.description || t.category || 'Transakcja'}</div>
-                        <div className="rev-row-sub">{[t.category, format(t.date, 'd MMM', { locale: pl }), accName(t.accountId)].filter(Boolean).join(' · ')}</div>
+                        <div className="rev-row-name">{t.description || t.subsubcategoryLabel || t.subcategoryLabel || t.category || 'Transakcja'}</div>
+                        <div className="rev-row-sub">{[[t.category, t.subcategoryLabel, t.subsubcategoryLabel].filter(Boolean).join(' › '), format(t.date, 'd MMM', { locale: pl }), accName(t.accountId)].filter(Boolean).join(' · ')}</div>
                       </div>
                       <div className="rev-row-right">
                         <div className="rev-row-amt" style={{ color: isExpense ? 'var(--expense)' : 'var(--income)' }}>
-                          {!privateMode ? `${isExpense ? '−' : '+'}${fmt(t.amount)}` : '••'}
+                          {!privateMode ? `${isExpense ? '−' : '+'}${fmt(t.amount, t.currency)}` : '••'}
                         </div>
                       </div>
                     </div>

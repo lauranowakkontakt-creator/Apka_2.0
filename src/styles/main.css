@@ -3064,3 +3064,9 @@ body { overscroll-behavior-y: none; }
 .imp-checking { color: var(--accent); }
 .rev-subs3 { margin-left: 6px; } .rev-subs3 .rev-name { font-size: 13px; }
 .rev-progress { flex-wrap: wrap; } .rev-all { width: auto; padding: 8px 14px; font-size: 13px; }
+.imp-cleanup { border-top: 1px solid var(--border); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.imp-cleanup-head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.imp-cleanup .confirm-box { background: var(--surface2); border-radius: var(--r-sm); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.imp-cleanup .confirm-box p, .imp-cleanup .confirm-box ul { margin: 0; } .imp-cleanup .confirm-box ul { padding-left: 18px; color: var(--text-muted); }
+.imp-cleanup .row { display: flex; gap: 12px; align-items: center; }
+.imp-cleanup .btn-save.danger { width: auto; padding: 10px 18px; background: var(--expense); }

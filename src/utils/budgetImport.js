@@ -365,6 +365,7 @@ export function rowsToTransactions(rows, mapping, opts = {}) {
         subcategory: get(row, 'subcategory'),
         account: accRaw,
         detail,
+        note,
         bank: [party, desc].filter(Boolean).join(' — '),
         source: get(row, 'source'),
       },

@@ -11,6 +11,7 @@ import {
 } from '../../utils/budgetImport'
 import { IconClose, IconCheck } from '../Icons'
 import BackupImport from './BackupImport'
+import ImportCleanup from './ImportCleanup'
 import CategoryReview from './CategoryReview'
 import { readXlsx, isZip } from '../../utils/xlsxReader'
 import { buildReview, defaultDecisions, resolveReview, assignCategory, reviewKeys, guessAccountType } from '../../utils/importReview'
@@ -260,7 +261,10 @@ export default function ImportView({ user, onClose }) {
             amount: it.amount,
             ...assignCategory(it, res),
             currency: it.currency,
-            description: it.description,
+            // Opis krótki: Twoja notatka z arkusza. Długi tekst z wyciągu zostaje
+            // w bankDescription (do wyszukiwania), a lista pokazuje kategorię.
+            description: reviewMode ? (it.raw?.note || (it.transfer ? (it.raw?.subcategory || '') : '')) : it.description,
+            ...(reviewMode && it.raw?.bank ? { bankDescription: it.raw.bank.slice(0, 200) } : {}),
             date: Timestamp.fromDate(it.date),
             accountId: accMap[it.raw?.account] || it.accountId || null,
             tithe: false,
@@ -386,6 +390,7 @@ export default function ImportView({ user, onClose }) {
               </>
             )}
             {error && <p className="form-error">{error}</p>}
+            <ImportCleanup user={user} />
           </div>
         )}
 
