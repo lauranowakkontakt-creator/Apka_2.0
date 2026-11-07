@@ -50,7 +50,7 @@ export const firebaseConfig = hasFullEnvConfig ? fromEnv : LOCAL_CONFIG
 // Widoczne w konsoli, do którego projektu apka faktycznie pisze.
 console.info(`[firebase] projekt: ${firebaseConfig.projectId}${USE_EMULATORS ? ' (emulatory lokalne)' : ' (z .env)'}`)
 
-const app = initializeApp(firebaseConfig)
+export const app = initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
 export const googleProvider = new GoogleAuthProvider()

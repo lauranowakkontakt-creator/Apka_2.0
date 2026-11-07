@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { collection, doc, getDocs, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDocs } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { MODULE_DATA } from '../utils/moduleData'
 import { wPaczkach } from '../utils/zapisWPaczkach'
-import { restartPolaczenia } from '../utils/restartPolaczenia'
+import { zapiszWiele } from '../firebase/lite'
 import { confirmDialog } from './ConfirmModal'
 import { toast } from './Toast'
 
@@ -27,12 +27,13 @@ export default function ClearModuleData({ uid }) {
       })
       if (!ok) { setBusy(null); return }
       setProg('')
-      await wPaczkach(refs, { makeBatch: () => writeBatch(db), onStall: restartPolaczenia, apply: (b, r) => b.delete(r), onProgress: (d, t) => setProg(`${d} / ${t}`) })
+      const del = (rs) => rs.map(r => ({ path: r.path.split('/'), del: true }))
+      await zapiszWiele(del(refs), { wPaczkach, onProgress: (d, t) => setProg(`${d} / ${t}`) })
       // Sprawdź, czy nic nie zostało (np. wpis dodany w trakcie) — i dokończ
       for (let runda = 0; runda < 3; runda++) {
         const left = (await Promise.all(m.collections.map(c => getDocs(collection(db, ...base, c))))).flatMap(s => s.docs.map(d => d.ref))
         if (!left.length) break
-        await wPaczkach(left, { makeBatch: () => writeBatch(db), onStall: restartPolaczenia, apply: (b, r) => b.delete(r) })
+        await zapiszWiele(del(left), { wPaczkach })
       }
       toast.success(`Wyczyszczono: ${m.label}`)
     } catch (e) {
