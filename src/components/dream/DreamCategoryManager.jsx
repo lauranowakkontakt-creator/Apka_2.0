@@ -5,15 +5,10 @@ import { db } from '../../firebase/config'
 import { DREAM_CATEGORIES } from '../../utils/dreams'
 import { IconTrash, IconEdit } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
+import { ColorPicker } from '../Pickers'
+import { APP_COLORS } from '../../utils/palette'
 import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
-
-// Ta sama paleta co przy symbolach snów — kategorie mają siedzieć w jednym
-// świecie kolorystycznym z resztą modułu.
-const CAT_COLORS = [
-  '#7C8AF0', '#5FBF98', '#E66A4E', '#C9A24A', '#9CCB5E', '#5BB6D9',
-  '#9B7CF0', '#B79AE0', '#D98B5F', '#E8607A', '#7BCBB0', '#9E9E9E',
-]
 
 export default function DreamCategoryManager({ user }) {
   const [cats, setCats] = useState([])
@@ -94,7 +89,7 @@ export default function DreamCategoryManager({ user }) {
 
 function CatForm({ user, initial, onDone, isNew }) {
   const [label, setLabel] = useState(initial?.label || '')
-  const [color, setColor] = useState(initial?.color || CAT_COLORS[0])
+  const [color, setColor] = useState(initial?.color || APP_COLORS[48])
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
@@ -123,12 +118,7 @@ function CatForm({ user, initial, onDone, isNew }) {
       </div>
       <div className="form-group" style={{ margin: 0 }}>
         <label>Kolor</label>
-        <div className="color-picker">
-          {CAT_COLORS.map(c => (
-            <button key={c} type="button" className={`color-dot ${color === c ? 'active' : ''}`}
-              style={{ background: c }} onClick={() => setColor(c)} />
-          ))}
-        </div>
+        <ColorPicker value={color} onChange={setColor} />
       </div>
       {err && <p className="form-error" style={{ margin: 0 }}>{err}</p>}
       <div style={{ display: 'flex', gap: 8 }}>

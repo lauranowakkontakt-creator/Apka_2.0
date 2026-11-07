@@ -6,14 +6,10 @@ import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { fmt, parseAmount } from '../../utils/currency'
 import { IconEdit, IconTrash, IconClose, IconSavings } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
+import { ColorPicker } from '../Pickers'
+import { APP_COLORS } from '../../utils/palette'
 import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
-
-const GOAL_COLORS = [
-  '#EF4444','#F97316','#F59E0B','#EAB308','#84CC16','#22C55E',
-  '#10B981','#14B8A6','#06B6D4','#3B82F6','#6366F1','#8B5CF6',
-  '#A855F7','#EC4899','#F43F5E','#64748B',
-]
 
 export default function SavingsGoals({ user, onClose }) {
   const [goals, setGoals]       = useState([])
@@ -144,7 +140,7 @@ export default function SavingsGoals({ user, onClose }) {
 
 function GoalForm({ user, editData, onClose }) {
   const [name, setName]         = useState(editData?.name || '')
-  const [color, setColor]       = useState(editData?.color || GOAL_COLORS[9])
+  const [color, setColor]       = useState(editData?.color || APP_COLORS[17])
   const [noTarget, setNoTarget] = useState(editData?.noTarget ?? false)
   const [target, setTarget]     = useState(editData?.targetAmount?.toString() || '')
   const [current, setCurrent]   = useState(editData?.currentAmount?.toString() || '')
@@ -193,15 +189,7 @@ function GoalForm({ user, editData, onClose }) {
 
           <div className="form-group">
             <label>Kolor</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {GOAL_COLORS.map(c => (
-                <button key={c} type="button" onClick={() => setColor(c)} style={{
-                  width: 26, height: 26, borderRadius: '50%', background: c, cursor: 'pointer',
-                  border: `3px solid ${color === c ? 'var(--text)' : 'transparent'}`,
-                  transition: 'transform .15s', transform: color === c ? 'scale(1.2)' : 'scale(1)',
-                }} />
-              ))}
-            </div>
+            <ColorPicker value={color} onChange={setColor} />
           </div>
 
           <div className="form-group">
