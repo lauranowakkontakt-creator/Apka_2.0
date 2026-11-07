@@ -1,7 +1,7 @@
 import { IconBudget, IconHabits } from './Icons'
 
 const MODULES = [
-  { id: 'budget', label: 'Budżet', Icon: IconBudget },
+  { id: 'budget', label: 'Finanse', Icon: IconBudget },
   { id: 'habits', label: 'Nawyki', Icon: IconHabits },
 ]
 

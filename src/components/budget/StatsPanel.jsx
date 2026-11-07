@@ -81,6 +81,13 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
   const onAccounts = accounts.filter(a => a.type !== 'investment' && (a.currency || 'PLN') === 'PLN').reduce((s, a) => s + (Number(a.balance) || 0), 0)
   const shouldBe = allBalance - allInvested
   const gap = onAccounts - shouldBe
+  // Wartość inwestycji to szacunek z sald wpisanych na kontach inwestycyjnych —
+  // kurs zmienia się codziennie, więc nie liczymy jej do bilansu ani przychodów.
+  const investValue = accounts.filter(a => a.type === 'investment' && (a.currency || 'PLN') === 'PLN').reduce((s, a) => s + (Number(a.balance) || 0), 0)
+  const investDiff = investValue - allInvested
+  // Rozbicie: ile wpłynęło na inwestycje, a ile z nich wróciło (sprzedaż, wypłata)
+  const invPaidIn = investedNet(invFlows.filter(t => t.type === 'expense'), accById)
+  const invBack = Math.round((invPaidIn - allInvested) * 100) / 100
 
   const money = (n) => privateMode ? '••' : fmt(n)
   const hasYearData = monthly.some(m => m.income > 0 || m.expense > 0)
@@ -118,17 +125,19 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
                   <Tile label="Przychody" value={`+${money(allTime.income)}`} color="var(--income)" />
                   <Tile label="Wydatki" value={`−${money(allTime.expense)}`} color="var(--expense)" />
                   <Tile label="Bilans" value={`${allBalance >= 0 ? '+' : '−'}${money(Math.abs(allBalance))}`} color={allBalance >= 0 ? 'var(--income)' : 'var(--expense)'} />
-                  {allInvested !== 0 && <>
-                    <Tile label="Zainwestowane" value={money(allInvested)} color="var(--accent)" />
-                    <Tile label="Bilans po inwestycjach" value={`${shouldBe >= 0 ? '+' : '−'}${money(Math.abs(shouldBe))}`} color={shouldBe >= 0 ? 'var(--income)' : 'var(--expense)'} />
-                  </>}
                   {accounts.length > 0 && <Tile label="Na kontach (zł)" value={money(onAccounts)} />}
+                  {allInvested !== 0 && <Tile label="Zainwestowane" value={money(allInvested)} color="var(--accent)" />}
+                  {allInvested !== 0 && investValue > 0 && (
+                    <Tile label="Inwestycje teraz ≈" value={`≈ ${money(investValue)}`} color="var(--text-muted)" />
+                  )}
                 </div>
                 {accounts.length > 0 && (
                   <p style={{ margin: '8px 2px 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                    Przychody − wydatki{allInvested !== 0 ? ' − zainwestowane' : ''} powinny dać mniej więcej to, co masz na kontach w złotówkach.
-                    {' '}{Math.abs(gap) < 1 ? 'Zgadza się.' : `Różnica: ${gap >= 0 ? '+' : '−'}${money(Math.abs(gap))} — zwykle to saldo z dnia, od którego zaczyna się historia, gotówka wydana bez zapisu albo transakcje w walutach.`}
-                    {' '}Zainwestowane to wpłaty na konta inwestycyjne minus wypłaty — bez zysku i straty, bo te widać na samych kontach.
+                    {allInvested !== 0
+                      ? <>Bilans ≈ to, co masz na kontach, plus to, co wpłaciłaś na inwestycje{Math.abs(gap) >= 1 ? <> (różnica {gap >= 0 ? '+' : '−'}{money(Math.abs(gap))} — saldo z początku historii, gotówka wydana bez zapisu, waluty)</> : ''}.
+                        {' '}Zainwestowane = wpłaty {money(invPaidIn)}{invBack > 0 ? <> − to, co wróciło {money(invBack)}</> : ''}.
+                        {' '}Wartość inwestycji jest szacunkowa — z sald wpisanych na kontach inwestycyjnych{investValue > 0 ? <> ({investDiff >= 0 ? '≈ +' : '≈ −'}{money(Math.abs(investDiff))} względem wpłat)</> : ''}. Nie liczy się do bilansu; zysk stanie się przychodem dopiero, gdy go wypłacisz.</>
+                      : <>Bilans ≈ to, co masz na kontach{Math.abs(gap) >= 1 ? <> (różnica {gap >= 0 ? '+' : '−'}{money(Math.abs(gap))} — saldo z początku historii, gotówka wydana bez zapisu, waluty)</> : ''}.</>}
                   </p>
                 )}
               </div>
@@ -146,7 +155,6 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
                 <Tile label="Wydatki roku" value={`−${money(yearRow.expense)}`} color="var(--expense)" />
                 <Tile label="Bilans roku" value={`${yearBalance >= 0 ? '+' : '−'}${money(Math.abs(yearBalance))}`} color={yearBalance >= 0 ? 'var(--income)' : 'var(--expense)'} />
                 {yearInvested !== 0 && <Tile label="Zainwestowane w roku" value={money(yearInvested)} color="var(--accent)" />}
-                {yearInvested !== 0 && <Tile label="Bilans po inwestycjach" value={`${yearBalance - yearInvested >= 0 ? '+' : '−'}${money(Math.abs(yearBalance - yearInvested))}`} color={yearBalance - yearInvested >= 0 ? 'var(--income)' : 'var(--expense)'} />}
                 <Tile label="Oszczędności" value={savingsRate === null ? '—' : `${savingsRate}%`} color={savingsRate >= 0 ? 'var(--income)' : 'var(--expense)'} />
                 <Tile label="Śr. wydatki / mies." value={money(avgMonthExp)} />
                 <Tile label="Najdroższy mies." value={topExpMonth && topExpMonth.expense > 0 ? `${topExpMonth.label} · ${money(topExpMonth.expense)}` : '—'} />

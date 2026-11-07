@@ -167,7 +167,7 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
       {activeTab !== 'overview' && (
         <div className="rev-subhead">
           <button className="rev-back" onClick={() => setActiveTab('overview')} title="Wróć"><IconChevronLeft size={18} /></button>
-          <div className="rev-subhead-title">{SUB_LABELS[activeTab] || 'Budżet'}</div>
+          <div className="rev-subhead-title">{SUB_LABELS[activeTab] || 'Finanse'}</div>
         </div>
       )}
 

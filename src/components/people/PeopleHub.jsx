@@ -218,7 +218,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
       {/* Finanse / długi */}
       <Section title="Rozliczenia" icon={<IconCash size={13} />}>
         {activeDebts.length === 0 && settledDebts.length === 0 ? (
-          <Empty>Brak wpisów — dodaj w module „Budżet → Dłużnicy"</Empty>
+          <Empty>Brak wpisów — dodaj w module „Finanse → Dłużnicy"</Empty>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {activeDebts.length > 0 && (

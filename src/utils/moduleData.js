@@ -3,7 +3,7 @@
 // Pilnuje tego test: każda kolekcja używana w kodzie musi być tu przypisana.
 export const MODULE_DATA = {
   budget: {
-    label: 'Budżet',
+    label: 'Finanse',
     what: 'konta, transakcje, regularne płatności, dłużników, cele, listę zakupów, kategorie i ustawienia dziesięciny',
     collections: ['accounts', 'transactions', 'regularPayments', 'debtors', 'savingsGoals', 'shoppingItems'],
     docs: [['settings', 'categories'], ['settings', 'shopCategories'], ['settings', 'tithe']],

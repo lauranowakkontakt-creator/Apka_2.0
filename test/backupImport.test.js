@@ -76,3 +76,21 @@ test('plan — przelewy dostają id kont z bazy, uszkodzone wpisy odpadają', ()
   assert.equal(p.transactions[0].transferTo, 'a2')
   assert.equal(p.skipped.invalid, 2)
 })
+
+test('plan — regularne płatności, lista zakupów i dziesięcina: tylko brakujące, konto podmienione', () => {
+  const b = backup({
+    regularPayments: [{ id: 'rp1', name: 'Multisport', accountId: 'a1', donePeriods: ['2026-06'] }, { id: 'rp2', name: 'iCloud', accountId: 'a1' }],
+    shoppingItems: [{ id: 'sh1', name: 'Witamina D' }],
+  })
+  b.singles['settings/tithe'] = { categories: ['x'] }
+  const current = {
+    accounts: [{ id: 'P', name: 'PKO', currency: 'PLN', type: 'bank' }], transactions: [],
+    extras: { regularPayments: [{ id: 'rp2' }] }, singles: {},
+  }
+  const p = planBackupImport(b, current, DEF)
+  assert.deepEqual(p.extras.regularPayments.map(x => [x.id, x.accountId, x.donePeriods]), [['rp1', 'P', ['2026-06']]])
+  assert.deepEqual(p.extras.shoppingItems.map(x => x.id), ['sh1'])
+  assert.deepEqual(p.singles['settings/tithe'], { categories: ['x'] })
+  const p2 = planBackupImport(b, { ...current, singles: { 'settings/tithe': { categories: [] } } }, DEF)
+  assert.equal(p2.singles['settings/tithe'], undefined)   // istniejących ustawień nie nadpisujemy
+})

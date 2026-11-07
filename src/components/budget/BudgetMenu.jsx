@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { CURRENCIES, getCurrencyCode, setCurrencyCode } from '../../utils/currency'
-import { IconClose, IconSearch, IconTransfer, IconPrayer, IconStar, IconBell, IconTag, IconEye, IconEyeOff, IconCheck, IconShopping, IconUsers, IconRepeat, IconChart } from '../Icons'
+import { IconClose, IconSearch, IconTransfer, IconPrayer, IconBell, IconTag, IconCheck, IconUsers, IconRepeat, IconChart } from '../Icons'
 
 const IconCurrency = (p) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -30,18 +30,15 @@ export default function BudgetMenu({ onAction, privateMode, onCurrencyChange }) 
   }, [])
 
   const items = [
-    { id: 'private',    Icon: privateMode ? IconEye : IconEyeOff, label: privateMode ? 'Pokaż salda' : 'Tryb prywatny', toggle: true },
     { id: 'search',     Icon: IconSearch,   label: 'Szukaj transakcji' },
     { id: 'stats',      Icon: IconChart,    label: 'Statystyki i analiza' },
     { id: 'transfer',   Icon: IconTransfer, label: 'Przelew i przewalutowanie' },
     { id: 'regular',    Icon: IconRepeat,   label: 'Regularne płatności' },
-    { id: 'shopping',   Icon: IconShopping, label: 'Lista zakupów' },
     { id: 'tithe',      Icon: IconPrayer,   label: 'Dziesięcina' },
-    { id: 'goals',      Icon: IconStar,     label: 'Cele oszczędnościowe' },
     { id: 'reminders',  Icon: IconBell,     label: 'Przypomnienia' },
     { id: 'debtors',    Icon: IconUsers,    label: 'Dłużnicy' },
     { id: 'categories', Icon: IconTag,      label: 'Zarządzaj kategoriami' },
-    { id: 'import',     Icon: IconUpload,   label: 'Import danych (CSV / kopia)' },
+    { id: 'import',     Icon: IconUpload,   label: 'Import danych' },
     { id: 'currency',   Icon: IconCurrency, label: `Waluta (${currentCurrency})` },
   ]
 

@@ -358,7 +358,7 @@ export default function ImportView({ user, onClose }) {
       <div className="modal modal-tall imp-modal">
         <div className="modal-header">
           <div>
-            <p className="modal-kicker">Budżet</p>
+            <p className="modal-kicker">Finanse</p>
             <h3>Import transakcji</h3>
           </div>
           <button className="modal-close" onClick={onClose} disabled={saving}><IconClose size={16} /></button>

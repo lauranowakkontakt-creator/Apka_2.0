@@ -66,7 +66,7 @@ export default function Login() {
           <IconAppMark size={64} />
         </div>
         <h1 className="login-title">Apka 2.0</h1>
-        <p className="login-subtitle">Budżet · Nawyki · Modlitwa · Zadania</p>
+        <p className="login-subtitle">Finanse · Nawyki · Modlitwa · Zadania</p>
 
         {!emailMode ? (
           <>

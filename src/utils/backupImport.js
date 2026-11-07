@@ -14,6 +14,9 @@
 
 import { dupKey } from './budgetImport.js'
 
+export const EXTRA_COLLECTIONS = ['regularPayments', 'shoppingItems', 'savingsGoals', 'debtors']
+export const EXTRA_SINGLES = ['settings/tithe', 'settings/shopCategories']
+
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/
 
 // Odwrotność serialize() z dataExport: ISO string → Date, rekurencyjnie.
@@ -144,6 +147,21 @@ export function planBackupImport(backup, current, defaultCategories) {
     ? mergeCategories(base, backupCats)
     : { categories: null, added: [] }
 
+  // Reszta Budżetu: regularne płatności, lista zakupów, cele, dłużnicy —
+  // dopisujemy te, których id jeszcze nie ma; konto podmieniamy na id z bazy.
+  // Regularne płatności zachowują donePeriods, więc nie dodadzą drugi raz
+  // miesięcy, które są już w historii.
+  const extras = {}
+  for (const col of EXTRA_COLLECTIONS) {
+    const have = new Set((current.extras?.[col] || []).map(x => x.id))
+    extras[col] = (data[col] || []).filter(x => x?.id && !have.has(x.id))
+      .map(x => x.accountId ? { ...x, accountId: remap(x.accountId) } : x)
+  }
+  const singles = {}
+  for (const key of EXTRA_SINGLES) {
+    if (data.singles?.[key] && !current.singles?.[key]) singles[key] = data.singles[key]
+  }
+
   const years = {}
   for (const t of transactions) {
     const y = t.date.getFullYear()
@@ -155,6 +173,8 @@ export function planBackupImport(backup, current, defaultCategories) {
     transactions,
     categories: newCategories.length ? categories : null,
     newCategories,
+    extras,
+    singles,
     skipped: { sameId, sameContent, invalid },
     years,
   }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '../../utils/categories'
-import { planBackupImport } from '../../utils/backupImport'
+import { planBackupImport, EXTRA_COLLECTIONS, EXTRA_SINGLES } from '../../utils/backupImport'
 import { chunk } from '../../utils/budgetImport'
 import { toast } from '../Toast'
 
@@ -22,7 +22,9 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
       getDocs(collection(db, ...base, 'accounts')),
       getDocs(collection(db, ...base, 'transactions')),
       getDoc(doc(db, ...base, 'settings', 'categories')),
-    ]).then(([accSnap, txSnap, catDoc]) => {
+      Promise.all(EXTRA_COLLECTIONS.map(c => getDocs(collection(db, ...base, c)))),
+      Promise.all(EXTRA_SINGLES.map(k => getDoc(doc(db, ...base, ...k.split('/'))))),
+    ]).then(([accSnap, txSnap, catDoc, extraSnaps, singleDocs]) => {
       if (!alive) return
       const current = {
         accounts: accSnap.docs.map(d => ({ id: d.id, ...d.data() })),
@@ -31,6 +33,8 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
           return { id: d.id, type: t.type, amount: t.amount, accountId: t.accountId, date: t.date?.toDate?.() }
         }),
         categories: catDoc.exists() ? catDoc.data() : null,
+        extras: Object.fromEntries(EXTRA_COLLECTIONS.map((c, i) => [c, extraSnaps[i].docs.map(d => ({ id: d.id }))])),
+        singles: Object.fromEntries(EXTRA_SINGLES.map((k, i) => [k, singleDocs[i].exists() ? singleDocs[i].data() : null]).filter(([, v]) => v)),
       }
       setPlan(planBackupImport(backup, current,
         { expense: DEFAULT_EXPENSE_CATEGORIES, income: DEFAULT_INCOME_CATEGORIES }))
@@ -66,6 +70,14 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
       if (plan.categories) {
         await setDoc(doc(db, ...base, 'settings', 'categories'), plan.categories, { merge: true })
       }
+      // Regularne płatności, lista zakupów, cele, dłużnicy, dziesięcina
+      const extraWrites = EXTRA_COLLECTIONS.flatMap(c => (plan.extras?.[c] || []).map(x => [c, x]))
+      for (const part of chunk(extraWrites, 400)) {
+        const b = writeBatch(db)
+        for (const [c, x] of part) { const [id, data] = strip(x); b.set(doc(db, ...base, c, id), data) }
+        await b.commit()
+      }
+      for (const [k, v] of Object.entries(plan.singles || {})) await setDoc(doc(db, ...base, ...k.split('/')), v)
       let done = 0
       for (const part of chunk(plan.transactions, 400)) {
         const b = writeBatch(db)
@@ -92,6 +104,9 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
   if (!plan) return <div className="list-loading">Porównuję kopię z danymi w apce…</div>
 
   const { newAccounts, transactions, newCategories, skipped, years } = plan
+  const EXTRA_LABELS = { regularPayments: 'Regularne płatności', shoppingItems: 'Lista zakupów', savingsGoals: 'Cele oszczędnościowe', debtors: 'Dłużnicy' }
+  const extraRows = EXTRA_COLLECTIONS.map(c => [c, plan.extras?.[c] || []]).filter(([, l]) => l.length)
+  const extraCount = extraRows.reduce((n, [, l]) => n + l.length, 0) + Object.keys(plan.singles || {}).length
   const transfers = transactions.filter(t => t.categoryId === 'transfer').length
   const busy = !!progress
 
@@ -121,6 +136,13 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
         {newAccounts.length > 0 && <div className="imp-plan-sub">{newAccounts.map(a => `${a.name} (${a.currency || 'PLN'})`).join(', ')}</div>}
         <div className="imp-plan-row"><span>Nowe kategorie</span><b>{newCategories.length}</b></div>
         {newCategories.length > 0 && <div className="imp-plan-sub">{newCategories.map(c => c.label).join(', ')}</div>}
+        {extraRows.map(([c, l]) => (
+          <div key={c}>
+            <div className="imp-plan-row"><span>{EXTRA_LABELS[c]}</span><b>{l.length}</b></div>
+            <div className="imp-plan-sub">{l.map(x => x.name || x.category || x.label || '—').join(', ')}</div>
+          </div>
+        ))}
+        {plan.singles?.['settings/tithe'] && <div className="imp-plan-row"><span>Ustawienia dziesięciny</span><b>tak</b></div>}
       </div>
 
       {busy && (
@@ -130,8 +152,8 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
         </div>
       )}
       {error && <p className="form-error">{error}</p>}
-      <button type="button" className="btn-save" disabled={busy || (!transactions.length && !newAccounts.length && !newCategories.length)} onClick={run}>
-        {busy ? 'Importowanie…' : transactions.length ? `Importuj ${transactions.length} transakcji` : 'Nic nowego do dodania'}
+      <button type="button" className="btn-save" disabled={busy || (!transactions.length && !newAccounts.length && !newCategories.length && !extraCount)} onClick={run}>
+        {busy ? 'Importowanie…' : transactions.length ? `Importuj ${transactions.length} transakcji` : extraCount || newAccounts.length || newCategories.length ? 'Importuj' : 'Nic nowego do dodania'}
       </button>
     </div>
   )

@@ -63,7 +63,7 @@ function buildModules() {
   const prefs = getModuleIcons()
   return [
     { id: 'home',     label: 'Pulpit',    Icon: IconHome },
-    { id: 'budget',   label: 'Budżet',    Icon: resolveIcon(prefs.budget,   IconBudget) },
+    { id: 'budget',   label: 'Finanse',   Icon: resolveIcon(prefs.budget,   IconBudget) },
     { id: 'habits',   label: 'Nawyki',    Icon: resolveIcon(prefs.habits,   IconHabits) },
     { id: 'todo',     label: 'To-do',     Icon: resolveIcon(prefs.todo,     IconTodo) },
     { id: 'calendar', label: 'Kalendarz', Icon: resolveIcon(prefs.calendar, IconCalendar) },
