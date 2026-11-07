@@ -11,6 +11,7 @@ import { IconTrash, IconChevronLeft, IconChevronRight, IconPlus, IconClose, Icon
 import { confirmDialog } from '../ConfirmModal'
 import { ALL_EMOTIONS } from './EmotionWheel'
 import SegTabs from '../SegTabs'
+import { Rozwijana, RokWPikselach } from '../Analityka'
 import { wpisyOkresu, statystykiNastroju, podsumowanieLat } from '../../utils/moodStats'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
@@ -457,6 +458,13 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
   const navLabel = viewMode === 'year' ? String(year) : `${monthLbl} ${year}`
   // „Łącznie" nie ma czego przewijać — zamiast strzałek podsumowanie rok po roku.
   const lata = podsumowanieLat(logs)
+  // Rok w pikselach: średni nastrój każdego dnia wybranego roku
+  const pixYear = year
+  const pixDays = useMemo(() => {
+    const sum = new Map()
+    logs.forEach(l => { if (l.moodValue && (l.date || '').startsWith(String(pixYear))) { const a = sum.get(l.date) || [0, 0]; sum.set(l.date, [a[0] + l.moodValue, a[1] + 1]) } })
+    return new Map([...sum].map(([k, [s, n]]) => [k, s / n]))
+  }, [logs, pixYear])
   // Emocje jako wykres kołowy (donut) — czytelniejszy podział niż same słupki
   const emoDonut = (list) => (
     <DonutStat
@@ -649,6 +657,13 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
           )}
         </>
       )}
+      {/* Rok w pikselach — każdy dzień w kolorze średniego nastroju */}
+      <Rozwijana id="nastroj-pix" tytul={`Rok w pikselach · ${pixYear}`} domyslnie podsumowanie={`${pixDays.size} dni`}>
+        <RokWPikselach rok={pixYear} dzis={format(new Date(), 'yyyy-MM-dd')}
+          kolorDnia={(k) => { const v = pixDays.get(k); return v ? MOODS.reduce((p, c) => Math.abs(c.value - v) < Math.abs(p.value - v) ? c : p).color : null }}
+          opisDnia={(k) => { const v = pixDays.get(k); return v ? `średnio ${v.toFixed(1).replace('.', ',')} · ${MOODS.reduce((p, c) => Math.abs(c.value - v) < Math.abs(p.value - v) ? c : p).label}` : 'brak wpisu' }}
+          legenda={MOODS.map(m => [m.color, m.label])} />
+      </Rozwijana>
     </div>
   )
 }

@@ -2,9 +2,10 @@ import { getNeglect, podsumowanieOkresu, statystykiOsob } from '../../utils/pray
 import { CatIcon, IconCheck, IconPrayer } from '../Icons'
 import StatSummary from '../StatSummary'
 import { TODAY, kicker } from './wspolne'
-import { addDays, differenceInDays, format, getDaysInMonth, parseISO, startOfMonth, subDays } from 'date-fns'
+import { addDays, format, getDaysInMonth, startOfMonth, subDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { useMemo, useState } from 'react'
+import { AnalizaRoku, Rozwijana } from '../Analityka'
 
 // Statystyki: podsumowanie miesiąca i roku, kalendarz dni modlitwy,
 // zestawienie per osoba. Samo liczenie siedzi w utils/prayerStats.js.
@@ -30,6 +31,9 @@ export default function StatsView({ intentions, people, allPrayedDates, streak }
     return { date: d, dayNum: i + 1, prayed: allPrayedDates.has(d), isToday: d === today, future: d > today }
   })
 
+  // Każde odhaczenie prośby danego dnia = jedna modlitwa
+  const wpisyModl = useMemo(() => intentions.flatMap(i => (i.prayedDates || []).map(k => ({ klucz: k }))), [intentions])
+
   const personStats = useMemo(
     () => statystykiOsob(people, intentions, today),
     [people, intentions, today]
@@ -44,6 +48,10 @@ export default function StatsView({ intentions, people, allPrayedDates, streak }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <StatSummary title="Modlitwa w liczbach" month={summary.month} year={summary.year} />
+
+      <AnalizaRoku id="modl" wpisy={wpisyModl} jednostka={['modlitwa', 'modlitwy', 'modlitw']} kolor="#C9A24A" tytulDni="Dni z modlitwą" />
+
+      <Rozwijana id="modl-kal" tytul={`Kalendarz · ${calMLabel}`} podsumowanie={`${regularPct}% · seria ${streak}`}>
 
       {/* Aktywność modlitwy — kalendarz miesiąca */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
@@ -76,6 +84,7 @@ export default function StatsView({ intentions, people, allPrayedDates, streak }
           </div>
         </div>
       </div>
+      </Rozwijana>
 
       {/* Person stats full list */}
       {personStats.length > 0 && (

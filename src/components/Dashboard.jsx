@@ -25,7 +25,8 @@ import CategoriesView from './budget/CategoriesView'
 import ShoppingList from './budget/ShoppingList'
 import ImportView from './budget/ImportView'
 import { IconTransfer, IconBank, IconChart, IconShopping, IconPlus, IconChevronLeft, IconEye, IconEyeOff, CatIcon } from './Icons'
-import { Donut, useNarrow } from './ChartPrimitives'
+import { useNarrow } from './ChartPrimitives'
+import { DonutSzczegoly, Kafle, Ranking } from './Analityka'
 import { fmt, getCurrencyCode, CURRENCIES, splitAmount } from '../utils/currency'
 import { isTransfer } from '../utils/categories'
 import { isInvestment, sumByCurrency } from '../utils/investmentMath'
@@ -54,7 +55,6 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
     try { return localStorage.getItem('mw_privateMode') === 'true' } catch { return false }
   })
   const [modal, setModal] = useState(null)
-  const [donutHover, setDonutHover] = useState(null)
   const narrow = useNarrow(480)
 
   const monthStart = startOfMonth(currentMonth)
@@ -143,10 +143,6 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
     return { int: (n >= 0 ? '+' : '−') + parts[0], dec: ',' + (parts[1] ?? '00') }
   }
 
-  const fmtShort = (n) => {
-    if (Math.abs(n) >= 1000) return (n / 1000).toFixed(1) + 'k'
-    return n.toFixed(0)
-  }
 
   // Build donut data from expense categories
   const categoryMap = {}
@@ -157,8 +153,38 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
   const donutColors = ['#E0673E','#7C8AF0','#5FBF98','#E0B15A','#5BB6D9','#9B7CF0','#EC4899','#14B8A6']
   const donutData = Object.entries(categoryMap)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([name, value], i) => ({ name, value, color: donutColors[i % donutColors.length] }))
+    .map(([name, value], i) => ({ nazwa: name, wartosc: value, kolor: donutColors[i % donutColors.length] }))
+  const money = (n) => privateMode ? '••' : fmt(n)
+
+  // Szczegóły kategorii po dotknięciu wycinka: podkategorie i transakcje z miesiąca
+  const szczegolyKategorii = (poz) => {
+    const lista = transactions.filter(t => t.type === 'expense' && !isTransfer(t) && (t.category || 'Inne') === poz.nazwa)
+      .sort((a, b) => inPLN(b) - inPLN(a))
+    const sub = {}
+    lista.forEach(t => { const k = t.subcategoryLabel || 'Bez podkategorii'; sub[k] = (sub[k] || 0) + inPLN(t) })
+    const subPoz = Object.entries(sub).sort((a, b) => b[1] - a[1])
+      .map(([nazwa, wartosc], i) => ({ nazwa, wartosc, kolor: `color-mix(in oklab, ${poz.kolor} ${Math.max(35, 100 - i * 15)}%, var(--surface3))` }))
+    return (
+      <>
+        <Kafle min={110} items={[
+          { label: 'Udział', value: `${expenses ? Math.round((poz.wartosc / expenses) * 100) : 0}%`, sub: 'wydatków miesiąca' },
+          { label: 'Transakcji', value: lista.length },
+          { label: 'Średnio', value: money(lista.length ? poz.wartosc / lista.length : 0), sub: 'na transakcję' },
+        ]} />
+        {subPoz.length > 1 && (<div><p className="an-det-h">Podkategorie</p><Ranking pozycje={subPoz} fmt={money} limit={5} /></div>)}
+        <div>
+          <p className="an-det-h">Transakcje w tym miesiącu</p>
+          {lista.slice(0, 8).map(t => (
+            <div key={t.id} className="an-tx-row" style={{ cursor: 'pointer' }} onClick={() => { setEditTransaction(t); setShowForm(true) }}>
+              <span>{t.description || t.category}<small>{(t.date?.toDate ? t.date.toDate() : new Date(t.date)).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}{t.subcategoryLabel ? ` · ${t.subcategoryLabel}` : ''}</small></span>
+              <b style={{ color: 'var(--expense)' }}>−{money(inPLN(t))}</b>
+            </div>
+          ))}
+          {lista.length > 8 && <p className="an-note" style={{ marginTop: 6 }}>…i {lista.length - 8} więcej — pełna lista w „Transakcje".</p>}
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className="dashboard">
@@ -246,30 +272,8 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
               <span className="rev-section-title">Wydatki wg kategorii</span>
             </div>
             <div className="rev-donut-card">
-              {donutData.length > 0 ? (
-                <div className="rev-donut-wrap">
-                  <Donut
-                    data={donutData}
-                    size={narrow ? 128 : 150}
-                    thickness={18}
-                    centerTop={donutHover ? donutHover.name : 'razem'}
-                    centerMain={!privateMode ? (donutHover ? fmtShort(donutHover.value) : fmtShort(expenses)) : '••'}
-                    centerSub={curSymbol}
-                    onHover={setDonutHover}
-                  />
-                  <div className="rev-donut-legend">
-                    {donutData.map(d => (
-                      <div key={d.name} className="rev-legend-item">
-                        <span className="rev-legend-dot" style={{ background: d.color }} />
-                        <span className="rev-legend-name">{d.name}</span>
-                        {!privateMode && <span className="rev-legend-val">{fmt(d.value)}</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="rev-empty">Brak wydatków w tym miesiącu</div>
-              )}
+              <DonutSzczegoly pozycje={donutData} fmt={money} rozmiar={narrow ? 190 : 210} grubosc={26} limit={6}
+                srodek="Razem" szczegoly={szczegolyKategorii} pusty="Brak wydatków w tym miesiącu" />
             </div>
           </div>
 

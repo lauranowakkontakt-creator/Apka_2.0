@@ -4,13 +4,14 @@ import { CatIcon } from '../Icons'
 import SegTabs from '../SegTabs'
 import { eachDayOfInterval, eachMonthOfInterval, endOfDay, endOfMonth, endOfWeek, endOfYear, format, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { AnalizaRoku, Rozwijana } from '../Analityka'
+import { kluczDnia } from '../../utils/analityka'
 
 // Statystyki zadań: kafelki, wykres i rozbicie po listach i priorytetach.
 // Samo liczenie siedzi w utils/todoLogic.js.
 
 const PERIODS = [
-  { id: 'day',   label: 'Dziś' },
   { id: 'week',  label: 'Tydzień' },
   { id: 'month', label: 'Miesiąc' },
   { id: 'year',  label: 'Rok' },
@@ -19,6 +20,8 @@ const PERIODS = [
 export default function TodoStats({ todos, lists }) {
   const [period, setPeriod] = useState('month')
 
+  // Ukończone zadania po dniu ukończenia — do analizy roku
+  const wpisyDone = useMemo(() => todos.filter(t => t.done && t.doneAt).map(t => ({ klucz: kluczDnia(t.doneAt) })), [todos])
   const now    = new Date()
   const ranges = {
     day:   { start: startOfDay(now),            end: endOfDay(now) },
@@ -79,6 +82,9 @@ export default function TodoStats({ todos, lists }) {
         <StatCard value={dueToday.length}   label="Na dziś"         color={dueToday.length > 0 ? '#FB8C00' : 'var(--text-muted)'} />
       </div>
 
+      <AnalizaRoku id="todo" wpisy={wpisyDone} jednostka={['zadanie', 'zadania', 'zadań']} kolor="var(--income)" tytulDni="Dni z ukończeniem" />
+
+      <Rozwijana id="todo-okres" tytul="Okres i listy" podsumowanie={`${doneInPeriod.length} w tym ${period === 'week' ? 'tygodniu' : period === 'month' ? 'miesiącu' : 'roku'}`}>
       <SegTabs items={PERIODS} active={period} onChange={setPeriod} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
@@ -129,6 +135,7 @@ export default function TodoStats({ todos, lists }) {
           </div>
         </div>
       )}
+      </Rozwijana>
     </div>
   )
 }
