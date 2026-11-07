@@ -1,3 +1,4 @@
+import { APP_COLORS } from './palette.js'
 // Przelew między kontami — przesuwa pieniądze, więc nie liczy się jako przychód/wydatek.
 export const isTransfer = (t) => t?.categoryId === 'transfer' || !!t?.transferTo || !!t?.transferFrom
 
@@ -46,14 +47,8 @@ export const DEFAULT_INCOME_CATEGORIES = [
   { id: 'inne',          label: 'Inne',            icon: 'IconMore',     color: '#7A6E5C' },
 ]
 
-export const CAT_COLORS = [
-  '#C97A55','#A07B4F','#D4A574','#A8B5A0','#9AAFB8',
-  '#E0B570','#9B8FA8','#B89090','#7A9E9A','#8A7E72',
-  '#BAAE99','#7A6E5C','#C94B28','#E05A2B','#F97316',
-  '#F59E0B','#84CC16','#22C55E','#10B981','#14B8A6',
-  '#06B6D4','#3B82F6','#6366F1','#8B5CF6','#A855F7',
-  '#EC4899','#F43F5E','#64748B','#059669','#DC2626',
-]
+// Paleta kategorii = wspólna paleta aplikacji (50 kolorów, 10 w rzędzie).
+export const CAT_COLORS = APP_COLORS
 
 function hexToHsl(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255

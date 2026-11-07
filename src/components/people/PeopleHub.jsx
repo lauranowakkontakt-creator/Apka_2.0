@@ -7,13 +7,14 @@ import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import {
-  ICON_CATALOG, CatIcon, IconEdit, IconTrash, IconClose, IconCalendar, IconPrayer,
+  IconEdit, IconTrash, IconClose, IconCalendar, IconPrayer,
   IconChevronRight, IconChevronLeft, IconUsers, IconEye, IconEyeOff, IconCheck, IconMoon,
   IconCash, IconTodo, IconArrowUp, IconArrowDown, IconPlus
 } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
 import { setPersonHidden, purgePerson } from '../../utils/people'
 import { PERSON_COLORS } from '../../utils/personColors'
+import { IconPicker, ColorPicker } from '../Pickers'
 import { getCategory, dreamPeopleIds } from '../../utils/dreams'
 import { debtsForPerson, debtSummary, todosForPerson, linkCountsByPerson } from '../../utils/personLinks'
 import { fmt } from '../../utils/currency'
@@ -488,12 +489,7 @@ function PersonForm({ user, editData, onClose }) {
   const [info, setInfo]     = useState(editData?.info || '')
   const [icon, setIcon]     = useState(editData?.icon || 'IcUsers')
   const [color, setColor]   = useState(editData?.color || PERSON_COLORS[Math.floor(Math.random() * PERSON_COLORS.length)])
-  const [iconSearch, setIconSearch] = useState('')
   const [saving, setSaving] = useState(false)
-
-  const filtered = iconSearch.trim()
-    ? ICON_CATALOG.filter(ic => ic.label.toLowerCase().includes(iconSearch.toLowerCase()) || ic.group.toLowerCase().includes(iconSearch.toLowerCase()))
-    : ICON_CATALOG
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -526,35 +522,12 @@ function PersonForm({ user, editData, onClose }) {
 
           <div className="form-group">
             <label>Kolor</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {PERSON_COLORS.map(c => (
-                <button key={c} type="button" onClick={() => setColor(c)} style={{
-                  width: 32, height: 32, borderRadius: '50%', background: c, cursor: 'pointer', border: 'none',
-                  boxShadow: color === c ? `0 0 0 3px var(--bg), 0 0 0 5px ${c}` : 'none',
-                }} />
-              ))}
-            </div>
+            <ColorPicker value={color} onChange={setColor} />
           </div>
 
           <div className="form-group">
             <label>Ikona</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <PersonBubble person={{ name, color, icon }} size={42} />
-              <input type="text" className="form-input" value={iconSearch} onChange={e => setIconSearch(e.target.value)}
-                placeholder="Szukaj ikony..." style={{ margin: 0, flex: 1 }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, maxHeight: 150, overflowY: 'auto' }}>
-              {filtered.map(ic => (
-                <button key={ic.key} type="button" title={ic.label} onClick={() => setIcon(ic.key)} style={{
-                  width: '100%', aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-                  border: `2px solid ${icon === ic.key ? color : 'var(--border)'}`,
-                  background: icon === ic.key ? color + '22' : 'transparent',
-                  color: icon === ic.key ? color : 'var(--text-muted)',
-                }}>
-                  <CatIcon categoryId={null} emoji={ic.key} size={17} />
-                </button>
-              ))}
-            </div>
+            <IconPicker value={icon} onChange={setIcon} color={color} />
           </div>
 
           <div className="form-group">

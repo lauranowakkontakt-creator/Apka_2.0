@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/config'
-import { IconClose, IconChevronLeft, IconArrowUp, IconArrowDown, IconEye, IconEyeOff, IconReorder, ICON_CATALOG } from './Icons'
-import { saveModuleIcon } from '../utils/iconPrefs'
+import { IconClose, IconChevronLeft, IconArrowUp, IconArrowDown, IconEye, IconEyeOff, IconReorder } from './Icons'
+import { IconPicker } from './Pickers'
+import { saveModuleIcon, getModuleIcons } from '../utils/iconPrefs'
 import { moveModule, toggleHidden, isHidden, FIXED_FIRST, NAV_SLOTS } from '../utils/moduleLayout'
 import { CURRENCIES, getCurrencyCode, setCurrencyCode } from '../utils/currency'
 import { exportAllJSON, exportTransactionsCSV } from '../utils/dataExport'
@@ -162,43 +163,14 @@ function DataBackup({ uid }) {
 }
 
 function IconPickerPanel({ module, onPick, onCancel }) {
-  const groups = [...new Set(ICON_CATALOG.map(ic => ic.group))]
-  const [activeGroup, setActiveGroup] = useState(groups[0])
-  const icons = ICON_CATALOG.filter(ic => ic.group === activeGroup)
-
+  // Ten sam wybierak co w formularzach: 10 kategorii, 10 ikon w rzędzie.
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <button onClick={onCancel} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }}><IconChevronLeft size={13} /> Wróć</button>
         <span style={{ fontSize: 13, fontWeight: 600 }}>Ikona: {module.label}</span>
       </div>
-      {/* Group tabs */}
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
-        {groups.map(g => (
-          <button key={g} onClick={() => setActiveGroup(g)}
-            style={{
-              fontSize: 10, padding: '3px 8px', borderRadius: 99, border: 'none', cursor: 'pointer',
-              background: activeGroup === g ? 'var(--accent)' : 'var(--surface2)',
-              color: activeGroup === g ? '#fff' : 'var(--text-muted)'
-            }}>
-            {g.split(' ')[0]}
-          </button>
-        ))}
-      </div>
-      {/* Icon grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
-        {icons.map(ic => (
-          <button key={ic.key} title={ic.label} onClick={() => onPick(ic.key)}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px',
-              borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface2)',
-              cursor: 'pointer', color: 'var(--text)'
-            }}>
-            <ic.Component size={18} />
-            <span style={{ fontSize: 8, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{ic.label}</span>
-          </button>
-        ))}
-      </div>
+      <IconPicker value={getModuleIcons()[module.id]} onChange={onPick} />
     </div>
   )
 }

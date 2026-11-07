@@ -3,6 +3,8 @@ import { collection, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestor
 import { db } from '../../firebase/config'
 import { CURRENCIES as CURRENCY_LIST, parseAmount } from '../../utils/currency'
 import { IconClose, IconBank, IconCash, IconCard, IconRepeat, IconSavings, IconTrendUp, IconPlus } from '../Icons'
+import { ColorPicker } from '../Pickers'
+import { DEFAULT_COLOR } from '../../utils/palette'
 
 const ACCOUNT_TYPES = [
   { id: 'bank',       label: 'Konto bankowe', Icon: IconBank },
@@ -15,8 +17,6 @@ const ACCOUNT_TYPES = [
 
 const CURRENCIES = CURRENCY_LIST.map(c => c.code)
 
-const COLORS = ['#C94B28', '#6B9E72', '#4A90D9', '#9B59B6', '#E67E22', '#1ABC9C', '#E74C3C', '#F39C12']
-
 export default function AccountForm({ user, onClose, editData }) {
   // Konto z zapisanym typem spoza listy traktujemy jako „własny"
   const isKnownType = (t) => ACCOUNT_TYPES.some(at => at.id === t)
@@ -26,7 +26,7 @@ export default function AccountForm({ user, onClose, editData }) {
   const [balance, setBalance]   = useState(editData?.balance?.toString() || '0')
   const [invested, setInvested] = useState(editData?.invested?.toString() || '')
   const [currency, setCurrency] = useState(editData?.currency || 'PLN')
-  const [color, setColor]       = useState(editData?.color || COLORS[0])
+  const [color, setColor]       = useState(editData?.color || DEFAULT_COLOR)
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
 
@@ -129,15 +129,7 @@ export default function AccountForm({ user, onClose, editData }) {
           {/* Kolor */}
           <div className="form-group">
             <label>Kolor</label>
-            <div className="color-picker">
-              {COLORS.map(c => (
-                <button key={c} type="button"
-                  className={`color-dot ${color === c ? 'active' : ''}`}
-                  style={{ background: c }}
-                  onClick={() => setColor(c)}
-                />
-              ))}
-            </div>
+            <ColorPicker value={color} onChange={setColor} />
           </div>
 
           {error && <p className="form-error">{error}</p>}

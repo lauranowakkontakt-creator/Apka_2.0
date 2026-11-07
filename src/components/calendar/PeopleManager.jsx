@@ -1,9 +1,10 @@
 import { db } from '../../firebase/config'
 import { purgePerson, setPersonHidden } from '../../utils/people'
-import { PERSON_COLORS } from '../../utils/personColors'
+import { DEFAULT_COLOR } from '../../utils/palette'
 import { confirmDialog } from '../ConfirmModal'
 import { IconArchive, IconClose, IconEdit, IconRestore, IconTrash } from '../Icons'
 import PersonBubble from '../PersonBubble'
+import { ColorPicker } from '../Pickers'
 import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
 import { useState } from 'react'
 
@@ -12,11 +13,11 @@ import { useState } from 'react'
 export default function PeopleManager({ user, calPeople, editData, onClose }) {
   const [editId, setEditId] = useState(editData?.id || null)
   const [name, setName]     = useState(editData?.name || '')
-  const [color, setColor]   = useState(editData?.color || PERSON_COLORS[0])
+  const [color, setColor]   = useState(editData?.color || DEFAULT_COLOR)
   const [saving, setSaving] = useState(false)
 
-  const resetForm = () => { setEditId(null); setName(''); setColor(PERSON_COLORS[0]) }
-  const startEdit = (p) => { setEditId(p.id); setName(p.name); setColor(p.color || PERSON_COLORS[0]) }
+  const resetForm = () => { setEditId(null); setName(''); setColor(DEFAULT_COLOR) }
+  const startEdit = (p) => { setEditId(p.id); setName(p.name); setColor(p.color || DEFAULT_COLOR) }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -90,15 +91,7 @@ export default function PeopleManager({ user, calPeople, editData, onClose }) {
             </div>
             <div className="form-group">
               <label>Kolor</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: name ? 10 : 0 }}>
-                {PERSON_COLORS.map(c => (
-                  <button key={c} type="button" onClick={() => setColor(c)} style={{
-                    width: 34, height: 34, borderRadius: '50%', background: c, cursor: 'pointer', border: 'none',
-                    boxShadow: color === c ? `0 0 0 3px var(--bg), 0 0 0 5px ${c}` : 'none',
-                    transition: 'box-shadow .15s',
-                  }} />
-                ))}
-              </div>
+              <ColorPicker value={color} onChange={setColor} />
               {name && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
                   <PersonBubble person={{ name, color }} size={40} />

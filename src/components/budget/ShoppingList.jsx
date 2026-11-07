@@ -8,8 +8,9 @@ import { pl } from 'date-fns/locale'
 import { DonutStat } from '../ChartPrimitives'
 import { fmt, getCurrencyCode, parseAmount } from '../../utils/currency'
 import { EXPENSE_CATEGORIES } from '../TransactionForm'
-import { ICON_CATALOG, CatIcon, IconTrash, IconClose, IconTag, IconShopping, IconCheck } from '../Icons'
-import { CAT_COLORS } from '../../utils/categories'
+import { CatIcon, IconTrash, IconClose, IconTag, IconShopping, IconCheck } from '../Icons'
+import { DEFAULT_COLOR } from '../../utils/palette'
+import { IconPicker, ColorPicker } from '../Pickers'
 import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
@@ -240,13 +241,8 @@ function ShopCategoryManager({ user, categories, onClose }) {
 function AddShopCategoryForm({ onAdd, onCancel, existingIds }) {
   const [label, setLabel]   = useState('')
   const [icon, setIcon]     = useState('IconShopping')
-  const [color, setColor]   = useState(CAT_COLORS[0])
+  const [color, setColor]   = useState(DEFAULT_COLOR)
   const [error, setError]   = useState('')
-  const [iconSearch, setIconSearch] = useState('')
-
-  const filteredIcons = iconSearch.trim()
-    ? ICON_CATALOG.filter(ic => ic.label.toLowerCase().includes(iconSearch.toLowerCase()) || ic.group.toLowerCase().includes(iconSearch.toLowerCase()))
-    : ICON_CATALOG
 
   const handleAdd = () => {
     if (!label.trim()) { setError('Wpisz nazwę'); return }
@@ -266,40 +262,12 @@ function AddShopCategoryForm({ onAdd, onCancel, existingIds }) {
 
       <div className="form-group" style={{ margin: 0 }}>
         <label>Ikona</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 10, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color, border: `2px solid ${color}`, flexShrink: 0 }}>
-            <CatIcon categoryId={null} emoji={icon} size={22} />
-          </div>
-          <input type="text" className="form-input" value={iconSearch} onChange={e => setIconSearch(e.target.value)}
-            placeholder="Szukaj ikony..." style={{ margin: 0, flex: 1 }} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, maxHeight: 150, overflowY: 'auto' }}>
-          {filteredIcons.map(ic => (
-            <button key={ic.key} type="button" title={ic.label}
-              onClick={() => setIcon(ic.key)}
-              style={{
-                width: '100%', aspectRatio: '1', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-                border: `2px solid ${icon === ic.key ? color : 'var(--border)'}`,
-                background: icon === ic.key ? color + '22' : 'transparent',
-                color: icon === ic.key ? color : 'var(--text-muted)'
-              }}>
-              <CatIcon categoryId={null} emoji={ic.key} size={17} />
-            </button>
-          ))}
-        </div>
+        <IconPicker value={icon} onChange={setIcon} color={color} />
       </div>
 
       <div className="form-group" style={{ margin: 0 }}>
         <label>Kolor</label>
-        <div className="color-picker">
-          {CAT_COLORS.map(c => (
-            <button key={c} type="button"
-              className={`color-dot ${color === c ? 'active' : ''}`}
-              style={{ background: c }}
-              onClick={() => setColor(c)}
-            />
-          ))}
-        </div>
+        <ColorPicker value={color} onChange={setColor} />
       </div>
 
       {error && <p className="form-error" style={{ margin: 0 }}>{error}</p>}

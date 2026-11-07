@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { doc, setDoc } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
-import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, CAT_COLORS, getSubcategoryColor } from '../../utils/categories'
-import { CatIcon, IconClose, IconTrash, IconTag, IconEdit, IconSearch, IconChevronDown, IconArrowUp, IconArrowDown, ICON_CATALOG } from '../Icons'
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, getSubcategoryColor } from '../../utils/categories'
+import { DEFAULT_COLOR } from '../../utils/palette'
+import { CatIcon, IconClose, IconTrash, IconTag, IconEdit, IconChevronDown, IconArrowUp, IconArrowDown } from '../Icons'
+import { IconPicker, ColorPicker } from '../Pickers'
 import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
@@ -310,11 +312,8 @@ export default function CategoriesView({ user, onClose }) {
 function CategoryForm({ tab, initial, onSave, onCancel, isNew }) {
   const [label, setLabel]           = useState(initial?.label ?? '')
   const [icon, setIcon]             = useState(initial?.icon ?? 'IcWallet')
-  const [color, setColor]           = useState(initial?.color ?? CAT_COLORS[0])
+  const [color, setColor]           = useState(initial?.color ?? DEFAULT_COLOR)
   const [error, setError]           = useState('')
-  const [search, setSearch]         = useState('')
-  const [pickerOpen, setPickerOpen] = useState(false)
-
   const handleSave = () => {
     if (!label.trim()) { setError('Wpisz nazwę'); return }
     const id = isNew
@@ -322,23 +321,6 @@ function CategoryForm({ tab, initial, onSave, onCancel, isNew }) {
       : initial.id
     onSave({ id, label: label.trim(), icon, color, subcategories: initial?.subcategories || [] })
   }
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return ICON_CATALOG
-    return ICON_CATALOG.filter(ic => ic.label.toLowerCase().includes(q) || ic.group.toLowerCase().includes(q))
-  }, [search])
-
-  const groups = useMemo(() => {
-    const map = {}
-    for (const ic of filtered) {
-      if (!map[ic.group]) map[ic.group] = []
-      map[ic.group].push(ic)
-    }
-    return map
-  }, [filtered])
-
-  const currentEntry = ICON_CATALOG.find(ic => ic.key === icon)
 
   return (
     <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -352,65 +334,11 @@ function CategoryForm({ tab, initial, onSave, onCancel, isNew }) {
       </div>
       <div className="form-group" style={{ margin: 0 }}>
         <label>Ikona</label>
-        <button type="button" onClick={() => setPickerOpen(v => !v)} style={{
-          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: '8px 12px', cursor: 'pointer', color
-        }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CatIcon categoryId="" emoji={icon} size={18} />
-          </div>
-          <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', textAlign: 'left' }}>{currentEntry ? currentEntry.label : icon}</span>
-          <span style={{ display: 'inline-flex', color: 'var(--text-muted)' }}><IconChevronDown size={13} style={{ transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} /></span>
-        </button>
-        {pickerOpen && (
-          <div style={{ marginTop: 6, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <IconSearch size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-              <input type="text" className="form-input" placeholder="Szukaj ikony..." value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ margin: 0, fontSize: 13, border: 'none', background: 'transparent', padding: '2px 0' }} />
-            </div>
-            <div style={{ maxHeight: 280, overflowY: 'auto', padding: '10px 10px 4px' }}>
-              {Object.entries(groups).map(([group, icons]) => (
-                <div key={group} style={{ marginBottom: 14 }}>
-                  <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>{group}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                    {icons.map(ic => {
-                      const Ic = ic.Component
-                      const selected = icon === ic.key
-                      return (
-                        <button key={ic.key} type="button" title={ic.label}
-                          onClick={() => { setIcon(ic.key); setPickerOpen(false); setSearch('') }}
-                          style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                            width: 54, padding: '7px 4px', borderRadius: 9, cursor: 'pointer',
-                            background: selected ? color + '33' : 'var(--surface)',
-                            border: `1.5px solid ${selected ? color : 'var(--border)'}`,
-                            color: selected ? color : 'var(--text-muted)', transition: 'all 0.1s'
-                          }}>
-                          <Ic size={18} />
-                          <span style={{ fontSize: 9, lineHeight: 1.2, textAlign: 'center', color: selected ? color : 'var(--text-muted)' }}>{ic.label}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-              {Object.keys(groups).length === 0 && (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '16px 0' }}>Brak wyników</p>
-              )}
-            </div>
-          </div>
-        )}
+        <IconPicker value={icon} onChange={setIcon} color={color} />
       </div>
       <div className="form-group" style={{ margin: 0 }}>
         <label>Kolor</label>
-        <div className="color-picker">
-          {CAT_COLORS.map(c => (
-            <button key={c} type="button" className={`color-dot ${color === c ? 'active' : ''}`} style={{ background: c }} onClick={() => setColor(c)} />
-          ))}
-        </div>
+        <ColorPicker value={color} onChange={setColor} />
       </div>
       {error && <p className="form-error" style={{ margin: 0 }}>{error}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
@@ -424,10 +352,8 @@ function CategoryForm({ tab, initial, onSave, onCancel, isNew }) {
 function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor, level = 2 }) {
   const [label, setLabel]           = useState(initial?.label ?? '')
   const [icon, setIcon]             = useState(initial?.icon ?? 'IcWallet')
-  const [search, setSearch]         = useState('')
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError]           = useState('')
-  const color = parentColor || CAT_COLORS[0]
+  const color = parentColor || DEFAULT_COLOR
 
   const handleSave = () => {
     if (!label.trim()) { setError('Wpisz nazwę'); return }
@@ -437,22 +363,6 @@ function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor, level 
     onSave({ id, label: label.trim(), icon })
   }
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return q ? ICON_CATALOG.filter(ic => ic.label.toLowerCase().includes(q) || ic.group.toLowerCase().includes(q)) : ICON_CATALOG
-  }, [search])
-
-  const groups = useMemo(() => {
-    const map = {}
-    for (const ic of filtered) {
-      if (!map[ic.group]) map[ic.group] = []
-      map[ic.group].push(ic)
-    }
-    return map
-  }, [filtered])
-
-  const currentEntry = ICON_CATALOG.find(ic => ic.key === icon)
-
   return (
     <div style={{ background: 'var(--surface2)', borderLeft: `3px solid ${color}`, border: '1px solid var(--border)', borderRadius: '0 10px 10px 0', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>
@@ -460,54 +370,7 @@ function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor, level 
       </p>
       <input type="text" className="form-input" value={label} onChange={e => setLabel(e.target.value)}
         placeholder="np. Paliwo, Parking..." maxLength={30} style={{ fontSize: 13 }} />
-      <button type="button" onClick={() => setPickerOpen(v => !v)} style={{
-        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-        background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 10, padding: '7px 10px', cursor: 'pointer'
-      }}>
-        <div style={{ width: 28, height: 28, borderRadius: 7, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>
-          <CatIcon categoryId="" emoji={icon} size={15} />
-        </div>
-        <span style={{ flex: 1, fontSize: 12, color: 'var(--text)', textAlign: 'left' }}>{currentEntry ? currentEntry.label : icon}</span>
-        <span style={{ display: 'inline-flex', color: 'var(--text-muted)' }}><IconChevronDown size={12} style={{ transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} /></span>
-      </button>
-      {pickerOpen && (
-        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ padding: '7px 10px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IconSearch size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <input type="text" className="form-input" placeholder="Szukaj..." value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ margin: 0, fontSize: 12, border: 'none', background: 'transparent', padding: '2px 0' }} />
-          </div>
-          <div style={{ maxHeight: 200, overflowY: 'auto', padding: '8px 8px 4px' }}>
-            {Object.entries(groups).map(([group, icons]) => (
-              <div key={group} style={{ marginBottom: 10 }}>
-                <p style={{ margin: '0 0 4px', fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8 }}>{group}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {icons.map(ic => {
-                    const Ic = ic.Component
-                    const sel = icon === ic.key
-                    return (
-                      <button key={ic.key} type="button" title={ic.label}
-                        onClick={() => { setIcon(ic.key); setPickerOpen(false); setSearch('') }}
-                        style={{
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                          width: 46, padding: '5px 3px', borderRadius: 7, cursor: 'pointer',
-                          background: sel ? color + '33' : 'var(--surface)',
-                          border: `1.5px solid ${sel ? color : 'var(--border)'}`,
-                          color: sel ? color : 'var(--text-muted)'
-                        }}>
-                        <Ic size={15} />
-                        <span style={{ fontSize: 8, lineHeight: 1.2, textAlign: 'center' }}>{ic.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <IconPicker value={icon} onChange={setIcon} color={color} />
       {error && <p className="form-error" style={{ margin: 0, fontSize: 12 }}>{error}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn-save" onClick={handleSave} style={{ flex: 1, padding: 10, fontSize: 13 }}>{isNew ? 'Dodaj' : 'Zapisz'}</button>
