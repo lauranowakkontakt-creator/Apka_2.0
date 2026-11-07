@@ -4,7 +4,7 @@ import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
 import { format } from 'date-fns'
 import { getCurrencyCode, parseAmount, CURRENCIES } from '../utils/currency'
-import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, getSubcategoryColor } from '../utils/categories'
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, getSubcategoryColor, isTransfer } from '../utils/categories'
 import useFallbackTimeout from '../utils/useFallbackTimeout'
 import { byAccountOrder } from '../utils/accountOrder'
 import { CatIcon, IconClose, IconCheck } from './Icons'
@@ -37,6 +37,9 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
   const [tithe, setTithe]           = useState(editData?.tithe === true)
 
   const categories = type === 'expense' ? expCats : incCats
+  // Edycja przelewu między kontami: zostaje przelewem (bez kategorii, poza sumami).
+  // Wcześniej formularz pokazywał go jak wydatek bez kategorii i zapis go psuł.
+  const transferEdit = !!editData && isTransfer(editData)
 
   // Zabezpieczenie: gdyby snapshot kategorii nie odpowiedział (brak sieci, zimny
   // start), po `ms` i tak pokaż domyślne, żeby formularz nie utknął na spinnerze.
@@ -140,7 +143,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!(parseAmount(amount) > 0)) { setError('Podaj prawidłową kwotę'); return }
-    if (!category) { setError('Wybierz kategorię'); return }
+    if (!category && !transferEdit) { setError('Wybierz kategorię'); return }
     setSaving(true); setError('')
     const cat = categories.find(c => c.id === category)
     const subcat = cat?.subcategories?.find(s => s.id === subcategoryId)
@@ -162,6 +165,10 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
       // pole nie ma sensu i zaśmiecałoby zapytania o pulę.
       tithe: type === 'income' ? tithe : false,
       updatedAt: Timestamp.now()
+    }
+    if (transferEdit) {
+      Object.assign(data, { category: 'Przelew', categoryId: 'transfer', categoryIcon: 'IconTransfer',
+        subcategoryId: null, subcategoryLabel: null, subsubcategoryId: null, subsubcategoryLabel: null, tithe: false })
     }
     try {
       // Jeden atomowy zapis (writeBatch): transakcja + korekty sald razem.
@@ -205,16 +212,21 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h3>{editData ? 'Edytuj transakcję' : 'Nowa transakcja'}</h3>
+          <h3>{transferEdit ? 'Edytuj przelew' : editData ? 'Edytuj transakcję' : 'Nowa transakcja'}</h3>
           <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="form">
-          <div className="type-toggle">
+          {transferEdit && (
+            <p className="form-hint" style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.45 }}>
+              Przelew między Twoimi kontami ({type === 'income' ? 'wpływ' : 'wypływ'}) — nie liczy się do przychodów ani wydatków.
+            </p>
+          )}
+          {!transferEdit && <div className="type-toggle">
             <button type="button" className={`type-btn ${type === 'expense' ? 'active expense' : ''}`} onClick={() => setType('expense')}>Wydatek</button>
             <button type="button" className={`type-btn ${type === 'income' ? 'active income' : ''}`} onClick={() => setType('income')}>Przychód</button>
-          </div>
+          </div>}
 
-          {type === 'income' && titheOn && (
+          {type === 'income' && titheOn && !transferEdit && (
             <button type="button" className={`tithe-toggle${tithe ? ' on' : ''}`}
               onClick={() => setTithe(v => !v)} aria-pressed={tithe}>
               <span className="tithe-toggle-box">{tithe && <IconCheck size={12} />}</span>
@@ -239,7 +251,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
             </div>
           </div>
 
-          <div className="form-group">
+          {!transferEdit && <div className="form-group">
             <label>Kategoria</label>
             {!catsLoaded ? (
               <div className="list-loading">Ładowanie...</div>
@@ -258,9 +270,9 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
                 ))}
               </div>
             )}
-          </div>
+          </div>}
 
-          {(() => {
+          {!transferEdit && (() => {
             const selectedCat = categories.find(c => c.id === category)
             const subcats = selectedCat?.subcategories || []
             if (!subcats.length) return null
@@ -292,7 +304,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
             )
           })()}
 
-          {(() => {
+          {!transferEdit && (() => {
             const sub = categories.find(c => c.id === category)?.subcategories?.find(s => s.id === subcategoryId)
             const list = sub?.subcategories || []
             if (!list.length) return null

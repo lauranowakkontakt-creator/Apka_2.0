@@ -16,6 +16,7 @@ import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { sortTransactionsByDate } from '../../utils/txSort'
 import { byAccountOrder } from '../../utils/accountOrder'
+import { isTransfer } from '../../utils/categories'
 import { isInvestment, investmentStats, sumByCurrency, mergeTotals, historyWithDeltas, investmentChartData } from '../../utils/investmentMath'
 import { LineAreaSVG } from '../ChartPrimitives'
 import { bladSubskrypcji } from '../../utils/polaczenie'
@@ -443,8 +444,9 @@ function AccountHistory({ user, account, accounts = [], privateMode, onBack, onE
     }, bladSubskrypcji('accounts'))
   }, [user.uid, account.id, months])
 
-  const totalIn  = transactions.filter(t => t.type === 'income').reduce((s,t) => s+t.amount, 0)
-  const totalOut = transactions.filter(t => t.type === 'expense').reduce((s,t) => s+t.amount, 0)
+  // Przelewy między własnymi kontami to nie przychód ani wydatek
+  const totalIn  = transactions.filter(t => t.type === 'income' && !isTransfer(t)).reduce((s,t) => s+t.amount, 0)
+  const totalOut = transactions.filter(t => t.type === 'expense' && !isTransfer(t)).reduce((s,t) => s+t.amount, 0)
 
   const closeTxForm = () => { setShowTxForm(false); setEditTx(null) }
 
