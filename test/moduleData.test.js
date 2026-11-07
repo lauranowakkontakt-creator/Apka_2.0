@@ -23,5 +23,5 @@ test('czyszczenie zawsze pyta „czy na pewno”', () => {
   const src = readFileSync(join(ROOT, 'src/components/ClearModuleData.jsx'), 'utf8')
   assert.match(src, /await confirmDialog\(/)
   assert.match(src, /if \(!ok\)/)
-  assert.ok(src.indexOf('confirmDialog(') < src.indexOf('b.delete('), 'usuwanie przed pytaniem')
+  assert.ok(src.indexOf('confirmDialog(') < src.indexOf('zapiszWiele('), 'usuwanie przed pytaniem')
 })

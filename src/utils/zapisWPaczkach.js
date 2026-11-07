@@ -7,10 +7,9 @@
 // idempotentne, więc ponowienie paczki, która jednak doszła, niczego nie psuje.
 //
 // makeBatch: () => batch (writeBatch(db)), apply(batch, item): dodaje operację.
-// onStall: wołane, gdy paczka utknie (timeout) — w apce restartuje połączenie
-// z Firestore (disableNetwork/enableNetwork). Na telefonie strumień zapisów
-// potrafi stanąć po pierwszej paczce i bez restartu kolejne czekają w kolejce
-// za zawieszoną; ręcznie pomagało tylko zamknięcie i otwarcie apki.
+// onStall (opcjonalne): wołane, gdy paczka utknie (timeout), przed ponowieniem.
+// Apka zapisuje masowo przez Firestore lite (firebase/lite.js) — zwykłe
+// zapytania HTTP, bez stałego połączenia, które na telefonie stawało.
 
 export const ROZMIAR_PACZKI = 50
 const PRZEJSCIOWE = new Set(['timeout', 'unavailable', 'deadline-exceeded', 'resource-exhausted', 'aborted', 'internal'])

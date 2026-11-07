@@ -24,10 +24,16 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
 
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'transactions'), orderBy('date', 'asc'))
-    return onSnapshot(q, snap => {
+    // Pierwsza odpowiedź z pamięci telefonu może mieć tylko część historii
+    // (np. sam bieżący miesiąc) — statystyki pokazujemy dopiero z pełnych
+    // danych z serwera, a bez sieci po 8 s z tego, co jest.
+    const t0 = Date.now()
+    const fallback = setTimeout(() => setLoading(false), 8000)
+    const stop = onSnapshot(q, snap => {
       setAll(snap.docs.map(d => ({ id: d.id, ...d.data(), date: (d.data().date?.toDate?.() ?? d.data().createdAt?.toDate?.() ?? new Date()) })))
-      setLoading(false)
-    }, bladSubskrypcji('transactions'))
+      if (!snap.metadata.fromCache || Date.now() - t0 > 8000) { clearTimeout(fallback); setLoading(false) }
+    }, bladSubskrypcji('transactions', { przyBledzie: () => setLoading(false) }))
+    return () => { clearTimeout(fallback); stop() }
   }, [user.uid])
 
   // Kwoty w złotówkach (waluty po kursie z importu), bez przelewów między kontami

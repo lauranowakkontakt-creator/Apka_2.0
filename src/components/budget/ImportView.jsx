@@ -18,7 +18,7 @@ import { buildReview, defaultDecisions, resolveReview, assignCategory, reviewKey
 import { isBackup } from '../../utils/backupImport'
 import { toast } from '../Toast'
 import { wPaczkach } from '../../utils/zapisWPaczkach'
-import { restartPolaczenia } from '../../utils/restartPolaczenia'
+import { zapiszWiele } from '../../firebase/lite'
 import { log } from '../../utils/logger'
 
 const PREVIEW_LIMIT = 300
@@ -277,11 +277,11 @@ export default function ImportView({ user, onClose }) {
           if (it.dateApprox) data.dateApprox = true
           if (it.raw?.detail) data.detail = it.raw.detail
           if (it.transfer && it.raw?.subcategory) data.transferComment = it.raw.subcategory
-          return [doc(collection(db, ...base, 'transactions')), data]
+          // id nadajemy z góry — ponowienie paczki trafia w te same dokumenty
+          return { path: [...base, 'transactions', doc(collection(db, ...base, 'transactions')).id], data }
       })
-      await wPaczkach(writes, {
-        makeBatch: () => writeBatch(db), onStall: restartPolaczenia,
-        apply: (b, [ref, data]) => b.set(ref, data),
+      await zapiszWiele(writes, {
+        wPaczkach,
         onProgress: (done) => setProgress({ done, total: chosen.length }),
         onWait: (code, proba) => log.warn('import', 'paczka zapisu ponawiana', { code, proba }),
       })
@@ -314,7 +314,7 @@ export default function ImportView({ user, onClose }) {
       const writes = chosen.map(it => {
           const cat = catOf(it)
           const sub = cat?.subcategories?.find(s => s.id === it.subcategoryId)
-          return [doc(collection(db, 'users', user.uid, 'transactions')), {
+          return { path: ['users', user.uid, 'transactions', doc(collection(db, 'users', user.uid, 'transactions')).id], data: {
             type: it.type,
             amount: it.amount,
             category: cat?.label || it.categoryId,
@@ -330,9 +330,9 @@ export default function ImportView({ user, onClose }) {
             source: 'import',
             createdAt: now,
             updatedAt: now,
-          }]
+          } }
       })
-      await wPaczkach(writes, { makeBatch: () => writeBatch(db), onStall: restartPolaczenia, apply: (b, [ref, data]) => b.set(ref, data) })
+      await zapiszWiele(writes, { wPaczkach })
       if (updateBalance) {
         const deltas = balanceDeltas(chosen)
         const batch = writeBatch(db)
