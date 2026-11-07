@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { collection, doc, getDoc, getDocs, query, orderBy, where, Timestamp, increment, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, where, Timestamp, increment, writeBatch } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { format } from 'date-fns'
 import { fmt, getCurrencyCode } from '../../utils/currency'
@@ -11,14 +11,22 @@ import {
 } from '../../utils/budgetImport'
 import { IconClose, IconCheck } from '../Icons'
 import BackupImport from './BackupImport'
+import CategoryReview from './CategoryReview'
+import { readXlsx, isZip } from '../../utils/xlsxReader'
+import { buildReview, defaultDecisions, resolveReview, assignCategory, reviewKeys, guessAccountType } from '../../utils/importReview'
 import { isBackup } from '../../utils/backupImport'
 import { toast } from '../Toast'
 
 const PREVIEW_LIMIT = 300
+const ACC_COLORS = ['#C94B28', '#6B9E72', '#4A90D9', '#9B59B6', '#E67E22', '#1ABC9C', '#E74C3C', '#F39C12']
 
 // Import transakcji z CSV: wybór pliku → dopasowanie kolumn i podgląd → zapis.
 export default function ImportView({ user, onClose }) {
-  const [step, setStep]         = useState('file')   // file | preview | backup
+  const [step, setStep]         = useState('file')   // file | preview | review | backup
+  const [sheets, setSheets]     = useState(null)      // arkusze .xlsx: [{ name, rows }]
+  const [sheetIdx, setSheetIdx] = useState(0)
+  const [dec, setDec]           = useState(null)      // decyzje z ekranu kategorii
+  const [progress, setProgress] = useState(null)
   const [backup, setBackup]     = useState(null)
   const [fileName, setFileName] = useState('')
   const [pasted, setPasted]     = useState('')
@@ -31,7 +39,13 @@ export default function ImportView({ user, onClose }) {
   const [updateBalance, setUpdateBalance] = useState(false)
   const [expCats, setExpCats]   = useState(DEFAULT_EXPENSE_CATEGORIES)
   const [incCats, setIncCats]   = useState(DEFAULT_INCOME_CATEGORIES)
+  // Czy w bazie są zapisane własne kategorie. Jeśli nie, ekran zatwierdzania
+  // startuje od zera (same kategorie z pliku), a nie od wbudowanych domyślnych.
+  const [ownCats, setOwnCats]   = useState(false)
   const [existing, setExisting] = useState([])
+  // 'loading' | 'ok' | 'error' — dopóki nie wiemy, co już jest w bazie,
+  // nie pozwalamy importować (inaczej duplikaty przeszłyby niezauważone).
+  const [existingState, setExistingState] = useState('ok')
   const [overrides, setOverrides] = useState({})      // line → { include?, categoryId? }
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
@@ -46,6 +60,7 @@ export default function ImportView({ user, onClose }) {
     getDoc(doc(db, 'users', user.uid, 'settings', 'categories'))
       .then(d => {
         if (!d.exists()) return
+        setOwnCats(!!(d.data().expense?.length || d.data().income?.length))
         if (d.data().expense?.length) setExpCats(d.data().expense)
         if (d.data().income?.length)  setIncCats(d.data().income)
       }).catch(() => {})
@@ -64,7 +79,10 @@ export default function ImportView({ user, onClose }) {
         return
       }
     }
-    const all = parseCSV(text)
+    loadRows(parseCSV(text), name)
+  }
+
+  const loadRows = (all, name) => {
     if (!all.length) { setError('Plik jest pusty albo nie wygląda na CSV.'); return }
     let h = findHeaderRow(all)
     if (h < 0) h = 0
@@ -73,8 +91,23 @@ export default function ImportView({ user, onClose }) {
     setMapping(guessMapping(all[h]))
     setFileName(name)
     setOverrides({})
+    setDec(null)
     setError('')
     setStep('preview')
+  }
+
+  // .xlsx: wybieramy arkusz z najwięcej wierszami pod rozpoznanym nagłówkiem
+  // (w skoroszycie z podsumowaniami to zwykle arkusz „Transakcje").
+  const loadXlsx = (list, name) => {
+    let best = -1, bestRows = -1
+    list.forEach((sh, i) => {
+      const h = findHeaderRow(sh.rows)
+      if (h >= 0 && sh.rows.length - h > bestRows) { best = i; bestRows = sh.rows.length - h }
+    })
+    if (best < 0) best = 0
+    setSheets(list)
+    setSheetIdx(best)
+    loadRows(list[best]?.rows || [], name)
   }
 
   const onFile = async (e) => {
@@ -83,8 +116,13 @@ export default function ImportView({ user, onClose }) {
     if (!f) return
     try {
       const buf = new Uint8Array(await f.arrayBuffer())
+      if (isZip(buf)) { loadXlsx(await readXlsx(buf), f.name); return }
+      setSheets(null)
       loadText(decodeBytes(buf), f.name)
-    } catch { setError('Nie udało się odczytać pliku.') }
+    } catch (err) {
+      console.error('Odczyt pliku:', err)
+      setError(err?.message?.startsWith('To nie') ? err.message : 'Nie udało się odczytać pliku.')
+    }
   }
 
   const header = rows[headerIdx] || []
@@ -106,15 +144,20 @@ export default function ImportView({ user, onClose }) {
   }, [parsed])
 
   useEffect(() => {
-    if (!range) { setExisting([]); return }
+    if (!range) { setExisting([]); setExistingState('ok'); return }
     let alive = true
+    setExistingState('loading')
     getDocs(query(collection(db, 'users', user.uid, 'transactions'),
       where('date', '>=', Timestamp.fromMillis(range[0])),
       where('date', '<=', Timestamp.fromMillis(range[1]))))
       .then(snap => {
         if (!alive) return
         setExisting(snap.docs.map(d => ({ ...d.data(), date: d.data().date?.toDate?.() })))
-      }).catch(() => alive && setExisting([]))
+        setExistingState('ok')
+      }).catch(e => {
+        console.warn('Import: nie udało się pobrać istniejących transakcji', e?.code, e?.message)
+        if (alive) { setExisting([]); setExistingState('error') }
+      })
     return () => { alive = false }
   }, [user.uid, range?.[0], range?.[1]]) // eslint-disable-line
 
@@ -131,8 +174,43 @@ export default function ImportView({ user, onClose }) {
 
   const chosen = items.filter(i => i.include)
   const dupCount = items.filter(i => i.duplicate).length
-  const sumIn  = chosen.filter(i => i.type === 'income').reduce((s, i) => s + i.amount, 0)
-  const sumOut = chosen.filter(i => i.type === 'expense').reduce((s, i) => s + i.amount, 0)
+  const sumIn  = chosen.filter(i => i.type === 'income' && !i.transfer).reduce((s, i) => s + i.amount, 0)
+  const sumOut = chosen.filter(i => i.type === 'expense' && !i.transfer).reduce((s, i) => s + i.amount, 0)
+  // Plik z własnymi kategoriami → przed importem ekran zatwierdzania.
+  const reviewMode = mapping.category != null
+
+  const appCats = useMemo(() => ownCats ? { expense: expCats, income: incCats } : { expense: [], income: [] }, [ownCats, expCats, incCats])
+  const review = useMemo(() => reviewMode ? buildReview(chosen) : null, [reviewMode, items]) // eslint-disable-line
+  const storeKey = `mw_importReview:${fileName}:${dataRows.length}`
+
+  // Decyzje zapisujemy na bieżąco — zatwierdzanie ~150 pozycji to praca,
+  // której nie wolno stracić przez przypadkowe zamknięcie okna.
+  useEffect(() => {
+    if (!dec) return
+    try { localStorage.setItem(storeKey, JSON.stringify(dec)) } catch { /* pełna pamięć / tryb prywatny */ }
+  }, [dec, storeKey])
+
+  const startReview = () => {
+    const def = defaultDecisions(review, appCats, accounts)
+    let saved = null
+    try { saved = JSON.parse(localStorage.getItem(storeKey) || 'null') } catch { saved = null }
+    const keep = (base, extra) => {
+      const out = { ...base }
+      for (const k of Object.keys(extra || {})) if (k in base) out[k] = { ...base[k], ...extra[k] }
+      return out
+    }
+    const prev = dec || saved
+    setDec({
+      cats: keep(def.cats, prev?.cats),
+      subs: keep(def.subs, prev?.subs),
+      accs: keep(def.accs, prev?.accs),
+      approved: { ...(prev?.approved || {}) },
+    })
+    setStep('review')
+  }
+
+  const keys = review ? reviewKeys(review) : []
+  const left = dec ? keys.filter(k => !dec.approved[k]).length : keys.length
   const hasAmount = mapping.amount != null || mapping.debit != null || mapping.credit != null
 
   const setOv = (line, patch) => setOverrides(o => ({ ...o, [line]: { ...o[line], ...patch } }))
@@ -141,6 +219,84 @@ export default function ImportView({ user, onClose }) {
     for (const it of items) n[it.line] = { ...n[it.line], include }
     return n
   })
+
+  const doImportReviewed = async () => {
+    if (!chosen.length || left) return
+    setSaving(true); setError('')
+    const base = ['users', user.uid]
+    try {
+      const res = resolveReview(review, dec, appCats)
+      // 1. Nowe konta (saldo 0 — historia nie zmienia sald, chyba że włączono)
+      const accMap = {}
+      const newAccs = review.accounts.filter(a => (dec.accs[a.name]?.target || 'new') === 'new')
+      if (newAccs.length) {
+        const b = writeBatch(db)
+        newAccs.forEach((a, i) => {
+          const ref = doc(collection(db, ...base, 'accounts'))
+          const type = guessAccountType(a.name)
+          b.set(ref, {
+            name: a.name, type, typeName: { bank: 'Konto bankowe', cash: 'Gotówka', revolut: 'Revolut/Mobile', investment: 'Inwestycje' }[type],
+            balance: 0, currency: a.currency || 'PLN', color: ACC_COLORS[i % ACC_COLORS.length], createdAt: Timestamp.now(),
+          })
+          accMap[a.name] = ref.id
+        })
+        await b.commit()
+      }
+      for (const a of review.accounts) {
+        const t = dec.accs[a.name]?.target
+        if (t?.startsWith('app:')) accMap[a.name] = t.slice(4)
+      }
+      // 2. Kategorie (istniejące + nowe, ze zmienionymi nazwami)
+      await setDoc(doc(db, ...base, 'settings', 'categories'), res.categories, { merge: true })
+      // 3. Transakcje
+      const now = Timestamp.now()
+      let done = 0
+      setProgress({ done, total: chosen.length })
+      for (const part of chunk(chosen)) {
+        const b = writeBatch(db)
+        for (const it of part) {
+          const data = {
+            type: it.type,
+            amount: it.amount,
+            ...assignCategory(it, res),
+            currency: it.currency,
+            description: it.description,
+            date: Timestamp.fromDate(it.date),
+            accountId: accMap[it.raw?.account] || it.accountId || null,
+            tithe: false,
+            source: 'import',
+            importedFrom: it.raw?.source ? `${fileName} · ${it.raw.source}` : fileName,
+            createdAt: now,
+            updatedAt: now,
+          }
+          if (it.dateApprox) data.dateApprox = true
+          if (it.raw?.detail) data.detail = it.raw.detail
+          if (it.transfer && it.raw?.subcategory) data.transferComment = it.raw.subcategory
+          b.set(doc(collection(db, ...base, 'transactions')), data)
+        }
+        await b.commit()
+        done += part.length
+        setProgress({ done, total: chosen.length })
+      }
+      if (updateBalance) {
+        const deltas = balanceDeltas(chosen.map(it => ({ ...it, accountId: accMap[it.raw?.account] || it.accountId })))
+        const b = writeBatch(db)
+        let any = false
+        for (const [id, delta] of Object.entries(deltas)) {
+          if (!delta) continue
+          b.update(doc(db, ...base, 'accounts', id), { balance: increment(delta) }); any = true
+        }
+        if (any) await b.commit()
+      }
+      try { localStorage.removeItem(storeKey) } catch { /* bez znaczenia */ }
+      toast.success(`Zaimportowano ${chosen.length} ${plural(chosen.length)}`)
+      onClose()
+    } catch (e) {
+      console.error('Import nie powiódł się:', e)
+      setError(`Błąd zapisu (${e?.code || 'błąd'}). Część transakcji mogła się zapisać — przy ponownym imporcie zapisane wcześniej będą oznaczone jako „już jest".`)
+      setSaving(false); setProgress(null)
+    }
+  }
 
   const doImport = async () => {
     if (!chosen.length) return
@@ -207,13 +363,14 @@ export default function ImportView({ user, onClose }) {
         {step === 'file' && (
           <div className="form">
             <p className="imp-hint">
-              Wgraj wyciąg CSV z banku (mBank, PKO, ING, Santander, Millennium,
-              Pekao, Revolut…), eksport CSV z tej apki albo kopię danych JSON
-              (np. kopię uzupełnioną o historię). Przed zapisem zobaczysz podgląd.
+              Wgraj arkusz Excel (.xlsx), wyciąg CSV z banku (mBank, PKO, ING,
+              Santander, Millennium, Pekao, Revolut…), eksport CSV z tej apki albo
+              kopię danych JSON. Przed zapisem zobaczysz podgląd, a gdy plik ma
+              własne kategorie — zatwierdzisz każdą z nich.
             </p>
             <label className="imp-drop">
-              <input type="file" accept=".csv,.txt,.json,text/csv,text/plain,application/json" onChange={onFile} hidden />
-              <span className="imp-drop-title">Wybierz plik CSV lub JSON</span>
+              <input type="file" accept=".csv,.txt,.json,.xlsx,text/csv,text/plain,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={onFile} hidden />
+              <span className="imp-drop-title">Wybierz plik Excel, CSV lub JSON</span>
               <span className="imp-drop-sub">z telefonu lub komputera</span>
             </label>
             <button type="button" className="imp-link" onClick={() => setShowPaste(v => !v)}>
@@ -244,9 +401,19 @@ export default function ImportView({ user, onClose }) {
               <button type="button" className="imp-link" onClick={() => { setStep('file'); setRows([]) }}>zmień</button>
             </div>
 
+            {sheets && sheets.length > 1 && (
+              <div className="form-group">
+                <label>Arkusz</label>
+                <select className="form-input imp-select" value={sheetIdx}
+                  onChange={e => { const i = Number(e.target.value); setSheetIdx(i); loadRows(sheets[i].rows, fileName) }}>
+                  {sheets.map((sh, i) => <option key={i} value={i}>{sh.name} ({sh.rows.length} wierszy)</option>)}
+                </select>
+              </div>
+            )}
+
             {accounts.length > 0 && (
               <div className="form-group">
-                <label>Na konto</label>
+                <label>{mapping.account != null ? 'Konto dla wierszy bez konta' : 'Na konto'}</label>
                 <div className="account-chips">
                   {accounts.map(acc => (
                     <button key={acc.id} type="button"
@@ -288,6 +455,8 @@ export default function ImportView({ user, onClose }) {
               <p className="form-error">Wskaż kolumnę z datą i z kwotą (rozwiń „Kolumny w pliku").</p>
             ) : (
               <>
+                {existingState === 'loading' && <p className="imp-hint imp-checking">Sprawdzam, co już jest w apce…</p>}
+                {existingState === 'error' && <p className="form-error">Nie udało się sprawdzić, które transakcje już są w apce — duplikaty nie zostaną wykryte.</p>}
                 <div className="imp-summary">
                   <span><b>{chosen.length}</b> z {items.length} do importu</span>
                   {dupCount > 0 && <span className="imp-dup-note">{dupCount} już jest w apce</span>}
@@ -324,25 +493,79 @@ export default function ImportView({ user, onClose }) {
                           </div>
                           <div className="imp-row-desc">{it.description || <i>bez opisu</i>}
                             {it.duplicate && <span className="imp-dup">już jest</span>}</div>
-                          <select className="form-input imp-select" value={it.categoryId}
-                            onChange={e => setOv(it.line, { categoryId: e.target.value })}>
-                            {cats.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                          </select>
+                          {reviewMode ? (
+                            <div className="imp-row-cat">
+                              {it.transfer ? 'Przelew między kontami' : [it.raw?.category, it.raw?.subcategory].filter(Boolean).join(' → ')}
+                              {it.raw?.account && <> · {it.raw.account}</>}
+                              {it.dateApprox && <span className="imp-dup">data przybliżona</span>}
+                            </div>
+                          ) : (
+                            <select className="form-input imp-select" value={it.categoryId}
+                              onChange={e => setOv(it.line, { categoryId: e.target.value })}>
+                              {cats.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                            </select>
+                          )}
                         </div>
                       </li>
                     )
                   })}
                 </ul>
                 {items.length > PREVIEW_LIMIT && (
-                  <p className="imp-hint">…i {items.length - PREVIEW_LIMIT} kolejnych (zaimportują się z kategorią dobraną automatycznie).</p>
+                  <p className="imp-hint">…i {items.length - PREVIEW_LIMIT} kolejnych{reviewMode ? '.' : ' (zaimportują się z kategorią dobraną automatycznie).'}</p>
                 )}
               </>
             )}
 
             {error && <p className="form-error">{error}</p>}
-            <button type="button" className="btn-save" disabled={saving || !chosen.length} onClick={doImport}>
-              {saving ? 'Importowanie...' : `Importuj ${chosen.length} ${plural(chosen.length)}`}
+            {reviewMode ? (
+              <button type="button" className="btn-save" disabled={!chosen.length || !review || existingState === 'loading'} onClick={startReview}>
+                {existingState === 'loading' ? 'Sprawdzam duplikaty…' : `Dalej: zatwierdź kategorie (${chosen.length} ${plural(chosen.length)})`}
+              </button>
+            ) : (
+              <button type="button" className="btn-save" disabled={saving || !chosen.length || existingState === 'loading'} onClick={doImport}>
+                {saving ? 'Importowanie...' : existingState === 'loading' ? 'Sprawdzam duplikaty…' : `Importuj ${chosen.length} ${plural(chosen.length)}`}
+              </button>
+            )}
+          </div>
+        )}
+
+        {step === 'review' && review && dec && (
+          <div className="form">
+            <div className="imp-file">
+              <span className="imp-file-name">{fileName} · {chosen.length} {plural(chosen.length)}</span>
+              {!saving && <button type="button" className="imp-link" onClick={() => setStep('preview')}>wróć do podglądu</button>}
+            </div>
+            <p className="imp-hint">
+              Zatwierdź każdą kategorię i podkategorię. Możesz zmienić nazwę, połączyć
+              kategorię z inną albo przenieść podkategorię gdzie indziej. Ta sama
+              nazwa co inna podkategoria w tym samym miejscu = połączenie ich w jedną.
+              Postęp zapisuje się sam — możesz przerwać i wrócić później.
+            </p>
+            <CategoryReview review={review} dec={dec} setDec={setDec} appCats={appCats} accounts={accounts} />
+
+            <button type="button" className={`tithe-toggle${updateBalance ? ' on' : ''}`}
+              onClick={() => setUpdateBalance(v => !v)} aria-pressed={updateBalance}>
+              <span className="tithe-toggle-box">{updateBalance && <IconCheck size={12} />}</span>
+              <span className="tithe-toggle-text">
+                Zmień salda kont
+                <span className="tithe-toggle-hint">
+                  Zostaw wyłączone przy imporcie historii — salda istniejących kont już ją zawierają, a nowe konta dostaną saldo 0.
+                </span>
+              </span>
             </button>
+
+            {progress && (
+              <div className="imp-progress" role="progressbar" aria-valuenow={progress.done} aria-valuemax={progress.total}>
+                <div style={{ width: `${100 * progress.done / progress.total}%` }} />
+                <span>{progress.done} / {progress.total}</span>
+              </div>
+            )}
+            {error && <p className="form-error">{error}</p>}
+            <div className="rev-footer">
+              <button type="button" className="btn-save" disabled={saving || left > 0 || !chosen.length} onClick={doImportReviewed}>
+                {saving ? 'Importowanie…' : left > 0 ? `Zatwierdź jeszcze ${left}` : `Importuj ${chosen.length} ${plural(chosen.length)}`}
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -125,9 +125,12 @@ export function planBackupImport(backup, current, defaultCategories) {
   }
 
   const backupCats = data.singles?.['settings/categories']
-  const base = current.categories?.expense?.length || current.categories?.income?.length
-    ? current.categories
-    : defaultCategories
+  // Bez zapisanych kategorii apka pokazuje wbudowane domyślne — ale kopia ma
+  // własne, kompletne. Dokładanie ich do domyślnych dawało podwójne „Auto",
+  // „Zdrowie" itd., więc w pustej bazie bierzemy kategorie z kopii.
+  // (defaultCategories zostaje tylko na wypadek kopii bez kategorii.)
+  const hasOwn = current.categories?.expense?.length || current.categories?.income?.length
+  const base = hasOwn ? current.categories : (backupCats ? { expense: [], income: [] } : defaultCategories)
   const { categories, added: newCategories } = backupCats
     ? mergeCategories(base, backupCats)
     : { categories: null, added: [] }

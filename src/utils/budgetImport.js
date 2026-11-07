@@ -101,6 +101,11 @@ export const FIELDS = [
   { id: 'subcategory', label: 'Podkategoria' },
   { id: 'currency',    label: 'Waluta' },
   { id: 'account',     label: 'Konto' },
+  { id: 'detail',      label: 'Szczegół' },
+  { id: 'note',        label: 'Notatka' },
+  { id: 'foreign',     label: 'Kwota w walucie' },
+  { id: 'exactDate',   label: 'Data dokładna (tak/nie)' },
+  { id: 'source',      label: 'Źródło' },
 ]
 
 // Nazwy nagłówków spotykane w eksportach polskich banków (mBank, PKO BP, ING,
@@ -117,6 +122,11 @@ const ALIASES = {
   subcategory:  ['podkategoria', 'subcategory'],
   currency:     ['waluta', 'currency', 'waluta rachunku', 'waluta operacji'],
   account:      ['konto', 'rachunek', 'account', 'nazwa konta'],
+  detail:       ['szczegol', 'szczegoly kategorii'],
+  note:         ['twoja notatka', 'notatka', 'uwagi', 'komentarz'],
+  foreign:      ['kwota w walucie', 'kwota oryginalna', 'kwota w walucie operacji'],
+  exactDate:    ['data dokladna'],
+  source:       ['zrodlo'],
 }
 
 // Pierwszy wiersz, który wygląda jak nagłówek (ma kolumnę z datą i kolumnę
@@ -157,6 +167,13 @@ export function guessMapping(header) {
 // także z doklejoną godziną. Dzień/miesiąc w kolejności europejskiej.
 export function parseDate(v) {
   const s = String(v ?? '').trim()
+  // Data z Excela zapisana jako numer dnia (1 = 1900-01-01, epoka 1899-12-30).
+  if (/^\d{5}(\.\d+)?$/.test(s)) {
+    const n = Math.floor(Number(s))
+    if (n < 20000 || n > 80000) return null      // ~1954–2119: poza tym to nie data
+    const base = new Date(1899, 11, 30, 12, 0, 0)
+    return new Date(base.getFullYear(), base.getMonth(), base.getDate() + n, 12, 0, 0)
+  }
   let y, m, d
   let r = s.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/)
   if (r) { [, y, m, d] = r }
@@ -186,6 +203,7 @@ export function parseBankAmount(v) {
 function parseType(v) {
   const s = norm(v)
   if (!s) return null
+  if (/przelew wewn|wewnetrzn|miedzy kontami|transfer|przeksiegowanie/.test(s)) return 'transfer'
   if (/przych|wplyw|uznan|income|credit|zwrot|wplata/.test(s)) return 'income'
   if (/wydat|obciaz|expense|debit|platnosc|wyplata|zakup/.test(s)) return 'expense'
   return null
@@ -196,6 +214,17 @@ function parseCurrency(v) {
   if (!s) return null
   if (s === 'ZŁ' || s === 'ZL') return 'PLN'
   return CURRENCIES.some(c => c.code === s) ? s : null
+}
+
+// "5.59 USD", "-12,30 EUR", "EUR 3,47" → { amount, currency } albo null.
+export function parseForeign(v) {
+  const s = String(v ?? '').trim()
+  if (!s) return null
+  const code = s.match(/\b([A-Z]{3})\b/)?.[1]
+  const cur = code && parseCurrency(code)
+  const n = parseBankAmount(s)
+  if (!cur || !Number.isFinite(n) || n === 0) return null
+  return { amount: Math.round(Math.abs(n) * 100) / 100, currency: cur }
 }
 
 // ── Kategorie ───────────────────────────────────────────────────────────────
@@ -285,12 +314,26 @@ export function rowsToTransactions(rows, mapping, opts = {}) {
 
     // Typ: minus zawsze oznacza wydatek. Kwota dodatnia może być wydatkiem,
     // gdy mówi tak kolumna „Typ" (eksport Apki ma kwoty bez znaku).
-    const type = signed < 0 ? 'expense' : (parseType(get(row, 'type')) || 'income')
-    const amount = Math.round(Math.abs(signed) * 100) / 100
+    // Przelew między własnymi kontami: kierunek ze znaku, bez kategorii.
+    const typeCol = parseType(get(row, 'type'))
+    const transfer = typeCol === 'transfer'
+    const type = signed < 0 ? 'expense' : (transfer ? 'income' : (typeCol || 'income'))
+    let amount = Math.round(Math.abs(signed) * 100) / 100
+
+    // Kwota w walucie konta (np. „5.59 USD" przy koncie Revolut USD) ma
+    // pierwszeństwo przed przeliczoną na złote — saldo konta jest w jego walucie.
+    const foreign = parseForeign(get(row, 'foreign'))
+    if (foreign) amount = foreign.amount
 
     const desc = get(row, 'description')
     const party = get(row, 'counterparty')
-    const description = [party, desc].filter(Boolean).join(' — ').replace(/\s+/g, ' ').slice(0, 100)
+    const detail = get(row, 'detail')
+    const note = get(row, 'note')
+    const main = note || [party, desc].filter(Boolean).join(' — ')
+    const description = [detail, main].filter(Boolean)
+      .filter((x, k, a) => a.findIndex(y => norm(y) === norm(x)) === k)
+      .join(' · ').replace(/\s+/g, ' ').slice(0, 100)
+    const exact = norm(get(row, 'exactDate'))
 
     const cats = type === 'income' ? incomeCats : expenseCats
     const cat = matchCategory(get(row, 'category'), cats)
@@ -311,10 +354,21 @@ export function rowsToTransactions(rows, mapping, opts = {}) {
       type,
       amount,
       description,
-      categoryId: cat?.id || 'inne',
-      subcategoryId: sub?.id || null,
-      currency: parseCurrency(get(row, 'currency')) || defaultCurrency,
+      transfer,
+      categoryId: transfer ? 'transfer' : (cat?.id || 'inne'),
+      subcategoryId: transfer ? null : (sub?.id || null),
+      currency: foreign?.currency || parseCurrency(get(row, 'currency')) || defaultCurrency,
       accountId: acc?.id || null,
+      // Surowe wartości z pliku — do ekranu zatwierdzania kategorii i kont.
+      raw: {
+        category: get(row, 'category'),
+        subcategory: get(row, 'subcategory'),
+        account: accRaw,
+        detail,
+        bank: [party, desc].filter(Boolean).join(' — '),
+        source: get(row, 'source'),
+      },
+      dateApprox: exact ? /^(nie|no|false|0)/.test(exact) : false,
     })
   })
   return { items, errors }
