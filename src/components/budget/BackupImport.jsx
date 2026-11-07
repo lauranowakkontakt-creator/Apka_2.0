@@ -73,15 +73,17 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
       await zapiszWiele(writes, {
         wPaczkach,
         onProgress: (d) => { setWaiting(null); setProgress({ done: Math.max(0, d - pre), total }) },
-        onWait: (code, proba) => { setWaiting(proba); log.warn('import', 'paczka zapisu ponawiana', { code, proba }) },
+        onWait: (code, proba) => { setWaiting({ proba, code }); log.warn('import', 'paczka zapisu ponawiana', { code, proba }) },
       })
       toast.success(`Zaimportowano ${total} transakcji`)
       onDone()
     } catch (e) {
       log.blad('import', 'Import kopii nie powiódł się', e)
       const code = e?.code || 'błąd'
-      setError(code === 'timeout' || code === 'resource-exhausted'
-        ? 'Serwer przestał przyjmować zapisy. Najczęściej to dzienny limit darmowego planu Firebase (zeruje się codziennie ok. 9:00). To, co się zapisało, zostaje — uruchom import później, a dopisze tylko brakujące.'
+      setError(code === 'resource-exhausted'
+        ? 'Firebase odrzuca zapisy: wyczerpany dzienny limit darmowego planu (kod: resource-exhausted). Limit zeruje się codziennie ok. 9:00 — wtedy uruchom import jeszcze raz, dopisze tylko brakujące. Od razu pomoże przejście na plan Blaze.'
+        : code === 'timeout'
+        ? 'Serwer nie odpowiedział na zapis (kod: timeout). To, co się zapisało, zostaje — spróbuj za chwilę, dopisze tylko brakujące.'
         : `Import przerwany (${code}). To, co się zapisało, zostaje — uruchom import jeszcze raz, a dopisze tylko brakujące.`)
       setProgress(null); setWaiting(null)
     }
@@ -139,7 +141,9 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
           <span>{progress.done} / {progress.total}</span>
         </div>
       )}
-      {busy && <p className="imp-hint">{waiting ? `Serwer odpowiada wolno — ponawiam (${waiting}/5)…` : 'Zapisuję paczkami po 250. Gdyby coś przerwało, przy kolejnym imporcie dopiszę tylko brakujące.'}</p>}
+      {busy && <p className="imp-hint">{waiting ? (waiting.code === 'resource-exhausted'
+        ? `Firebase odrzuca zapisy: wyczerpany dzienny limit darmowego planu (kod: resource-exhausted). Ponawiam (${waiting.proba}/5)…`
+        : `Serwer nie odpowiada (kod: ${waiting.code}) — ponawiam (${waiting.proba}/5)…`) : 'Zapisuję paczkami po 250. Gdyby coś przerwało, przy kolejnym imporcie dopiszę tylko brakujące.'}</p>}
       {error && <p className="form-error">{error}</p>}
       <button type="button" className="btn-save" disabled={busy || (!transactions.length && !newAccounts.length && !newCategories.length && !extraCount)} onClick={run}>
         {busy ? 'Importowanie…' : transactions.length ? `Importuj ${transactions.length} transakcji` : extraCount || newAccounts.length || newCategories.length ? 'Importuj' : 'Nic nowego do dodania'}
