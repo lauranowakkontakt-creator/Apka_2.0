@@ -7,6 +7,7 @@ import { useMounted, GroupedBars } from './ChartPrimitives'
 import { getBounds, shiftPivot, buildPeriodTimeline } from '../utils/budgetMath'
 import { byAccountOrder } from '../utils/accountOrder'
 import { fmt } from '../utils/currency'
+import { inPLN } from '../utils/moneyFlow'
 import { getSubcategoryColor, DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, isTransfer } from '../utils/categories'
 import { bladSubskrypcji } from '../utils/polaczenie'
 
@@ -74,7 +75,7 @@ export default function Charts({ user, privateMode = false }) {
   const goFwd  = () => setPivot(p => shiftPivot(period, p, +1))
 
   // Przelewy między kontami nie są przychodem/wydatkiem — pomijamy w wykresach
-  const base = transactions.filter(t => !isTransfer(t))
+  const base = transactions.filter(t => !isTransfer(t)).map(t => ({ ...t, amount: inPLN(t) }))
   const filtered = accountFilter === 'all' ? base : base.filter(t => t.accountId === accountFilter)
   const expenses = filtered.filter(t => t.type === 'expense')
   const incomes  = filtered.filter(t => t.type === 'income')

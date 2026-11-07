@@ -90,13 +90,19 @@ const csvCell = (v) => {
 
 // Eksport transakcji do CSV (np. do Excela)
 export async function exportTransactionsCSV(uid) {
-  const snap = await getDocs(collection(db, 'users', uid, 'transactions'))
+  const [snap, accSnap] = await Promise.all([
+    getDocs(collection(db, 'users', uid, 'transactions')),
+    getDocs(collection(db, 'users', uid, 'accounts')),
+  ])
+  // Nazwa konta zamiast id — plik ma być czytelny w Excelu i wracać przez import
+  const accName = Object.fromEntries(accSnap.docs.map(d => [d.id, d.data().name]))
   const rows = snap.docs.map(d => {
     const t = d.data()
     const date = t.date?.toDate ? t.date.toDate().toISOString().slice(0, 10) : ''
-    return [date, t.type === 'income' ? 'przychód' : 'wydatek', t.amount, t.category, t.subcategoryLabel || '', t.subsubcategoryLabel || '', t.description || '', t.accountId || '']
+    const typ = t.categoryId === 'transfer' ? 'przelew wewnętrzny' : t.type === 'income' ? 'przychód' : 'wydatek'
+    return [date, typ, t.type === 'expense' ? -t.amount : t.amount, t.currency || 'PLN', t.category, t.subcategoryLabel || '', t.subsubcategoryLabel || '', t.description || '', accName[t.accountId] || t.accountId || '']
   }).sort((a, b) => b[0].localeCompare(a[0]))
-  const header = ['Data', 'Typ', 'Kwota', 'Kategoria', 'Podkategoria', 'Pod-podkategoria', 'Opis', 'Konto']
+  const header = ['Data', 'Typ', 'Kwota', 'Waluta', 'Kategoria', 'Podkategoria', 'Pod-podkategoria', 'Opis', 'Konto']
   const csv = '﻿' + [header, ...rows].map(r => r.map(csvCell).join(',')).join('\n')
   return download(`moj-swiat-transakcje-${stamp()}.csv`, csv, 'text/csv;charset=utf-8')
 }

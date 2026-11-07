@@ -24,7 +24,10 @@ export default function SearchPanel({ user, onClose }) {
   }, [user.uid])
 
   const results = all.filter(t => {
-    const matchSearch = !search || t.description?.toLowerCase().includes(search.toLowerCase()) || t.category?.toLowerCase().includes(search.toLowerCase())
+    // Szukamy też w podkategoriach i w ukrytym opisie z wyciągu (np. „Biedronka", „Orlen")
+    const q = search.trim().toLowerCase()
+    const matchSearch = !q || [t.description, t.category, t.subcategoryLabel, t.subsubcategoryLabel, t.bankDescription, t.amount != null ? String(t.amount).replace('.', ',') : '']
+      .some(v => v && String(v).toLowerCase().includes(q))
     const matchType = filterType === 'all' || t.type === filterType
     return matchSearch && matchType
   }).slice(0, 50)
@@ -55,11 +58,11 @@ export default function SearchPanel({ user, onClose }) {
             <div key={t.id} className={`transaction-item ${t.type}`}>
               <div className="t-icon"><CatIcon categoryId={t.categoryId} emoji={t.categoryIcon} size={20} /></div>
               <div className="t-details">
-                <span className="t-category">{t.category}</span>
+                <span className="t-category">{[t.category, t.subcategoryLabel, t.subsubcategoryLabel].filter(Boolean).join(' › ')}</span>
                 {t.description && <span className="t-desc">{t.description}</span>}
                 <span className="t-date">{t.date ? format(t.date, 'd MMM yyyy', { locale: pl }) : ''}</span>
               </div>
-              <span className={`t-amount ${t.type}`}>{t.type === 'income' ? '+' : '-'}{fmt(t.amount)}</span>
+              <span className={`t-amount ${t.type}`}>{t.type === 'income' ? '+' : '-'}{fmt(t.amount, t.currency)}</span>
             </div>
           ))}
         </div>

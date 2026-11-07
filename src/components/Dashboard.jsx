@@ -30,6 +30,7 @@ import { fmt, getCurrencyCode, CURRENCIES, splitAmount } from '../utils/currency
 import { isTransfer } from '../utils/categories'
 import { isInvestment, sumByCurrency } from '../utils/investmentMath'
 import { bladSubskrypcji } from '../utils/polaczenie'
+import { inPLN, investedNet } from '../utils/moneyFlow'
 
 // Tytuły podstron pokazywane na pasku „wstecz" (nawigacja bez zakładek)
 const SUB_LABELS = {
@@ -78,8 +79,10 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
     }, bladSubskrypcji('transactions', { przyBledzie: () => setLoading(false) }))
   }, [user.uid, currentMonth])
 
-  const income   = transactions.filter(t => t.type === 'income' && !isTransfer(t)).reduce((s, t) => s + t.amount, 0)
-  const expenses = transactions.filter(t => t.type === 'expense' && !isTransfer(t)).reduce((s, t) => s + t.amount, 0)
+  const income   = transactions.filter(t => t.type === 'income' && !isTransfer(t)).reduce((s, t) => s + inPLN(t), 0)
+  const expenses = transactions.filter(t => t.type === 'expense' && !isTransfer(t)).reduce((s, t) => s + inPLN(t), 0)
+  const accById  = Object.fromEntries(accounts.map(a => [a.id, a]))
+  const investedMonth = investedNet(transactions, accById)
   const balance  = income - expenses
 
   const excludedFromTotal = (() => {
@@ -149,7 +152,7 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
   const categoryMap = {}
   transactions.filter(t => t.type === 'expense' && !isTransfer(t)).forEach(t => {
     const cat = t.category || 'Inne'
-    categoryMap[cat] = (categoryMap[cat] || 0) + t.amount
+    categoryMap[cat] = (categoryMap[cat] || 0) + inPLN(t)
   })
   const donutColors = ['#E0673E','#7C8AF0','#5FBF98','#E0B15A','#5BB6D9','#9B7CF0','#EC4899','#14B8A6']
   const donutData = Object.entries(categoryMap)
@@ -198,6 +201,7 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
                 <div className={`rev-hero-trend ${balanceUp ? 'up' : 'down'}`}>
                   {balanceUp ? '↑' : '↓'} {fmt(Math.abs(balance))}
                   <span className="sep">· ten miesiąc</span>
+                  {investedMonth > 0 && <span className="sep">· zainwestowane {fmt(investedMonth)}</span>}
                 </div>
                 {(otherCur.length > 0 || investEntries.length > 0) && (
                   <div className="rev-hero-chips">
