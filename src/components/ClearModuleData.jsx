@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { collection, doc, getDocs, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { MODULE_DATA } from '../utils/moduleData'
+import { wPaczkach } from '../utils/zapisWPaczkach'
 import { confirmDialog } from './ConfirmModal'
 import { toast } from './Toast'
 
 // Trwałe wyczyszczenie danych jednego modułu — zawsze po pytaniu „czy na pewno".
 export default function ClearModuleData({ uid }) {
   const [busy, setBusy] = useState(null)
+  const [prog, setProg] = useState('')
 
   const clear = async (id) => {
     const m = MODULE_DATA[id]
@@ -23,10 +25,13 @@ export default function ClearModuleData({ uid }) {
         confirmLabel: 'Tak, usuń wszystko',
       })
       if (!ok) { setBusy(null); return }
-      for (let i = 0; i < refs.length; i += 400) {
-        const b = writeBatch(db)
-        for (const r of refs.slice(i, i + 400)) b.delete(r)
-        await b.commit()
+      setProg('')
+      await wPaczkach(refs, { makeBatch: () => writeBatch(db), apply: (b, r) => b.delete(r), onProgress: (d, t) => setProg(`${d} / ${t}`) })
+      // Sprawdź, czy nic nie zostało (np. wpis dodany w trakcie) — i dokończ
+      for (let runda = 0; runda < 3; runda++) {
+        const left = (await Promise.all(m.collections.map(c => getDocs(collection(db, ...base, c))))).flatMap(s => s.docs.map(d => d.ref))
+        if (!left.length) break
+        await wPaczkach(left, { makeBatch: () => writeBatch(db), apply: (b, r) => b.delete(r) })
       }
       toast.success(`Wyczyszczono: ${m.label}`)
     } catch (e) {
@@ -46,7 +51,7 @@ export default function ClearModuleData({ uid }) {
       {Object.entries(MODULE_DATA).map(([id, m]) => (
         <button key={id} style={btn} disabled={!!busy} onClick={() => clear(id)}>
           <span>{m.label}</span>
-          <span style={{ fontSize: 11, color: 'var(--expense)' }}>{busy === id ? 'Usuwam…' : 'Wyczyść'}</span>
+          <span style={{ fontSize: 11, color: 'var(--expense)' }}>{busy === id ? `Usuwam… ${prog}` : 'Wyczyść'}</span>
         </button>
       ))}
       <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 2px 0', lineHeight: 1.45 }}>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { collection, doc, getDoc, getDocs, query, where, setDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../../firebase/config'
-import { chunk } from '../../utils/budgetImport'
+import { wPaczkach } from '../../utils/zapisWPaczkach'
 import { planImportCleanup } from '../../utils/importCleanup'
 import { toast } from '../Toast'
 
@@ -13,6 +13,7 @@ export default function ImportCleanup({ user }) {
   const [open, setOpen]   = useState(false)
   const [busy, setBusy]   = useState(false)
   const [done, setDone]   = useState(null)
+  const [prog, setProg]   = useState('')
 
   const load = async () => {
     const base = ['users', user.uid]
@@ -35,16 +36,8 @@ export default function ImportCleanup({ user }) {
     setBusy(true)
     const base = ['users', user.uid]
     try {
-      for (const part of chunk(plan.transactions, 400)) {
-        const b = writeBatch(db)
-        for (const id of part) b.delete(doc(db, ...base, 'transactions', id))
-        await b.commit()
-      }
-      if (plan.accounts.length) {
-        const b = writeBatch(db)
-        for (const a of plan.accounts) b.delete(doc(db, ...base, 'accounts', a.id))
-        await b.commit()
-      }
+      const refs = [...plan.transactions.map(id => doc(db, ...base, 'transactions', id)), ...plan.accounts.map(a => doc(db, ...base, 'accounts', a.id))]
+      await wPaczkach(refs, { makeBatch: () => writeBatch(db), apply: (b, r) => b.delete(r), onProgress: (d, t) => setProg(`${d} / ${t}`) })
       if (plan.categories) await setDoc(doc(db, ...base, 'settings', 'categories'), plan.categories)
       const msg = `Usunięto ${plan.transactions.length} transakcji z importu${plan.accounts.length ? ` i ${plan.accounts.length} pustych kont` : ''}.`
       toast.success(msg); setDone(msg); setOpen(false); setPlan(null)
@@ -71,7 +64,7 @@ export default function ImportCleanup({ user }) {
             {plan.removedCats > 0 && <li>{plan.removedCats} kategorii z importu, których nic już nie używa.</li>}
           </ul>
           <div className="row">
-            <button type="button" className="btn-save danger" disabled={busy} onClick={run}>{busy ? 'Usuwam…' : 'Usuń'}</button>
+            <button type="button" className="btn-save danger" disabled={busy} onClick={run}>{busy ? `Usuwam… ${prog}` : 'Usuń'}</button>
             <button type="button" className="imp-link" disabled={busy} onClick={() => setOpen(false)}>Anuluj</button>
           </div>
         </div>

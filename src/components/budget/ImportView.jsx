@@ -7,7 +7,7 @@ import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '../../uti
 import { byAccountOrder } from '../../utils/accountOrder'
 import {
   decodeBytes, parseCSV, findHeaderRow, guessMapping, FIELDS,
-  rowsToTransactions, markDuplicates, balanceDeltas, chunk,
+  rowsToTransactions, markDuplicates, balanceDeltas,
 } from '../../utils/budgetImport'
 import { IconClose, IconCheck } from '../Icons'
 import BackupImport from './BackupImport'
@@ -17,6 +17,8 @@ import { readXlsx, isZip } from '../../utils/xlsxReader'
 import { buildReview, defaultDecisions, resolveReview, assignCategory, reviewKeys, guessAccountType } from '../../utils/importReview'
 import { isBackup } from '../../utils/backupImport'
 import { toast } from '../Toast'
+import { wPaczkach } from '../../utils/zapisWPaczkach'
+import { log } from '../../utils/logger'
 
 const PREVIEW_LIMIT = 300
 const ACC_COLORS = ['#C94B28', '#6B9E72', '#4A90D9', '#9B59B6', '#E67E22', '#1ABC9C', '#E74C3C', '#F39C12']
@@ -251,11 +253,9 @@ export default function ImportView({ user, onClose }) {
       await setDoc(doc(db, ...base, 'settings', 'categories'), res.categories, { merge: true })
       // 3. Transakcje
       const now = Timestamp.now()
-      let done = 0
-      setProgress({ done, total: chosen.length })
-      for (const part of chunk(chosen)) {
-        const b = writeBatch(db)
-        for (const it of part) {
+      // Referencje (id) tworzymy raz z góry — ponowienie zawieszonej paczki
+      // trafia w te same dokumenty, więc nie zdubluje transakcji.
+      const writes = chosen.map(it => {
           const data = {
             type: it.type,
             amount: it.amount,
@@ -276,12 +276,14 @@ export default function ImportView({ user, onClose }) {
           if (it.dateApprox) data.dateApprox = true
           if (it.raw?.detail) data.detail = it.raw.detail
           if (it.transfer && it.raw?.subcategory) data.transferComment = it.raw.subcategory
-          b.set(doc(collection(db, ...base, 'transactions')), data)
-        }
-        await b.commit()
-        done += part.length
-        setProgress({ done, total: chosen.length })
-      }
+          return [doc(collection(db, ...base, 'transactions')), data]
+      })
+      await wPaczkach(writes, {
+        makeBatch: () => writeBatch(db),
+        apply: (b, [ref, data]) => b.set(ref, data),
+        onProgress: (done) => setProgress({ done, total: chosen.length }),
+        onWait: (code, proba) => log.warn('import', 'paczka zapisu ponawiana', { code, proba }),
+      })
       if (updateBalance) {
         const deltas = balanceDeltas(chosen.map(it => ({ ...it, accountId: accMap[it.raw?.account] || it.accountId })))
         const b = writeBatch(db)
@@ -308,12 +310,10 @@ export default function ImportView({ user, onClose }) {
     const catOf = (it) => (it.type === 'income' ? incCats : expCats).find(c => c.id === it.categoryId)
     try {
       const now = Timestamp.now()
-      for (const part of chunk(chosen)) {
-        const batch = writeBatch(db)
-        for (const it of part) {
+      const writes = chosen.map(it => {
           const cat = catOf(it)
           const sub = cat?.subcategories?.find(s => s.id === it.subcategoryId)
-          batch.set(doc(collection(db, 'users', user.uid, 'transactions')), {
+          return [doc(collection(db, 'users', user.uid, 'transactions')), {
             type: it.type,
             amount: it.amount,
             category: cat?.label || it.categoryId,
@@ -329,10 +329,9 @@ export default function ImportView({ user, onClose }) {
             source: 'import',
             createdAt: now,
             updatedAt: now,
-          })
-        }
-        await batch.commit()
-      }
+          }]
+      })
+      await wPaczkach(writes, { makeBatch: () => writeBatch(db), apply: (b, [ref, data]) => b.set(ref, data) })
       if (updateBalance) {
         const deltas = balanceDeltas(chosen)
         const batch = writeBatch(db)

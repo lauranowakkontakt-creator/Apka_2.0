@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, writeBatch } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '../../utils/categories'
 import { planBackupImport, EXTRA_COLLECTIONS, EXTRA_SINGLES } from '../../utils/backupImport'
-import { chunk } from '../../utils/budgetImport'
+import { wPaczkach } from '../../utils/zapisWPaczkach'
+import { log } from '../../utils/logger'
 import { toast } from '../Toast'
 
 // Druga ścieżka importu: kopia JSON z apki (także uzupełniona o historię).
@@ -14,6 +15,7 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
   const [loadErr, setLoadErr] = useState('')
   const [progress, setProgress] = useState(null)   // { done, total }
   const [error, setError]     = useState('')
+  const [waiting, setWaiting] = useState(null)   // numer ponowienia, gdy serwer odpowiada wolno
 
   useEffect(() => {
     let alive = true
@@ -51,51 +53,34 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
   }, [user.uid, backup])
 
   const run = async () => {
-    setError('')
-    const total = plan.transactions.length
-    setProgress({ done: 0, total })
+    setError(''); setWaiting(null)
     const base = ['users', user.uid]
     const strip = ({ id, ...rest }) => [id, rest]
+    // Wszystkie zapisy w kolejności: konta i kategorie przed transakcjami, żeby
+    // przerwany import nie zostawił transakcji wskazujących na brakujące konto.
+    const writes = []
+    for (const a of plan.newAccounts) { const [id, data] = strip(a); writes.push([doc(db, ...base, 'accounts', id), data]) }
+    if (plan.categories) writes.push([doc(db, ...base, 'settings', 'categories'), plan.categories, { merge: true }])
+    for (const c of EXTRA_COLLECTIONS) for (const x of plan.extras?.[c] || []) { const [id, data] = strip(x); writes.push([doc(db, ...base, c, id), data]) }
+    for (const [k, v] of Object.entries(plan.singles || {})) writes.push([doc(db, ...base, ...k.split('/')), v])
+    // To samo id co w kopii → ponowny import trafia w te same dokumenty i nic nie dubluje
+    for (const t of plan.transactions) { const [id, data] = strip(t); writes.push([doc(db, ...base, 'transactions', id), data]) }
+    const total = plan.transactions.length
+    const pre = writes.length - total
+    setProgress({ done: 0, total })
     try {
-      // Kolejność: konta i kategorie przed transakcjami, żeby przerwany import
-      // nie zostawił transakcji wskazujących na nieistniejące konto.
-      if (plan.newAccounts.length) {
-        const b = writeBatch(db)
-        for (const a of plan.newAccounts) {
-          const [id, data] = strip(a)
-          b.set(doc(db, ...base, 'accounts', id), data)
-        }
-        await b.commit()
-      }
-      if (plan.categories) {
-        await setDoc(doc(db, ...base, 'settings', 'categories'), plan.categories, { merge: true })
-      }
-      // Regularne płatności, lista zakupów, cele, dłużnicy, dziesięcina
-      const extraWrites = EXTRA_COLLECTIONS.flatMap(c => (plan.extras?.[c] || []).map(x => [c, x]))
-      for (const part of chunk(extraWrites, 400)) {
-        const b = writeBatch(db)
-        for (const [c, x] of part) { const [id, data] = strip(x); b.set(doc(db, ...base, c, id), data) }
-        await b.commit()
-      }
-      for (const [k, v] of Object.entries(plan.singles || {})) await setDoc(doc(db, ...base, ...k.split('/')), v)
-      let done = 0
-      for (const part of chunk(plan.transactions, 400)) {
-        const b = writeBatch(db)
-        for (const t of part) {
-          const [id, data] = strip(t)
-          // To samo id co w kopii → ponowny import trafia w te same dokumenty
-          b.set(doc(db, ...base, 'transactions', id), data)
-        }
-        await b.commit()
-        done += part.length
-        setProgress({ done, total })
-      }
+      await wPaczkach(writes, {
+        makeBatch: () => writeBatch(db),
+        apply: (b, [ref, data, opt]) => opt ? b.set(ref, data, opt) : b.set(ref, data),
+        onProgress: (d) => { setWaiting(null); setProgress({ done: Math.max(0, d - pre), total }) },
+        onWait: (code, proba) => { setWaiting(proba); log.warn('import', 'paczka zapisu ponawiana', { code, proba }) },
+      })
       toast.success(`Zaimportowano ${total} transakcji`)
       onDone()
     } catch (e) {
-      console.error('Import kopii nie powiódł się:', e)
+      log.blad('import', 'Import kopii nie powiódł się', e)
       setError(`Import przerwany (${e?.code || 'błąd'}). To, co się zapisało, zostaje — uruchom import jeszcze raz, a dopisze tylko brakujące.`)
-      setProgress(null)
+      setProgress(null); setWaiting(null)
     }
   }
 
@@ -151,6 +136,7 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
           <span>{progress.done} / {progress.total}</span>
         </div>
       )}
+      {busy && <p className="imp-hint">{waiting ? `Serwer odpowiada wolno — ponawiam (${waiting}/3)…` : 'Zapisuję małymi paczkami. Możesz zamknąć okno — przy kolejnym imporcie dopiszę tylko brakujące.'}</p>}
       {error && <p className="form-error">{error}</p>}
       <button type="button" className="btn-save" disabled={busy || (!transactions.length && !newAccounts.length && !newCategories.length && !extraCount)} onClick={run}>
         {busy ? 'Importowanie…' : transactions.length ? `Importuj ${transactions.length} transakcji` : extraCount || newAccounts.length || newCategories.length ? 'Importuj' : 'Nic nowego do dodania'}
