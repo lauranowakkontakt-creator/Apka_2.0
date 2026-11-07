@@ -562,9 +562,16 @@ export default function ImportView({ user, onClose }) {
             )}
             {error && <p className="form-error">{error}</p>}
             <div className="rev-footer">
-              <button type="button" className="btn-save" disabled={saving || left > 0 || !chosen.length} onClick={doImportReviewed}>
-                {saving ? 'Importowanie…' : left > 0 ? `Zatwierdź jeszcze ${left}` : `Importuj ${chosen.length} ${plural(chosen.length)}`}
-              </button>
+              {left > 0 ? (
+                <button type="button" className="btn-save" disabled={saving}
+                  onClick={() => setDec(d => ({ ...d, approved: { ...d.approved, ...Object.fromEntries(keys.map(k => [k, true])) } }))}>
+                  Zatwierdź wszystkie ({left})
+                </button>
+              ) : (
+                <button type="button" className="btn-save" disabled={saving || !chosen.length} onClick={doImportReviewed}>
+                  {saving ? 'Importowanie…' : `Importuj ${chosen.length} ${plural(chosen.length)}`}
+                </button>
+              )}
             </div>
           </div>
         )}

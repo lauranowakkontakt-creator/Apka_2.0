@@ -3063,3 +3063,4 @@ body { overscroll-behavior-y: none; }
 .rev-footer { position: sticky; bottom: calc(-28px - env(safe-area-inset-bottom, 0px)); padding: 10px 0 4px; background: linear-gradient(transparent, var(--surface) 30%); }
 .imp-checking { color: var(--accent); }
 .rev-subs3 { margin-left: 6px; } .rev-subs3 .rev-name { font-size: 13px; }
+.rev-progress { flex-wrap: wrap; } .rev-all { width: auto; padding: 8px 14px; font-size: 13px; }

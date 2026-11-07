@@ -22,6 +22,13 @@ export default function CategoryReview({ review, dec, setDec, appCats, accounts 
     return { ...d, approved: a }
   })
 
+  // Jednym kliknięciem: wszystkie kategorie, podkategorie i pod-podkategorie
+  const approveAll = () => setDec(d => {
+    const a = { ...d.approved }
+    for (const c of review.cats) { a[c.key] = true; for (const k of subKeys(c)) a[k] = true }
+    return { ...d, approved: a }
+  })
+
   const catName = (c) => (dec.cats[c.key]?.name || '').trim() || c.label
   const subKeys = (c) => c.subs.flatMap(s => [s.key, ...(s.subs || []).map(k => k.key)])
   const total = review.cats.reduce((n, c) => n + 1 + subKeys(c).length, 0)
@@ -53,6 +60,7 @@ export default function CategoryReview({ review, dec, setDec, appCats, accounts 
 
       <div className="rev-progress">
         <span>Zatwierdzono <b>{done}</b> z {total}</span>
+        {done < total && <button type="button" className="btn-save rev-all" onClick={approveAll}>Zatwierdź wszystkie</button>}
         <button type="button" className="imp-link" onClick={() => setOnlyOpen(v => !v)}>
           {onlyOpen ? 'pokaż wszystkie' : 'pokaż tylko niezatwierdzone'}
         </button>
