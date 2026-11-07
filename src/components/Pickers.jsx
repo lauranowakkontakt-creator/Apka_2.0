@@ -2,7 +2,7 @@
 //
 // Dotąd każdy formularz miał własną kopię: inną liczbę kolumn, inny zestaw
 // kolorów, gdzieniegdzie pasek wyszukiwania, gdzieniegdzie podpisy. Teraz
-// wszędzie jest jedno: 250 ikon w 10 kategoriach (zakładki zamiast szukania)
+// wszędzie jest jedno: 300 ikon w 10 kategoriach (zakładki zamiast szukania)
 // i 50 kolorów ułożonych odcieniami, po 10 w rzędzie.
 import { useState } from 'react'
 import { ICON_CATALOG, ICON_GROUPS } from './Icons'
