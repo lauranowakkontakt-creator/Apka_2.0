@@ -19,6 +19,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
   const [amount, setAmount]         = useState(editData?.amount?.toString() || '')
   const [category, setCategory]     = useState(editData?.categoryId || '')
   const [subcategoryId, setSubcategoryId] = useState(editData?.subcategoryId || '')
+  const [subsubId, setSubsubId] = useState(editData?.subsubcategoryId || '')
   const [description, setDescription] = useState(editData?.description || '')
   const [date, setDate]             = useState(editData?.date ? format(editData.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
   const [accountId, setAccountId]   = useState(editData?.accountId || defaultAccountId || '')
@@ -115,6 +116,12 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
     setSubcategoryId('')
   }, [category])
 
+  const firstSub = useRef(true)
+  useEffect(() => {
+    if (firstSub.current) { firstSub.current = false; return }
+    setSubsubId('')
+  }, [subcategoryId])
+
   // Waluta podąża za wybranym portfelem: wybór konta EUR ustawia walutę na EUR.
   // Synchronizujemy dopiero, gdy konta są wczytane, i tylko raz na dane konto —
   // dzięki temu przy edycji zapisana waluta transakcji zostaje nietknięta,
@@ -137,6 +144,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
     setSaving(true); setError('')
     const cat = categories.find(c => c.id === category)
     const subcat = cat?.subcategories?.find(s => s.id === subcategoryId)
+    const subsub = subcat?.subcategories?.find(s => s.id === subsubId)
     const data = {
       type, amount: parseAmount(amount),
       category: cat?.label || category,
@@ -144,6 +152,8 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
       categoryIcon: cat?.icon || 'IconMore',
       subcategoryId: subcat?.id || null,
       subcategoryLabel: subcat?.label || null,
+      subsubcategoryId: subsub?.id || null,
+      subsubcategoryLabel: subsub?.label || null,
       currency,
       description: description.trim(),
       date: Timestamp.fromDate(new Date(date)),
@@ -277,6 +287,27 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
                       </button>
                     )
                   })}
+                </div>
+              </div>
+            )
+          })()}
+
+          {(() => {
+            const sub = categories.find(c => c.id === category)?.subcategories?.find(s => s.id === subcategoryId)
+            const list = sub?.subcategories || []
+            if (!list.length) return null
+            const color = categories.find(c => c.id === category)?.color || '#888888'
+            return (
+              <div className="form-group">
+                <label>Pod-podkategoria <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcjonalna)</span></label>
+                <div className="account-chips">
+                  {list.map(ss => (
+                    <button key={ss.id} type="button"
+                      className={`account-chip ${subsubId === ss.id ? 'active' : ''}`}
+                      style={subsubId === ss.id ? { borderColor: color, background: color + '22' } : {}}
+                      onClick={() => setSubsubId(subsubId === ss.id ? '' : ss.id)}
+                    >{ss.label}</button>
+                  ))}
                 </div>
               </div>
             )

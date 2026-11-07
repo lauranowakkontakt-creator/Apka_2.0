@@ -363,13 +363,17 @@ function CategoryTab({ transactions, total, chartType, label, catColorMap = {}, 
   })
 
   if (drillDown) {
-    const catTxs = transactions.filter(t => t.categoryId === drillDown.categoryId)
+    // Poziom 2 (podkategorie kategorii) albo poziom 3 (pod-podkategorie jednej podkategorii)
+    const inSub  = !!drillDown.subId
+    const catTxs = transactions.filter(t => t.categoryId === drillDown.categoryId && (!inSub || (t.subcategoryId || '__none__') === drillDown.subId))
     const bySub  = {}
+    const hasDeeper = new Set()
     catTxs.forEach(t => {
-      const key  = t.subcategoryId || '__none__'
-      const name = t.subcategoryLabel || 'Ogólne'
-      if (!bySub[key]) bySub[key] = { name, value: 0 }
+      const key  = inSub ? (t.subsubcategoryId || '__none__') : (t.subcategoryId || '__none__')
+      const name = inSub ? (t.subsubcategoryLabel || 'Ogólne') : (t.subcategoryLabel || 'Ogólne')
+      if (!bySub[key]) bySub[key] = { name, value: 0, categoryId: key }
       bySub[key].value += t.amount
+      if (!inSub && t.subsubcategoryId) hasDeeper.add(key)
     })
     const subData   = Object.values(bySub).sort((a, b) => b.value - a.value)
     const subTotal  = catTxs.reduce((s, t) => s + t.amount, 0)
@@ -377,7 +381,7 @@ function CategoryTab({ transactions, total, chartType, label, catColorMap = {}, 
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button onClick={() => setDrillDown(null)} style={{
+        <button onClick={() => setDrillDown(inSub ? { ...drillDown, subId: null, subName: null } : null)} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           background: 'var(--surface)', border: '1px solid var(--border)',
           borderRadius: 12, padding: '10px 14px', cursor: 'pointer',
@@ -385,14 +389,16 @@ function CategoryTab({ transactions, total, chartType, label, catColorMap = {}, 
         }}>
           <IconChevronLeft size={14} />
           <CatIcon categoryId={drillDown.categoryId} emoji={drillDown.icon} size={16} />
-          <span style={{ fontWeight: 600 }}>{drillDown.name}</span>
+          <span style={{ fontWeight: 600 }}>{drillDown.name}{inSub ? ` › ${drillDown.subName}` : ''}</span>
           <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>{fmt(subTotal)}</span>
         </button>
 
         {chartType === 'pie' ? (
           <DonutChart data={subData} colors={subColors} total={subTotal} privateMode={privateMode} label={label} />
         ) : (
-          <ProgressList data={subData} total={subTotal} colors={subColors} privateMode={privateMode} />
+          <ProgressList data={subData} total={subTotal} colors={subColors} privateMode={privateMode}
+            hasSubcat={hasDeeper}
+            onItemClick={(item) => hasDeeper.has(item.categoryId) ? setDrillDown({ ...drillDown, subId: item.categoryId, subName: item.name }) : null} />
         )}
       </div>
     )

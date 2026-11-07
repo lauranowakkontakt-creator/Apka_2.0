@@ -20,6 +20,10 @@ export default function CategoriesView({ user, onClose }) {
   const [expanded, setExpanded]     = useState(new Set())
   const [editSubcat, setEditSubcat] = useState(null) // { catId, subcat }
   const [addingSubcat, setAddingSubcat] = useState(null) // catId
+  // Trzeci poziom: pod-podkategorie (subcategories wewnątrz podkategorii)
+  const [expandedSub, setExpandedSub] = useState(new Set())
+  const [editSS, setEditSS]     = useState(null)  // { catId, subId, item }
+  const [addingSS, setAddingSS] = useState(null)  // { catId, subId }
 
   useEffect(() => {
     return onSnapshot(doc(db, 'users', user.uid, 'settings', 'categories'), d => {
@@ -75,13 +79,33 @@ export default function CategoriesView({ user, onClose }) {
 
   const updateSubcat = (catId, updated) => {
     const next = cats.map(c => c.id === catId
-      ? { ...c, subcategories: (c.subcategories || []).map(s => s.id === updated.id ? updated : s) }
+      // {...s, ...updated}: formularz nie zna pod-podkategorii — nie wolno ich zgubić
+      ? { ...c, subcategories: (c.subcategories || []).map(s => s.id === updated.id ? { ...s, ...updated } : s) }
       : c)
     setCats(next); save(tab, next); setEditSubcat(null)
   }
 
+  const mapSub = (catId, subId, fn) => cats.map(c => c.id !== catId ? c
+    : { ...c, subcategories: (c.subcategories || []).map(s => s.id === subId ? fn(s) : s) })
+
+  const addSS = (catId, subId, item) => {
+    const next = mapSub(catId, subId, s => ({ ...s, subcategories: [...(s.subcategories || []), item] }))
+    setCats(next); save(tab, next); setAddingSS(null)
+  }
+  const updateSS = (catId, subId, item) => {
+    const next = mapSub(catId, subId, s => ({ ...s, subcategories: (s.subcategories || []).map(x => x.id === item.id ? { ...x, ...item } : x) }))
+    setCats(next); save(tab, next); setEditSS(null)
+  }
+  const deleteSS = async (catId, subId, id) => {
+    const ok = await confirmDialog({ title: 'Usunąć pod-podkategorię?' })
+    if (!ok) return
+    const next = mapSub(catId, subId, s => ({ ...s, subcategories: (s.subcategories || []).filter(x => x.id !== id) }))
+    setCats(next); save(tab, next)
+  }
+  const toggleSub = (id) => setExpandedSub(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+
   const deleteSubcat = async (catId, subcatId) => {
-    const ok = await confirmDialog({ title: 'Usunąć podkategorię?' })
+    const ok = await confirmDialog({ title: 'Usunąć podkategorię?', message: 'Jej pod-podkategorie zostaną usunięte razem.' })
     if (!ok) return
     const next = cats.map(c => c.id === catId
       ? { ...c, subcategories: (c.subcategories || []).filter(s => s.id !== subcatId) }
@@ -199,10 +223,43 @@ export default function CategoriesView({ user, onClose }) {
                                   <CatIcon categoryId="" emoji={sub.icon} size={13} />
                                 </div>
                                 <span style={{ flex: 1, fontSize: 13, color: 'var(--text)' }}>{sub.label}</span>
+                                {(sub.subcategories || []).length > 0 && (
+                                  <span style={{ fontSize: 10, color: subColor, fontWeight: 600, background: subColor + '22', borderRadius: 99, padding: '1px 6px' }}>{sub.subcategories.length}</span>
+                                )}
                                 <div style={{ display: 'flex', gap: 4 }}>
                                   <button className="t-btn" onClick={() => { setEditSubcat({ catId: cat.id, subcat: sub }); setAddingSubcat(null) }}><IconEdit size={12} /></button>
                                   <button className="t-btn delete" onClick={() => deleteSubcat(cat.id, sub.id)}><IconTrash size={12} /></button>
+                                  <button className="t-btn" title="Pod-podkategorie" onClick={() => { toggleSub(sub.id); setAddingSS(null); setEditSS(null) }}
+                                    style={{ color: expandedSub.has(sub.id) ? subColor : 'var(--text-muted)' }}>
+                                    <IconChevronDown size={12} style={{ transform: expandedSub.has(sub.id) ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+                                  </button>
                                 </div>
+                              </div>
+                            )}
+                            {expandedSub.has(sub.id) && !isEditingThis && (
+                              <div style={{ margin: '4px 0 2px 14px', paddingLeft: 8, borderLeft: `2px solid ${subColor}66`, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                {(sub.subcategories || []).map(ss => (
+                                  editSS?.subId === sub.id && editSS.item.id === ss.id ? (
+                                    <SubcategoryForm key={ss.id} initial={ss} level={3} parentColor={subColor}
+                                      onSave={u => updateSS(cat.id, sub.id, u)} onCancel={() => setEditSS(null)} />
+                                  ) : (
+                                    <div key={ss.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', borderRadius: 7, padding: '5px 8px', border: `1px solid ${subColor}33` }}>
+                                      <CatIcon categoryId="" emoji={ss.icon} size={12} />
+                                      <span style={{ flex: 1, fontSize: 12, color: 'var(--text)' }}>{ss.label}</span>
+                                      <button className="t-btn" onClick={() => { setEditSS({ catId: cat.id, subId: sub.id, item: ss }); setAddingSS(null) }}><IconEdit size={11} /></button>
+                                      <button className="t-btn delete" onClick={() => deleteSS(cat.id, sub.id, ss.id)}><IconTrash size={11} /></button>
+                                    </div>
+                                  )
+                                ))}
+                                {addingSS?.subId === sub.id ? (
+                                  <SubcategoryForm isNew level={3} parentColor={subColor}
+                                    onSave={item => addSS(cat.id, sub.id, item)} onCancel={() => setAddingSS(null)} />
+                                ) : !editSS && (
+                                  <button onClick={() => { setAddingSS({ catId: cat.id, subId: sub.id }); setEditSS(null) }}
+                                    style={{ background: 'transparent', border: `1px dashed ${subColor}66`, borderRadius: 7, padding: '5px 10px', cursor: 'pointer', fontSize: 11, color: subColor, textAlign: 'left' }}>
+                                    + Dodaj pod-podkategorię
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -364,7 +421,7 @@ function CategoryForm({ tab, initial, onSave, onCancel, isNew }) {
   )
 }
 
-function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor }) {
+function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor, level = 2 }) {
   const [label, setLabel]           = useState(initial?.label ?? '')
   const [icon, setIcon]             = useState(initial?.icon ?? 'IcWallet')
   const [search, setSearch]         = useState('')
@@ -375,7 +432,7 @@ function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor }) {
   const handleSave = () => {
     if (!label.trim()) { setError('Wpisz nazwę'); return }
     const id = isNew
-      ? `sub_${label.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`
+      ? `${level === 3 ? 'ss' : 'sub'}_${label.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`
       : initial.id
     onSave({ id, label: label.trim(), icon })
   }
@@ -399,7 +456,7 @@ function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor }) {
   return (
     <div style={{ background: 'var(--surface2)', borderLeft: `3px solid ${color}`, border: '1px solid var(--border)', borderRadius: '0 10px 10px 0', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}>
-        {isNew ? 'Nowa podkategoria' : 'Edytuj podkategorię'}
+        {level === 3 ? (isNew ? 'Nowa pod-podkategoria' : 'Edytuj pod-podkategorię') : (isNew ? 'Nowa podkategoria' : 'Edytuj podkategorię')}
       </p>
       <input type="text" className="form-input" value={label} onChange={e => setLabel(e.target.value)}
         placeholder="np. Paliwo, Parking..." maxLength={30} style={{ fontSize: 13 }} />

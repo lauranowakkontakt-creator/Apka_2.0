@@ -122,7 +122,7 @@ const ALIASES = {
   subcategory:  ['podkategoria', 'subcategory'],
   currency:     ['waluta', 'currency', 'waluta rachunku', 'waluta operacji'],
   account:      ['konto', 'rachunek', 'account', 'nazwa konta'],
-  detail:       ['szczegol', 'szczegoly kategorii'],
+  detail:       ['szczegol', 'szczegoly kategorii', 'pod-podkategoria', 'podpodkategoria'],
   note:         ['twoja notatka', 'notatka', 'uwagi', 'komentarz'],
   foreign:      ['kwota w walucie', 'kwota oryginalna', 'kwota w walucie operacji'],
   exactDate:    ['data dokladna'],

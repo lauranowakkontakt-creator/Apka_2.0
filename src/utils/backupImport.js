@@ -63,7 +63,7 @@ export function mergeCategories(current, backup) {
   const out = {}
   const added = []
   for (const type of ['expense', 'income']) {
-    const list = (current?.[type] || []).map(c => ({ ...c, subcategories: [...(c.subcategories || [])] }))
+    const list = (current?.[type] || []).map(c => ({ ...c, subcategories: (c.subcategories || []).map(x => ({ ...x, ...(x.subcategories ? { subcategories: [...x.subcategories] } : {}) })) }))
     for (const bc of backup?.[type] || []) {
       const ex = list.find(c => c.id === bc.id)
       if (!ex) {
@@ -72,9 +72,18 @@ export function mergeCategories(current, backup) {
         continue
       }
       for (const bs of bc.subcategories || []) {
-        if (ex.subcategories.some(s => s.id === bs.id)) continue
-        ex.subcategories.push(bs)
-        added.push({ type, label: `${ex.label} → ${bs.label}` })
+        const es = ex.subcategories.find(s => s.id === bs.id)
+        if (!es) {
+          ex.subcategories.push(bs)
+          added.push({ type, label: `${ex.label} → ${bs.label}` })
+          continue
+        }
+        // trzeci poziom (pod-podkategorie)
+        for (const bss of bs.subcategories || []) {
+          if ((es.subcategories || []).some(x => x.id === bss.id)) continue
+          es.subcategories = [...(es.subcategories || []), bss]
+          added.push({ type, label: `${ex.label} → ${es.label} → ${bss.label}` })
+        }
       }
     }
     for (const c of list) if (!c.subcategories.length) delete c.subcategories

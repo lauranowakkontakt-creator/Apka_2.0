@@ -18,13 +18,14 @@ export default function CategoryReview({ review, dec, setDec, appCats, accounts 
   const toggle = (key) => setDec(d => ({ ...d, approved: { ...d.approved, [key]: !d.approved[key] } }))
   const approveCat = (c) => setDec(d => {
     const a = { ...d.approved, [c.key]: true }
-    for (const s of c.subs) a[s.key] = true
+    for (const s of c.subs) { a[s.key] = true; for (const k of s.subs || []) a[k.key] = true }
     return { ...d, approved: a }
   })
 
   const catName = (c) => (dec.cats[c.key]?.name || '').trim() || c.label
-  const total = review.cats.reduce((n, c) => n + 1 + c.subs.length, 0)
-  const done = review.cats.reduce((n, c) => n + (dec.approved[c.key] ? 1 : 0) + c.subs.filter(s => dec.approved[s.key]).length, 0)
+  const subKeys = (c) => c.subs.flatMap(s => [s.key, ...(s.subs || []).map(k => k.key)])
+  const total = review.cats.reduce((n, c) => n + 1 + subKeys(c).length, 0)
+  const done = review.cats.reduce((n, c) => n + (dec.approved[c.key] ? 1 : 0) + subKeys(c).filter(k => dec.approved[k]).length, 0)
 
   return (
     <div className="rev">
@@ -67,7 +68,7 @@ export default function CategoryReview({ review, dec, setDec, appCats, accounts 
             <h4 className="rev-h">{type === 'expense' ? 'Wydatki' : 'Przychody'}</h4>
             {list.map(c => {
               const d = dec.cats[c.key] || { name: c.label, target: 'new' }
-              const subsOpen = c.subs.filter(s => !dec.approved[s.key])
+              const subsOpen = subKeys(c).filter(k => !dec.approved[k])
               if (onlyOpen && dec.approved[c.key] && !subsOpen.length) return null
               const appTarget = d.target.startsWith('app:') ? app.find(a => `app:${a.id}` === d.target) : null
               const merged = d.target.startsWith('file:')
@@ -95,7 +96,7 @@ export default function CategoryReview({ review, dec, setDec, appCats, accounts 
 
                   <ul className="rev-subs">
                     {c.subs.map(s => {
-                      if (onlyOpen && dec.approved[s.key]) return null
+                      if (onlyOpen && dec.approved[s.key] && !(s.subs || []).some(k => !dec.approved[k.key])) return null
                       const sd = dec.subs[s.key] || { name: s.label, parent: 'same' }
                       return (
                         <li key={s.key} className={`rev-sub${dec.approved[s.key] ? ' ok' : ''}`}>
@@ -118,6 +119,24 @@ export default function CategoryReview({ review, dec, setDec, appCats, accounts 
                             </optgroup>}
                           </select>
                           {s.examples.length > 0 && <p className="rev-ex">np. {s.examples.join(' · ')}</p>}
+                          {(s.subs || []).length > 0 && sd.parent !== 'none' && (
+                            <ul className="rev-subs rev-subs3">
+                              {s.subs.map(k => {
+                                if (onlyOpen && dec.approved[k.key]) return null
+                                const kd = dec.subs[k.key] || { name: k.label }
+                                return (
+                                  <li key={k.key} className={`rev-sub${dec.approved[k.key] ? ' ok' : ''}`}>
+                                    <div className="rev-row">
+                                      <Approve on={dec.approved[k.key]} onClick={() => toggle(k.key)} />
+                                      <input className="form-input rev-name" value={kd.name} placeholder="nazwa pod-podkategorii"
+                                        onChange={e => setSub(k.key, { name: e.target.value })} aria-label="Nazwa pod-podkategorii" />
+                                      <span className="rev-count">{k.count}</span>
+                                    </div>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          )}
                         </li>
                       )
                     })}

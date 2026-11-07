@@ -11,6 +11,7 @@
 // Decyzje:
 //   cats[catKey] = { name, target }   target: 'new' | 'app:<id>' | 'file:<catKey>'
 //   subs[subKey] = { name, parent }   parent: 'same' | 'none' | 'app:<id>' | 'file:<catKey>'
+//   subs[ssKey]  = { name }           trzeci poziom (pod-podkategoria) — tylko nazwa
 //   accs[name]   = { target, currency } target: 'new' | 'app:<id>'
 //   approved     = { [catKey|subKey]: true }
 
@@ -24,6 +25,8 @@ export const subKeyOf = (catKey, label) => `${catKey}|${label}`
 
 const itemCatKey = (it) => catKeyOf(it.type, it.raw?.category || 'Inne')
 const itemSubKey = (it) => subKeyOf(itemCatKey(it), it.raw?.subcategory || '')
+// Trzeci poziom bierzemy z kolumny „Szczegół" — tylko pod nazwaną podkategorią.
+const itemSsKey = (it) => (it.raw?.subcategory && it.raw?.detail) ? `${itemSubKey(it)}|${it.raw.detail}` : null
 
 // ── Drzewo z pliku ──────────────────────────────────────────────────────────
 
@@ -45,8 +48,13 @@ export function buildReview(items) {
     c.count++
     const sk = itemSubKey(it)
     let s = c.subs.get(sk)
-    if (!s) { s = { key: sk, label: it.raw?.subcategory || '', count: 0, ex: {} }; c.subs.set(sk, s) }
+    if (!s) { s = { key: sk, label: it.raw?.subcategory || '', count: 0, ex: {}, kids: new Map() }; c.subs.set(sk, s) }
     s.count++
+    const ssk = itemSsKey(it)
+    if (ssk) {
+      const k = s.kids.get(ssk) || { key: ssk, label: it.raw.detail, count: 0 }
+      k.count++; s.kids.set(ssk, k)
+    }
     const e = (it.raw?.detail || it.raw?.bank || it.description || '').slice(0, 40)
     if (e) s.ex[e] = (s.ex[e] || 0) + 1
   }
@@ -58,6 +66,7 @@ export function buildReview(items) {
       subs: [...c.subs.values()].map(s => ({
         key: s.key, label: s.label, count: s.count,
         examples: Object.entries(s.ex).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k),
+        subs: [...s.kids.values()].sort(byCount),
       })).sort(byCount),
     })).sort((a, b) => (a.type === b.type ? 0 : a.type === 'expense' ? -1 : 1) || byCount(a, b)),
     accounts: [...accs.values()].map(a => ({
@@ -102,7 +111,10 @@ export function defaultDecisions(review, appCats, appAccounts) {
   for (const c of review.cats) {
     const hit = (appCats?.[c.type] || []).find(a => norm(a.label) === norm(c.label))
     cats[c.key] = { name: c.label, target: hit ? `app:${hit.id}` : 'new' }
-    for (const s of c.subs) subs[s.key] = { name: s.label, parent: s.label ? 'same' : 'none' }
+    for (const s of c.subs) {
+      subs[s.key] = { name: s.label, parent: s.label ? 'same' : 'none' }
+      for (const k of s.subs || []) subs[k.key] = { name: k.label }
+    }
   }
   for (const a of review.accounts) {
     const hit = matchAccount(a.name, a.currency, appAccounts || [])
@@ -112,7 +124,7 @@ export function defaultDecisions(review, appCats, appAccounts) {
 }
 
 // Wszystko, co trzeba zatwierdzić (kategorie i podkategorie).
-export const reviewKeys = (review) => review.cats.flatMap(c => [c.key, ...c.subs.map(s => s.key)])
+export const reviewKeys = (review) => review.cats.flatMap(c => [c.key, ...c.subs.flatMap(s => [s.key, ...(s.subs || []).map(k => k.key)])])
 
 // ── Rozwiązanie decyzji ─────────────────────────────────────────────────────
 
@@ -130,10 +142,12 @@ export function resolveReview(review, dec, appCats) {
   const out = {}
   const catMap = {}           // catKey → id kategorii w apce
   const subMap = {}           // subKey → { categoryId, subcategoryId }
+  const ssMap = {}            // ssKey → id pod-podkategorii
   const created = [], renamed = []
 
   for (const type of ['expense', 'income']) {
-    const list = (appCats?.[type] || []).map(c => ({ ...c, subcategories: [...(c.subcategories || [])] }))
+    // Głęboka kopia (do 3. poziomu): resolve dopisuje elementy i nie może ruszać stanu apki
+    const list = (appCats?.[type] || []).map(c => ({ ...c, subcategories: (c.subcategories || []).map(x => ({ ...x, ...(x.subcategories ? { subcategories: [...x.subcategories] } : {}) })) }))
     const ids = new Set(list.map(c => c.id))
     const fileCats = review.cats.filter(c => c.type === type)
     const known = new Set(fileCats.map(c => c.key))
@@ -190,27 +204,45 @@ export function resolveReview(review, dec, appCats) {
           created.push({ type, label: `${cat.label} → ${name}` })
         }
         subMap[s.key] = { categoryId: catId, subcategoryId: sub.id }
+        // Trzeci poziom: dzieci podkategorii, dopasowane po nazwie albo dopisane
+        for (const k of s.subs || []) {
+          const kn = (dec.subs[k.key]?.name ?? k.label).trim()
+          if (!kn) continue
+          sub.subcategories = sub.subcategories || []
+          let ss = sub.subcategories.find(x => norm(x.label) === norm(kn))
+          if (!ss) {
+            const ssids = new Set(sub.subcategories.map(x => x.id))
+            ss = { id: uniqueId(`imp_ss_${slug(kn)}`, ssids), label: kn, icon: 'IcTag' }
+            sub.subcategories.push(ss)
+            created.push({ type, label: `${cat.label} → ${sub.label} → ${kn}` })
+          }
+          ssMap[k.key] = ss.id
+        }
       }
     }
     for (const c of list) if (!c.subcategories.length) delete c.subcategories
     out[type] = list
   }
-  return { categories: out, catMap, subMap, created, renamed }
+  return { categories: out, catMap, subMap, ssMap, created, renamed }
 }
 
 export function assignCategory(item, res) {
   if (item.transfer) {
-    return { categoryId: 'transfer', category: 'Przelew', categoryIcon: 'IconTransfer', subcategoryId: null, subcategoryLabel: null }
+    return { categoryId: 'transfer', category: 'Przelew', categoryIcon: 'IconTransfer', subcategoryId: null, subcategoryLabel: null, subsubcategoryId: null, subsubcategoryLabel: null }
   }
   const m = res.subMap[itemSubKey(item)] || { categoryId: res.catMap[itemCatKey(item)] || 'inne', subcategoryId: null }
   const cat = res.categories[item.type]?.find(c => c.id === m.categoryId)
   const sub = cat?.subcategories?.find(s => s.id === m.subcategoryId)
+  const ssKey = itemSsKey(item)
+  const ss = sub && ssKey && res.ssMap?.[ssKey] ? sub.subcategories?.find(x => x.id === res.ssMap[ssKey]) : null
   return {
     categoryId: m.categoryId,
     category: cat?.label || m.categoryId,
     categoryIcon: cat?.icon || 'IconTag',
     subcategoryId: sub?.id || null,
     subcategoryLabel: sub?.label || null,
+    subsubcategoryId: ss?.id || null,
+    subsubcategoryLabel: ss?.label || null,
   }
 }
 

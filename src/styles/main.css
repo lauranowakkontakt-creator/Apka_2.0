@@ -3062,3 +3062,4 @@ body { overscroll-behavior-y: none; }
 .rev-note { font-size: 12px; color: var(--accent); margin: 0; }
 .rev-footer { position: sticky; bottom: calc(-28px - env(safe-area-inset-bottom, 0px)); padding: 10px 0 4px; background: linear-gradient(transparent, var(--surface) 30%); }
 .imp-checking { color: var(--accent); }
+.rev-subs3 { margin-left: 6px; } .rev-subs3 .rev-name { font-size: 13px; }

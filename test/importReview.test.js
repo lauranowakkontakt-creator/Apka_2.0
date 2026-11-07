@@ -23,7 +23,7 @@ test('buildReview — drzewo, przelewy osobno, przykłady', () => {
   const zak = r.cats.find(c => c.label === 'Zakupy')
   assert.deepEqual(zak.subs.find(s => s.label === 'Spożywcze').examples, ['Biedronka'])
   assert.equal(r.accounts[0].name, 'PKO')
-  assert.equal(reviewKeys(r).length, 3 + 5)
+  assert.equal(reviewKeys(r).length, 3 + 5 + 1)   // + Spożywcze → Biedronka (3. poziom)
 })
 
 test('defaultDecisions — dopasowuje do apki po nazwie', () => {
@@ -95,4 +95,27 @@ test('matchAccount — nazwy z pliku do kont w apce', () => {
   assert.equal(matchAccount('mBank', 'PLN', accs), null)
   assert.equal(matchAccount('Revolut CZK', 'CZK', accs), null)   // inna waluta = nowe konto
   assert.equal(guessAccountType('Gotówka (z arkusza)'), 'cash')
+})
+
+test('trzeci poziom — z kolumny Szczegół, dopasowany po nazwie albo dopisany', () => {
+  const APP3 = { expense: [{ id: 'jm', label: 'Jedzenie miasto', subcategories: [{ id: 'ff', label: 'Fastfood', subcategories: [{ id: 'mc', label: "McDonald's" }] }] }], income: [] }
+  const xs = [
+    it('expense', 'Jedzenie miasto', 'Fastfood', { raw: { category: 'Jedzenie miasto', subcategory: 'Fastfood', detail: "McDonald's" } }),
+    it('expense', 'Jedzenie miasto', 'Fastfood', { raw: { category: 'Jedzenie miasto', subcategory: 'Fastfood', detail: 'Pizza' } }),
+    it('expense', 'Jedzenie miasto', 'Fastfood'),
+  ]
+  const r = buildReview(xs)
+  const ff = r.cats[0].subs[0]
+  assert.deepEqual(ff.subs.map(k => k.label).sort(), ["McDonald's", 'Pizza'])
+  const d = defaultDecisions(r, APP3, [])
+  d.subs[ff.subs.find(k => k.label === 'Pizza').key].name = 'Pizzeria'
+  const res = resolveReview(r, d, APP3)
+  assert.equal(assignCategory(xs[0], res).subsubcategoryId, 'mc')
+  const pz = assignCategory(xs[1], res)
+  assert.equal(pz.subsubcategoryLabel, 'Pizzeria')
+  assert.equal(pz.subcategoryId, 'ff')
+  assert.equal(assignCategory(xs[2], res).subsubcategoryId, null)
+  assert.deepEqual(res.categories.expense[0].subcategories[0].subcategories.map(x => x.label), ["McDonald's", 'Pizzeria'])
+  // stan apki nietknięty
+  assert.equal(APP3.expense[0].subcategories[0].subcategories.length, 1)
 })

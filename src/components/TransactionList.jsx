@@ -98,7 +98,7 @@ export default function TransactionList({
                   </div>
                   <div className="t-details">
                     <span className="t-category">
-                      {t.category}{t.subcategoryLabel ? <span style={{ opacity: 0.7 }}> › {t.subcategoryLabel}</span> : ''}
+                      {t.category}{t.subcategoryLabel ? <span style={{ opacity: 0.7 }}> › {t.subcategoryLabel}{t.subsubcategoryLabel ? ` › ${t.subsubcategoryLabel}` : ''}</span> : ''}
                     </span>
                     {t.description && <span className="t-desc">{t.description}</span>}
                     {showAccount && accName(t.accountId) && (

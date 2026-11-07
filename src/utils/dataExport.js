@@ -92,9 +92,9 @@ export async function exportTransactionsCSV(uid) {
   const rows = snap.docs.map(d => {
     const t = d.data()
     const date = t.date?.toDate ? t.date.toDate().toISOString().slice(0, 10) : ''
-    return [date, t.type === 'income' ? 'przychód' : 'wydatek', t.amount, t.category, t.subcategoryLabel || '', t.description || '', t.accountId || '']
+    return [date, t.type === 'income' ? 'przychód' : 'wydatek', t.amount, t.category, t.subcategoryLabel || '', t.subsubcategoryLabel || '', t.description || '', t.accountId || '']
   }).sort((a, b) => b[0].localeCompare(a[0]))
-  const header = ['Data', 'Typ', 'Kwota', 'Kategoria', 'Podkategoria', 'Opis', 'Konto']
+  const header = ['Data', 'Typ', 'Kwota', 'Kategoria', 'Podkategoria', 'Pod-podkategoria', 'Opis', 'Konto']
   const csv = '﻿' + [header, ...rows].map(r => r.map(csvCell).join(',')).join('\n')
   return download(`moj-swiat-transakcje-${stamp()}.csv`, csv, 'text/csv;charset=utf-8')
 }
