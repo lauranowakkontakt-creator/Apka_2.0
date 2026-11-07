@@ -3235,3 +3235,37 @@ body { overscroll-behavior-y: none; }
 .an-tx-row small { display: block; font-size: 11px; color: var(--text-sub); }
 .an-tx-row b { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .rozw .rozw { background: var(--surface2); } .rozw .rozw .an-kafel { background: var(--surface3); }
+
+/* ===== Karta walut w Finansach (jak w Revolucie) — budget/HeroWaluty.jsx ===== */
+.hw { text-align: center; padding: 6px 0 2px; }
+.hw-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.hw-viewport { flex: 1; min-width: 0; overflow: hidden; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
+.hw-track { display: flex; transition: transform .38s cubic-bezier(.22,.8,.3,1); will-change: transform; }
+.hw-slide { flex: 0 0 100%; min-width: 0; padding: 0 2px; }
+.hw-slide .rev-hero-int { font-size: clamp(34px, 11vw, 52px); }
+.hw-slide .rev-hero-dec { font-size: clamp(18px, 5.5vw, 26px); }
+.hw-sub { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; }
+.hw-sub .rev-hero-trend { margin-top: 0; flex-wrap: wrap; justify-content: center; }
+.hw-note { font-size: 12px; color: var(--text-sub); }
+.hw-arrow {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text);
+  cursor: pointer; transition: background .15s, opacity .2s, transform .12s;
+}
+.hw-arrow:hover { background: rgba(255,255,255,0.12); }
+.hw-arrow:active { transform: scale(.92); }
+.hw-arrow:disabled { opacity: .25; cursor: default; }
+.hw-dots { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.hw-dot {
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: var(--text-sub);
+  font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 4px 11px;
+  border-radius: 99px; cursor: pointer; transition: background .2s, color .2s, border-color .2s;
+}
+.hw-dot.on { background: var(--accent); border-color: var(--accent); color: #06231d; }
+@media (prefers-reduced-motion: reduce) { .hw-track { transition: none; } }
+@media (max-width: 370px) {
+  .hw-row { gap: 2px; }
+  .hw-arrow { width: 30px; height: 30px; }
+  .hw-sub .rev-hero-trend { font-size: 12px; padding: 4px 10px; white-space: nowrap; flex-wrap: nowrap; }
+  .hw-sub .rev-hero-trend .sep:nth-of-type(2) { display: none; }
+}

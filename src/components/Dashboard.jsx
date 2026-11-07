@@ -16,6 +16,8 @@ import TransferForm from './budget/TransferForm'
 import SearchPanel from './budget/SearchPanel'
 import StatsPanel from './budget/StatsPanel'
 import CurrencyTiles from './budget/CurrencyTiles'
+import HeroWaluty from './budget/HeroWaluty'
+import { slajdyWalut } from '../utils/heroWaluty'
 import { sortTransactionsByDate } from '../utils/txSort'
 import TitheView from './budget/TitheView'
 import SavingsGoals from './budget/SavingsGoals'
@@ -24,10 +26,10 @@ import Debtors from './budget/Debtors'
 import CategoriesView from './budget/CategoriesView'
 import ShoppingList from './budget/ShoppingList'
 import ImportView from './budget/ImportView'
-import { IconTransfer, IconBank, IconChart, IconShopping, IconPlus, IconChevronLeft, IconEye, IconEyeOff, CatIcon } from './Icons'
+import { IconTransfer, IconBank, IconChart, IconShopping, IconPlus, IconChevronLeft, CatIcon } from './Icons'
 import { useNarrow } from './ChartPrimitives'
 import { DonutSzczegoly, Kafle, Ranking } from './Analityka'
-import { fmt, getCurrencyCode, CURRENCIES, splitAmount } from '../utils/currency'
+import { fmt, getCurrencyCode, CURRENCIES } from '../utils/currency'
 import { isTransfer } from '../utils/categories'
 import { isInvestment, sumByCurrency } from '../utils/investmentMath'
 import { bladSubskrypcji } from '../utils/polaczenie'
@@ -94,7 +96,6 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
   const includedRegular     = includedAccounts.filter(a => !isInvestment(a))
   const includedInvestments = includedAccounts.filter(isInvestment)
   const totalsByCurrency = sumByCurrency(includedRegular)
-  const totalPLN = totalsByCurrency['PLN'] || 0
   const investTotalsByCurrency = sumByCurrency(includedInvestments)
 
   const monthLabel = format(currentMonth, 'LLLL yyyy', { locale: pl })
@@ -200,11 +201,6 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
       {/* ====== OVERVIEW TAB — układ w stylu Revolut ====== */}
       {activeTab === 'overview' && (() => {
         const togglePrivate = () => setPrivateMode(m => { const n = !m; try { localStorage.setItem('mw_privateMode', n) } catch {} return n })
-        const heroHi = splitAmount(totalPLN)
-        const otherCur = Object.entries(totalsByCurrency).filter(([cur]) => cur !== 'PLN')
-        const balanceUp = balance >= 0
-        const investEntries = Object.entries(investTotalsByCurrency)
-        const investLabel = investEntries.map(([cur, amt]) => fmtAcc(amt, cur)).join(' · ')
 
         return (
         <div className="rev-overview">
@@ -213,37 +209,9 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
           <div className="rev-glass-hero">
           <div className="rev-glass-waves" aria-hidden="true" />
 
-          {/* Hero: łączny majątek */}
-          <div className="rev-hero">
-            <button className="rev-hero-label" onClick={togglePrivate} title={privateMode ? 'Pokaż kwoty' : 'Ukryj kwoty'}>
-              Łączny majątek {privateMode ? <IconEye size={14} /> : <IconEyeOff size={14} />}
-            </button>
-            {!privateMode ? (
-              <>
-                <div className="rev-hero-amount">
-                  <span className="rev-hero-int">{heroHi.int}</span>
-                  <span className="rev-hero-dec">,{heroHi.dec}&nbsp;{curSymbol}</span>
-                </div>
-                <div className={`rev-hero-trend ${balanceUp ? 'up' : 'down'}`}>
-                  {balanceUp ? '↑' : '↓'} {fmt(Math.abs(balance))}
-                  <span className="sep">· ten miesiąc</span>
-                  {investedMonth > 0 && <span className="sep">· zainwestowane {fmt(investedMonth)}</span>}
-                </div>
-                {(otherCur.length > 0 || investEntries.length > 0) && (
-                  <div className="rev-hero-chips">
-                    {investEntries.length > 0 && (
-                      <span className="rev-hero-chip">Inwestycje · {investLabel}</span>
-                    )}
-                    {otherCur.map(([cur, amt]) => (
-                      <span key={cur} className="rev-hero-chip">{fmtAcc(amt, cur)}</span>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="rev-hero-hidden">••••</div>
-            )}
-          </div>
+          {/* Hero: osobna karta na każdą walutę — strzałki / przesunięcie palcem */}
+          <HeroWaluty slajdy={slajdyWalut(includedAccounts, transactions)} privateMode={privateMode}
+            onTogglePrivate={togglePrivate} investedMonth={investedMonth} />
 
           {/* Szybkie akcje */}
           <div className="rev-actions">
