@@ -15,7 +15,7 @@
   --border-strong: rgba(223,225,243,0.16);
   --text: #ECEAF2;
   --text-sub: #9A9DB5;
-  --text-muted: #5F627A;
+  --text-muted: #8285A0; /* było #5F627A — 2,9:1, za słabo na drobne podpisy; teraz ≈4,9:1 na --surface */
   --primary: #E0673E;
   --primary-deep: #A8401E;
   --primary-soft: rgba(224,103,62,0.15);
