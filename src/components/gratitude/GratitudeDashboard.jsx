@@ -8,6 +8,7 @@ import { pl } from 'date-fns/locale'
 import { groupByDay, filterEntries, gratitudeStats, flatEntries } from '../../utils/gratitudeLogic'
 import { pickBySeed, daySeed, neighbors } from '../../utils/browsing'
 import StatTiles from '../StatTiles'
+import { AnalizaRoku, Rozwijana } from '../Analityka'
 import { IconPlus, IconTrash, IconSearch, IconCheck, IconClose, IconEdit,
   IconChevronLeft, IconChevronRight, IconRepeat, IcSun } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
@@ -144,6 +145,8 @@ export default function GratitudeDashboard({ user, setHeaderExtras }) {
     return () => setHeaderExtras?.(null)
   }, [])
 
+  const wpisyRoku = entries.filter(e => e.date).map(e => ({ klucz: e.date }))
+
   if (loading) return <div className="list-loading">Ładowanie...</div>
 
   return (
@@ -154,6 +157,14 @@ export default function GratitudeDashboard({ user, setHeaderExtras }) {
         { label: 'Łącznie', value: stats.total },
         { label: 'Dni z wpisem', value: stats.days },
       ]} />
+
+      {/* Analiza roku — zwinięta, żeby nie spychać pisania w dół.
+          Liczy z ostatnich 500 wpisów (tyle ładuje moduł). */}
+      <div style={{ marginBottom: 14 }}>
+        <Rozwijana id="wdz-rok" tytul="Statystyki roku" podsumowanie={`${stats.month} w tym miesiącu`}>
+          <AnalizaRoku id="wdz" wpisy={wpisyRoku} jednostka={['wpis', 'wpisy', 'wpisów']} kolor="#E8A33D" />
+        </Rozwijana>
+      </div>
 
       {/* Przypominajka — po to się to pisze: żeby potem wrócić */}
       {reminder && (

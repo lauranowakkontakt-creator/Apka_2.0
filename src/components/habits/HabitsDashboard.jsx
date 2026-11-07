@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { collection, orderBy, query, where, doc, updateDoc, arrayUnion, arrayRemove, deleteField } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
@@ -20,6 +20,7 @@ const MoodDashboard = lazy(() => import('../mood/MoodDashboard'))
 import { CatIcon, IconFlame, IconStar, IconCheck, IconPause, IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconMood, IconFlag, IconEdit, IconClose } from '../Icons'
 import { Ring, BarChartSVG } from '../ChartPrimitives'
 import DayPath from '../DayPath'
+import { AnalizaRoku, Rozwijana, Ranking } from '../Analityka'
 import SegTabs from '../SegTabs'
 import { ymd, statRange, statBuckets, dayAggregate, getPauseIcon, getPauseColor, habitYearMonths } from '../../utils/habitStats'
 import MonthCalendar from './MonthCalendar'
@@ -164,6 +165,8 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
   const reorderable = activeHabits.filter(h => habitLifecycle(h, TODAY) !== 'ended')
   const filtered = requiredActive.filter(h => filterCat === 'all' || h.category === filterCat)
 
+  // Wszystkie odhaczenia (każdy nawyk, każdy dzień) — do analizy roku
+  const wpisyNawykow = useMemo(() => habits.filter(h => !h.archived).flatMap(h => habitDoneDates(h).map(k => ({ klucz: k }))), [habits])
   // Lata z jakimikolwiek danymi (do nawigacji w statystykach) — zawsze z bieżącym
   const dataYears = (() => {
     const s = new Set([new Date().getFullYear()])
@@ -960,6 +963,23 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
               )
             })}
           </div>
+
+          {/* Rok w liczbach — wszystkie nawyki razem: odhaczenia miesiąc po
+              miesiącu, rok w pikselach i ranking nawyków w wybranym roku. */}
+          <AnalizaRoku id="nawyki" wpisy={wpisyNawykow} jednostka={['odhaczenie', 'odhaczenia', 'odhaczeń']}
+            kolor="#E0B15A" tytulDni="Dni z nawykiem">
+            {(rok) => {
+              const poz = habits.filter(h => !h.archived).map(h => ({
+                nazwa: h.name, kolor: h.color || 'var(--warn)',
+                wartosc: habitDoneDates(h).filter(k => k.startsWith(String(rok))).length,
+              })).filter(p => p.wartosc > 0).sort((a, b) => b.wartosc - a.wartosc)
+              return (
+                <Rozwijana id="nawyki-rank" tytul={`Nawyki w roku ${rok}`} podsumowanie={poz[0]?.nazwa}>
+                  <Ranking pozycje={poz} fmt={(v) => `${v} dni`} pusty="Brak odhaczeń w tym roku" />
+                </Rozwijana>
+              )
+            }}
+          </AnalizaRoku>
 
         </div>
       ) })()}
