@@ -1,17 +1,32 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { fileURLToPath } from 'node:url'
 
-const isDev = process.env.NODE_ENV !== 'production'
+const demoFile = (f) => fileURLToPath(new URL(`./src/demo/${f}`, import.meta.url))
 
-export default defineConfig({
-  base: '/Apka_2.0/',
+// TRYB DEMO (`npm run demo`, `npm run build:demo`): Firebase podmieniony na
+// atrapę w pamięci przeglądarki z losowymi danymi — patrz src/demo/.
+// Kod aplikacji się nie zmienia, zmieniają się tylko ścieżki importów.
+const demoAliases = [
+  { find: /^firebase\/firestore\/lite$/, replacement: demoFile('lite.js') },
+  { find: /^firebase\/firestore$/, replacement: demoFile('firestore.js') },
+  { find: /^firebase\/auth$/, replacement: demoFile('auth.js') },
+  { find: /^firebase\/app$/, replacement: demoFile('app.js') },
+]
+
+export default defineConfig(({ mode }) => {
+  const demo = mode === 'demo'
+  return {
+  // Demo budujemy ze ścieżkami względnymi, żeby działało pod dowolnym adresem.
+  base: demo ? './' : '/Apka_2.0/',
+  resolve: { alias: demo ? demoAliases : [] },
   build: {
     rollupOptions: {
       output: {
         // Duże, rzadko zmieniane biblioteki w osobnych chunkach — po aktualizacji
         // aplikacji przeglądarka pobiera tylko mały chunk z naszym kodem.
-        manualChunks: {
+        manualChunks: demo ? { react: ['react', 'react-dom'] } : {
           firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           react: ['react', 'react-dom'],
         },
@@ -20,7 +35,8 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    VitePWA({
+    // W demo bez service workera — inaczej stara wersja demo wisiałaby w cache.
+    !demo && VitePWA({
       registerType: 'autoUpdate',
       devOptions: { enabled: false },
       workbox: {
@@ -44,4 +60,5 @@ export default defineConfig({
       }
     })
   ]
+}
 })

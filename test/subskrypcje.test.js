@@ -65,7 +65,8 @@ function argumentyWywolania(kod, indeksNawiasu) {
 // Moduły, które onSnapshot IMPLEMENTUJĄ, a nie wołają: tam „trzeci argument"
 // to parametr przekazywany dalej, więc reguły dla miejsc wywołania ich nie
 // dotyczą. Wpisujemy je z nazwy, żeby wyjątek nie rozlał się na resztę apki.
-const MODULY_OPAKOWUJACE = ['src/utils/subskrypcje.js', 'src/utils/ponawianie.js']
+// src/demo/firestore.js to atrapa SDK dla trybu demo — implementuje onSnapshot.
+const MODULY_OPAKOWUJACE = ['src/utils/subskrypcje.js', 'src/utils/ponawianie.js', 'src/demo/firestore.js']
 
 const sciezkaWzgledna = (plik) => plik.replace(ROOT + '/', '')
 

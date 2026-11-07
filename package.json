@@ -11,7 +11,9 @@
     "deploy": "node scripts/sprawdz-projekt.js && npm run check && gh-pages -d dist",
     "lint": "eslint src test",
     "lokalnie": "node scripts/lokalnie.js",
-    "emulatory": "node scripts/lokalnie.js --tylko-emulatory"
+    "emulatory": "node scripts/lokalnie.js --tylko-emulatory",
+    "demo": "vite --mode demo",
+    "build:demo": "vite build --mode demo --outDir dist-demo"
   },
   "dependencies": {
     "date-fns": "^3.6.0",
