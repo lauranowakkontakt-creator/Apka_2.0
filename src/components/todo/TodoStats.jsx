@@ -1,18 +1,15 @@
-import { PRIORITY, statystykiOkresu, zadaniaAktywne, zadaniaNaDzis, zadaniaPoTerminie } from '../../utils/todoLogic'
-import { BarChartSVG } from '../ChartPrimitives'
+import { statystykiOkresu, zadaniaAktywne, zadaniaNaDzis, zadaniaPoTerminie } from '../../utils/todoLogic'
 import { CatIcon } from '../Icons'
 import SegTabs from '../SegTabs'
-import { eachDayOfInterval, eachMonthOfInterval, endOfDay, endOfMonth, endOfWeek, endOfYear, format, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns'
-import { pl } from 'date-fns/locale'
+import { endOfMonth, endOfYear, startOfMonth, startOfYear } from 'date-fns'
 import { useMemo, useState } from 'react'
 import { AnalizaRoku, Rozwijana } from '../Analityka'
 import { kluczDnia } from '../../utils/analityka'
 
-// Statystyki zadań: kafelki, wykres i rozbicie po listach i priorytetach.
+// Statystyki zadań: kafelki, analiza roku i rozbicie po listach.
 // Samo liczenie siedzi w utils/todoLogic.js.
 
 const PERIODS = [
-  { id: 'week',  label: 'Tydzień' },
   { id: 'month', label: 'Miesiąc' },
   { id: 'year',  label: 'Rok' },
 ]
@@ -24,8 +21,6 @@ export default function TodoStats({ todos, lists }) {
   const wpisyDone = useMemo(() => todos.filter(t => t.done && t.doneAt).map(t => ({ klucz: kluczDnia(t.doneAt) })), [todos])
   const now    = new Date()
   const ranges = {
-    day:   { start: startOfDay(now),            end: endOfDay(now) },
-    week:  { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) },
     month: { start: startOfMonth(now),          end: endOfMonth(now) },
     year:  { start: startOfYear(now),           end: endOfYear(now) },
   }
@@ -40,27 +35,6 @@ export default function TodoStats({ todos, lists }) {
   const { zrobioneWOkresie: doneInPeriod, procentUkonczenia: completionRate } =
     statystykiOkresu(todos, range)
 
-  const chartData = (() => {
-    if (period === 'day') return []
-    if (period === 'week' || period === 'month') {
-      const days = eachDayOfInterval(range)
-      return days.map(d => {
-        const count = doneInPeriod.filter(t => {
-          const done = t.doneAt.toDate ? t.doneAt.toDate() : new Date(t.doneAt)
-          return format(done, 'yyyy-MM-dd') === format(d, 'yyyy-MM-dd')
-        }).length
-        return { label: format(d, period === 'week' ? 'EEE' : 'd', { locale: pl }), count }
-      })
-    }
-    return eachMonthOfInterval(range).map(m => {
-      const count = doneInPeriod.filter(t => {
-        const done = t.doneAt.toDate ? t.doneAt.toDate() : new Date(t.doneAt)
-        return format(done, 'yyyy-MM') === format(m, 'yyyy-MM')
-      }).length
-      return { label: format(m, 'MMM', { locale: pl }), count }
-    })
-  })()
-
   const byList = lists.map(l => ({
     ...l,
     done:   doneInPeriod.filter(t => t.listId === l.id).length,
@@ -68,11 +42,6 @@ export default function TodoStats({ todos, lists }) {
   })).filter(l => l.done > 0 || l.active > 0)
   const noListDone   = doneInPeriod.filter(t => !t.listId).length
   const noListActive = allActive.filter(t => !t.listId).length
-
-  const byPriority = PRIORITY.map(p => ({
-    ...p, count: allActive.filter(t => t.priority === p.id).length
-  }))
-  const noPriorityCount = allActive.filter(t => !t.priority).length
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -84,27 +53,13 @@ export default function TodoStats({ todos, lists }) {
 
       <AnalizaRoku id="todo" wpisy={wpisyDone} jednostka={['zadanie', 'zadania', 'zadań']} kolor="var(--income)" tytulDni="Dni z ukończeniem" />
 
-      <Rozwijana id="todo-okres" tytul="Okres i listy" podsumowanie={`${doneInPeriod.length} w tym ${period === 'week' ? 'tygodniu' : period === 'month' ? 'miesiącu' : 'roku'}`}>
+      <Rozwijana id="todo-okres" tytul="Okres i listy" podsumowanie={`${doneInPeriod.length} w tym ${period === 'month' ? 'miesiącu' : 'roku'}`}>
       <SegTabs items={PERIODS} active={period} onChange={setPeriod} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
         <StatCard value={doneInPeriod.length} label="Ukończonych" color="var(--income)" big />
         <StatCard value={`${completionRate}%`} label="Ukończono" color="var(--accent)" big />
       </div>
-
-      {chartData.length > 0 && chartData.some(d => d.count > 0) && (
-        <div className="chart-section">
-          <h3 className="chart-title">Ukończone zadania</h3>
-          {/* Przerzedzaniem etykiet zajmuje się sam wykres — przy 31 dniach
-              robił to wcześniej stąd co drugi dzień, a i tak się nie mieściły. */}
-          <BarChartSVG
-            height={160}
-            accent="var(--income)"
-            fmt={(v) => `${v} ukończ.`}
-            data={chartData.map(d => ({ label: d.label, value: d.count }))}
-          />
-        </div>
-      )}
 
       {(byList.length > 0 || noListDone > 0 || noListActive > 0) && (
         <div className="chart-section">
@@ -122,19 +77,6 @@ export default function TodoStats({ todos, lists }) {
         </div>
       )}
 
-      {allActive.length > 0 && (
-        <div className="chart-section">
-          <h3 className="chart-title">Aktywne według priorytetu</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {byPriority.filter(p => p.count > 0).map(p => (
-              <PriorityRow key={p.id} label={p.label} color={p.color} count={p.count} total={allActive.length} />
-            ))}
-            {noPriorityCount > 0 && (
-              <PriorityRow label="Brak" color="var(--text-muted)" count={noPriorityCount} total={allActive.length} />
-            )}
-          </div>
-        </div>
-      )}
       </Rozwijana>
     </div>
   )
@@ -164,20 +106,6 @@ function ListStatRow({ icon, name, color, done, active }) {
           <div style={{ height: '100%', borderRadius: 3, background: color === 'var(--text-muted)' ? '#607D8B' : color, width: `${pct}%`, transition: 'width .3s' }} />
         </div>
       </div>
-    </div>
-  )
-}
-
-function PriorityRow({ label, color, count, total }) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 13, width: 64 }}>{label}</span>
-      <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--border)' }}>
-        <div style={{ height: '100%', borderRadius: 3, background: color, width: `${pct}%`, transition: 'width .3s' }} />
-      </div>
-      <span style={{ fontSize: 12, color: 'var(--text-muted)', width: 24, textAlign: 'right' }}>{count}</span>
     </div>
   )
 }

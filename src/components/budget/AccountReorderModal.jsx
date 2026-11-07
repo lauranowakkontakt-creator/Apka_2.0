@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { doc, writeBatch } from 'firebase/firestore'
 import { db } from '../../firebase/config'
-import { IconClose, IconArrowUp, IconArrowDown, IconReorder, IconBank, IconCash, IconCard, IconSavings } from '../Icons'
+import { IconClose, IconReorder, IconBank, IconCash, IconCard, IconSavings } from '../Icons'
+import { useDragReorder, DragHandle } from '../DragReorder'
+import { przenies } from '../../utils/dragReorder'
 import { byAccountOrder } from '../../utils/accountOrder'
 
 const ACCOUNT_ICON_COMPS = {
@@ -9,21 +11,13 @@ const ACCOUNT_ICON_COMPS = {
   revolut: IconCard, savings: IconSavings, investment: IconSavings
 }
 
-// Ustawianie kolejności, w jakiej konta mają się pojawiać (strzałki góra/dół).
+// Ustawianie kolejności, w jakiej konta mają się pojawiać (przeciąganie za uchwyt).
 // Zapisuje pole `order` = pozycja na liście dla wszystkich kont jednym batchem.
 export default function AccountReorderModal({ user, accounts, onClose }) {
   const [list, setList] = useState(() => [...accounts].sort(byAccountOrder))
   const [saving, setSaving] = useState(false)
 
-  const move = (idx, dir) => {
-    const to = idx + dir
-    if (to < 0 || to >= list.length) return
-    setList(prev => {
-      const next = [...prev]
-      ;[next[idx], next[to]] = [next[to], next[idx]]
-      return next
-    })
-  }
+  const drag = useDragReorder(list.length, (from, to) => setList(prev => przenies(prev, from, to)))
 
   const handleSave = async () => {
     setSaving(true)
@@ -43,7 +37,7 @@ export default function AccountReorderModal({ user, accounts, onClose }) {
           <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <div className="form">
-          <p className="pause-info">Ustaw kolejność, w jakiej chcesz widzieć konta na liście.</p>
+          <p className="pause-info">Przeciągnij konto za uchwyt po prawej, żeby ustawić kolejność.</p>
 
           {list.length === 0 ? (
             <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Brak kont do uporządkowania.</p>
@@ -53,14 +47,13 @@ export default function AccountReorderModal({ user, accounts, onClose }) {
                 const color = a.color || '#3B82F6'
                 const Ic = ACCOUNT_ICON_COMPS[a.type] || IconBank
                 return (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface2)', borderRadius: 10, padding: '8px 10px' }}>
+                  <div key={a.id} {...drag.wiersz(i, { display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface2)', borderRadius: 10, padding: '8px 10px' })}>
                     <span className="mono" style={{ width: 18, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
                     <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center', background: color + '1c', border: `1px solid ${color}40`, color }}>
                       <Ic size={15} />
                     </div>
                     <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</span>
-                    <button type="button" className="icon-btn" style={{ width: 30, height: 30 }} disabled={i === 0} onClick={() => move(i, -1)} title="W górę"><IconArrowUp size={14} /></button>
-                    <button type="button" className="icon-btn" style={{ width: 30, height: 30 }} disabled={i === list.length - 1} onClick={() => move(i, 1)} title="W dół"><IconArrowDown size={14} /></button>
+                    <DragHandle {...drag.uchwyt(i)} />
                   </div>
                 )
               })}

@@ -112,10 +112,11 @@ export function seedDemoData(put, Timestamp) {
       tx({ type: 'income', amount: money(50, 2500), ...catFields(c), currency: 'PLN', description: chance(0.5) ? 'Zlecenie' : '', date: ts(withTime(d)), accountId: pick([bank.id, cash.id]), tithe: chance(0.5) })
     }
     // 0–4 wydatków dziennie
-    const n = pick([0, 1, 1, 2, 2, 3, 4])
+    const n = pick([0, 1, 1, 1, 2, 2, 3])
     for (let k = 0; k < n; k++) {
       const c = pick(exp)
-      const big = ['elektronika', 'wyjazdy', 'naprawy', 'auto'].includes(c.id)
+      // Duże wydatki rzadko — inaczej rok wychodzi na kilkusetprocentowym minusie.
+      const big = ['elektronika', 'wyjazdy', 'naprawy', 'auto'].includes(c.id) && chance(0.15)
       const acc = chance(0.08) ? null : pick([bank, bank, bank, cash, eur, accounts[5]])
       const currency = acc?.currency || 'PLN'
       const amount = big ? money(150, 3200) : money(4, 180)
@@ -140,7 +141,7 @@ export function seedDemoData(put, Timestamp) {
   }
   // przypadki brzegowe
   tx({ type: 'expense', amount: 0.01, ...catFields(exp[0]), currency: 'PLN', description: 'Grosik (test minimalnej kwoty)', date: ts(withTime(daysAgo(1))), accountId: cash.id })
-  tx({ type: 'expense', amount: 125999.99, ...catFields(exp.find(c => c.id === 'dom')), currency: 'PLN', description: 'Wkład własny (test dużej kwoty)', date: ts(withTime(daysAgo(40))), accountId: savings.id })
+  tx({ type: 'expense', amount: 12599.99, ...catFields(exp.find(c => c.id === 'dom')), currency: 'PLN', description: 'Wkład własny (test dużej kwoty)', date: ts(withTime(daysAgo(40))), accountId: savings.id })
   tx({ type: 'expense', amount: 23.5, category: 'Kategoria, której już nie ma', categoryId: 'usunieta-kategoria', categoryIcon: 'IconMore', currency: 'PLN', description: 'Stara kategoria (test)', date: ts(withTime(daysAgo(3))), accountId: bank.id })
   tx({ type: 'expense', amount: 59.99, ...catFields(exp.find(c => c.id === 'subskrypcje')), currency: 'USD', description: 'Wydatek w USD', date: ts(withTime(daysAgo(2))), accountId: null })
   tx({ type: 'expense', amount: 42, ...catFields(exp[1]), currency: 'PLN', description: 'Z importu', bankDescription: 'PLATNOSC KARTA 42,00 PLN KAWIARNIA SLOWIK WARSZAWA', source: 'import', importedFrom: 'wyciag.xlsx', date: ts(withTime(daysAgo(5))), accountId: bank.id })

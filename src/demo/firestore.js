@@ -14,7 +14,7 @@
 
 import { seedDemoData } from './seed.js'
 
-const STORAGE_KEY = 'apka_demo_db_v1'
+const STORAGE_KEY = 'apka_demo_db_v2'
 
 // ── Timestamp ───────────────────────────────────────────────────────────────
 export class Timestamp {

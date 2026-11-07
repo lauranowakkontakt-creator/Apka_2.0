@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   normalizeLayout, applyLayout, visibleModules, navModules,
-  moveModule, toggleHidden, isHidden, FIXED_FIRST,
+  moveModule, moveModuleTo, toggleHidden, isHidden, FIXED_FIRST,
 } from '../src/utils/moduleLayout.js'
 
 const ALL = ['home', 'budget', 'habits', 'mood', 'prayer', 'calendar']
@@ -73,4 +73,13 @@ test('toggleHidden — ukrywa i odkrywa, Pulpitu nie rusza', () => {
   l = toggleHidden(l, 'mood')
   assert.deepEqual(l.hidden, [])
   assert.deepEqual(toggleHidden(l, 'home').hidden, [])
+})
+
+test('moveModuleTo — przeciąganie na miejsce innego modułu', () => {
+  const order = ['home', 'budget', 'habits', 'todo', 'mood']
+  assert.deepEqual(moveModuleTo(order, 'budget', 'todo'), ['home', 'habits', 'todo', 'budget', 'mood'])
+  assert.deepEqual(moveModuleTo(order, 'mood', 'budget'), ['home', 'mood', 'budget', 'habits', 'todo'])
+  assert.deepEqual(moveModuleTo(order, 'home', 'todo'), order)
+  assert.deepEqual(moveModuleTo(order, 'budget', 'home'), order)
+  assert.deepEqual(moveModuleTo(order, 'nieznany', 'todo'), order)
 })

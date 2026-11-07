@@ -7,12 +7,14 @@ export const CURRENCIES = [
   { code: 'CZK', symbol: 'Kč', name: 'Korona czeska' },
 ]
 
+// Waluta główna. Wszystkie sumy, salda i statystyki liczą się w złotówkach
+// (obce kwoty przeliczone po kursie), więc waluta główna jest stała.
+// Dawniej dało się ją „przełączyć" w menu, ale zmieniało to tylko symbol:
+// złotówkowe kwoty pokazywały się nagle jako euro. Inne waluty to teraz
+// osobne portfele na ekranie Finansów (strzałki ← → pod kwotą).
+export const BASE_CURRENCY = 'PLN'
 export function getCurrencyCode() {
-  return localStorage.getItem('app_currency') || 'PLN'
-}
-
-export function setCurrencyCode(code) {
-  localStorage.setItem('app_currency', code)
+  return BASE_CURRENCY
 }
 
 // Największa sensowna kwota. Powyżej tego progu arytmetyka na groszach

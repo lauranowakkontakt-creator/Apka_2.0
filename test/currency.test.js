@@ -9,7 +9,7 @@ globalThis.localStorage = {
   removeItem: (k) => store.delete(k),
 }
 
-const { CURRENCIES, getCurrencyCode, setCurrencyCode, fmt, parseAmount, splitAmount, MAX_AMOUNT } = await import('../src/utils/currency.js')
+const { CURRENCIES, getCurrencyCode, fmt, parseAmount, splitAmount, MAX_AMOUNT } = await import('../src/utils/currency.js')
 
 beforeEach(() => store.clear())
 
@@ -20,16 +20,14 @@ test('CURRENCIES — unikalne kody, komplet pól, PLN dostępny', () => {
   for (const c of CURRENCIES) assert.ok(c.code && c.symbol && c.name)
 })
 
-test('getCurrencyCode — domyślnie PLN, po zmianie zapamiętane', () => {
+test('getCurrencyCode — waluta główna to zawsze PLN, także ze starym wpisem w pamięci', () => {
+  // Kiedyś dało się „przełączyć" walutę i złotówkowe kwoty pokazywały się jako euro.
+  localStorage.setItem('app_currency', 'EUR')
   assert.equal(getCurrencyCode(), 'PLN')
-  setCurrencyCode('EUR')
-  assert.equal(getCurrencyCode(), 'EUR')
 })
 
-test('fmt — formatuje kwotę w wybranej walucie (pl-PL)', () => {
+test('fmt — bez kodu formatuje w złotówkach (pl-PL)', () => {
   assert.match(fmt(1234.5), /1\s?234,50\s?zł$/u)
-  setCurrencyCode('EUR')
-  assert.match(fmt(10), /10,00\s?€$/u)
 })
 
 test('fmt — jawny kod waluty nadpisuje globalny (transakcja z portfela EUR)', () => {

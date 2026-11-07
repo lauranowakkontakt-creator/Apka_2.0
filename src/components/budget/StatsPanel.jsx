@@ -3,10 +3,10 @@ import { collection, query, orderBy } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import { fmt } from '../../utils/currency'
-import { IconClose, IconChart } from '../Icons'
+import { IconChart } from '../Icons'
 import { GroupedBars } from '../ChartPrimitives'
 import SegTabs from '../SegTabs'
-import { Rozwijana, WyborRoku, Kafle, MiesiaceRoku, Ranking, DniTygodnia, DonutSzczegoly } from '../Analityka'
+import { Rozwijana, Kafle, MiesiaceRoku, Ranking, DniTygodnia, DonutSzczegoly } from '../Analityka'
 import { zmiana, miesiaceMinione, wgDniaTygodnia, kluczDnia, MIESIACE_KROTKO, MIESIACE_PELNE, DNI_TYG_KROTKO } from '../../utils/analityka'
 import { isTransfer } from '../../utils/categories'
 import { bladSubskrypcji } from '../../utils/polaczenie'
@@ -21,17 +21,19 @@ function MiesiaceLat({ years, money }) {
   return <GroupedBars data={years.map(y => ({ label: String(y.year), income: y.income, expense: y.expense }))} height={130} barMaxWidth={18} fmt={money} />
 }
 
-// Statystyki i analiza — rok po roku i miesiąc po miesiącu, w rozwijanych
-// sekcjach (treść sekcji liczy się dopiero po rozwinięciu).
-export default function StatsPanel({ user, privateMode = false, onClose }) {
-  const [all, setAll]         = useState([])
+// Analiza roku — część ekranu „Analiza" w Finansach (Charts.jsx, tryb „Rok").
+// Rok wybiera się strzałkami nad tym widokiem, konto — filtrem kont; tu jest
+// rok w liczbach i rozwijane sekcje (treść liczy się dopiero po rozwinięciu).
+export default function StatsPanel({ user, privateMode = false, rok, onRokChange, accountFilter = 'all' }) {
+  const [allRaw, setAll]      = useState([])
   const [loading, setLoading] = useState(true)
-  const [selYear, setSelYear] = useState(null)
   const [accounts, setAccounts] = useState([])
 
   useEffect(() => onSnapshot(collection(db, 'users', user.uid, 'accounts'),
     snap => setAccounts(snap.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('accounts')), [user.uid])
   const accById = useMemo(() => Object.fromEntries(accounts.map(a => [a.id, a])), [accounts])
+  const filtr = accountFilter !== 'all'
+  const all = useMemo(() => filtr ? allRaw.filter(t => t.accountId === accountFilter) : allRaw, [allRaw, accountFilter, filtr])
 
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'transactions'), orderBy('date', 'asc'))
@@ -66,7 +68,7 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
     return Object.values(map).sort((a, b) => b.year - a.year)
   }, [tx])
 
-  const activeYear = selYear ?? years[0]?.year ?? new Date().getFullYear()
+  const activeYear = rok ?? new Date().getFullYear()
 
   // Kubełki miesięczne dla wybranego roku
   const monthly = useMemo(() => {
@@ -95,7 +97,7 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
   const allInvested = investedIn(null)
   const yearInvested = investedIn(activeYear)
   // Czy bilans się zgadza: bilans − zainwestowane ≈ to, co jest teraz na zwykłych kontach w zł
-  const onAccounts = accounts.filter(a => a.type !== 'investment' && (a.currency || 'PLN') === 'PLN').reduce((s, a) => s + (Number(a.balance) || 0), 0)
+  const onAccounts = accounts.filter(a => (!filtr || a.id === accountFilter) && a.type !== 'investment' && (a.currency || 'PLN') === 'PLN').reduce((s, a) => s + (Number(a.balance) || 0), 0)
   const shouldBe = allBalance - allInvested
   const gap = onAccounts - shouldBe
   // Wartość inwestycji to szacunek z sald wpisanych na kontach inwestycyjnych —
@@ -109,7 +111,6 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
   const money = (n) => privateMode ? '••' : fmt(n)
   const moneyK = (n) => privateMode ? '••' : Math.round(n).toLocaleString('pl-PL')
   const hasYearData = monthly.some(m => m.income > 0 || m.expense > 0)
-  const lata = years.map(y => y.year)
   // Rok bieżący porównujemy z TYM SAMYM okresem rok wcześniej (1 stycznia – dzisiejsza
   // data), a nie z całym poprzednim rokiem — inaczej w listopadzie każdy wynik wyglądałby na spadek.
   const dzis = new Date()
@@ -130,6 +131,8 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
   const minione = miesiaceMinione(activeYear)
   const [miara, setMiara] = useState('expense')
   const [selMonth, setSelMonth] = useState(null)
+  // Inny rok (strzałki nad widokiem) — wybór miesiąca z poprzedniego roku nie ma sensu.
+  useEffect(() => { setSelMonth(null) }, [rok])
   const wart = (rows, k) => rows.map(r => k === 'balance' ? Math.max(0, r.income - r.expense) : r[k])
   const prevAvgExp = prevRow && minione ? prevRow.expense / minione : null
 
@@ -177,7 +180,7 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
           { label: 'Suma', value: money(suma), color: poz.kolor, delta: poz.delta },
           { label: 'Udział', value: `${Math.round((suma / wszystkie) * 100)}%`, sub: type === 'expense' ? 'wszystkich wydatków' : 'wszystkich przychodów' },
           selMonth === null && { label: 'Średnio / mies.', value: money(minione ? suma / minione : suma) },
-          { label: 'Transakcji', value: lista.length, sub: lista.length ? `śr. ${money(suma / lista.length)}` : null },
+          lista.length > 0 && { label: 'Średnio', value: money(suma / lista.length), sub: 'na transakcję' },
         ]} />
         {selMonth === null && (
           <div>
@@ -211,24 +214,16 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
   const kolorMiary = miara === 'income' ? 'var(--income)' : miara === 'expense' ? 'var(--expense)' : 'var(--info)'
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal modal-tall">
-        <div className="modal-header">
-          <h3><IconChart size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />Statystyki i analiza</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
-        </div>
-
-        <div style={{ padding: '4px 2px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {loading ? (
             <div className="list-loading">Ładowanie...</div>
-          ) : tx.length === 0 ? (
+          ) : !hasYearData ? (
             <div className="charts-empty">
               <p style={{ marginBottom: 8, opacity: 0.4 }}><IconChart size={32} /></p>
-              <p>Brak transakcji do analizy</p>
+              <p>Brak transakcji w {activeYear} roku</p>
             </div>
           ) : (
             <>
-              <WyborRoku lata={lata} rok={activeYear} onChange={(y) => { setSelYear(y); setSelMonth(null) }} />
 
               {/* Rok w liczbach — z porównaniem do poprzedniego roku */}
               <Kafle items={[
@@ -242,7 +237,6 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
                   delta: prevAvgExp ? { pct: zmiana(minione ? yearRow.expense / minione : 0, prevAvgExp), odwrotnie: true } : null },
                 { label: 'Najdroższy miesiąc', value: topExpMonth && topExpMonth.expense > 0 ? MIESIACE_PELNE[topExpMonth.i] : '—', sub: topExpMonth && topExpMonth.expense > 0 ? money(topExpMonth.expense) : null },
                 yearInvested !== 0 && { label: 'Zainwestowane', value: money(yearInvested), color: 'var(--accent)' },
-                { label: 'Transakcji', value: yearRow.count.toLocaleString('pl-PL'), sub: minione ? `≈ ${Math.round(yearRow.count / minione)} / mies.` : null },
               ]} />
 
               {trwa && prevRow && <p className="an-note" style={{ marginTop: -4 }}>Strzałki porównują z tym samym okresem {activeYear - 1} roku (1 stycznia – {dzis.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}).</p>}
@@ -315,7 +309,7 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
                     {years.map(y => {
                       const bal = y.income - y.expense
                       return (
-                        <button key={y.year} onClick={() => { setSelYear(y.year); setSelMonth(null) }} className="an-lata-row" style={{
+                        <button key={y.year} onClick={() => { onRokChange?.(y.year); setSelMonth(null) }} className="an-lata-row" style={{
                           background: y.year === activeYear ? 'var(--surface2)' : 'transparent',
                           borderColor: y.year === activeYear ? 'var(--accent)' : 'var(--border)',
                         }}>
@@ -342,7 +336,7 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
                   allInvested !== 0 && { label: 'Zainwestowane', value: money(allInvested), color: 'var(--accent)' },
                   allInvested !== 0 && investValue > 0 && { label: 'Inwestycje teraz ≈', value: `≈ ${money(investValue)}`, color: 'var(--text-sub)' },
                 ]} />
-                {accounts.length > 0 && (
+                {accounts.length > 0 && !filtr && (
                   <p className="an-note">
                     {allInvested !== 0
                       ? <>Bilans ≈ to, co masz na kontach, plus to, co wpłaciłaś na inwestycje{Math.abs(gap) >= 1 ? <> (różnica {gap >= 0 ? '+' : '−'}{money(Math.abs(gap))} — saldo z początku historii, gotówka wydana bez zapisu, waluty)</> : ''}.
@@ -355,7 +349,5 @@ export default function StatsPanel({ user, privateMode = false, onClose }) {
             </>
           )}
         </div>
-      </div>
-    </div>
   )
 }

@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { doc, writeBatch } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import SegTabs from '../SegTabs'
-import { CatIcon, IconClose, IconArrowUp, IconArrowDown, IconReorder } from '../Icons'
+import { CatIcon, IconClose, IconReorder } from '../Icons'
+import { useDragReorder, DragHandle } from '../DragReorder'
+import { przenies } from '../../utils/dragReorder'
 import { byHabitOrder, isRequiredHabit, isOptionalHabit, habitOrderUpdates } from '../../utils/habitLogic'
 
-// Ustawianie kolejności, w jakiej nawyki mają się pojawiać (strzałki góra/dół).
+// Ustawianie kolejności, w jakiej nawyki mają się pojawiać (przeciąganie za uchwyt).
 // Zapisuje pole `order` = pozycja na liście dla wszystkich nawyków jednym batchem.
 export default function HabitReorderModal({ user, habits, onClose }) {
   // Nawyki i wyzwania ustawia się OSOBNO: na ekranach też są rozdzielone, więc
@@ -22,16 +24,10 @@ export default function HabitReorderModal({ user, habits, onClose }) {
   const maWyzwania = grupy.optional.length > 0
   const list = maWyzwania ? grupy[tab] : grupy.required
 
-  const move = (idx, dir) => {
+  const drag = useDragReorder(list.length, (from, to) => {
     const klucz = maWyzwania ? tab : 'required'
-    const to = idx + dir
-    if (to < 0 || to >= grupy[klucz].length) return
-    setGrupy(prev => {
-      const next = [...prev[klucz]]
-      ;[next[idx], next[to]] = [next[to], next[idx]]
-      return { ...prev, [klucz]: next }
-    })
-  }
+    setGrupy(prev => ({ ...prev, [klucz]: przenies(prev[klucz], from, to) }))
+  })
 
   const handleSave = async () => {
     setSaving(true)
@@ -55,7 +51,7 @@ export default function HabitReorderModal({ user, habits, onClose }) {
           <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <div className="form">
-          <p className="pause-info">Ustaw kolejność, w jakiej chcesz robić nawyki — tak będą pokazywane na liście „Dziś", w tygodniu i statystykach.</p>
+          <p className="pause-info">Przeciągnij nawyk za uchwyt po prawej, żeby ustawić kolejność — tak będą pokazywane na liście „Dziś", w tygodniu i statystykach.</p>
 
           {maWyzwania && (
             <SegTabs
@@ -76,14 +72,13 @@ export default function HabitReorderModal({ user, habits, onClose }) {
               {list.map((h, i) => {
                 const color = h.color || 'var(--accent)'
                 return (
-                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface2)', borderRadius: 10, padding: '8px 10px' }}>
+                  <div key={h.id} {...drag.wiersz(i, { display: 'flex', alignItems: 'center', gap: 10, background: 'var(--surface2)', borderRadius: 10, padding: '8px 10px' })}>
                     <span className="mono" style={{ width: 18, fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
                     <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center', background: color + '1c', border: `1px solid ${color}40`, color }}>
                       <CatIcon categoryId={null} emoji={h.emoji} size={15} />
                     </div>
                     <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.name}</span>
-                    <button type="button" className="icon-btn" style={{ width: 30, height: 30 }} disabled={i === 0} onClick={() => move(i, -1)} title="W górę"><IconArrowUp size={14} /></button>
-                    <button type="button" className="icon-btn" style={{ width: 30, height: 30 }} disabled={i === list.length - 1} onClick={() => move(i, 1)} title="W dół"><IconArrowDown size={14} /></button>
+                    <DragHandle {...drag.uchwyt(i)} />
                   </div>
                 )
               })}

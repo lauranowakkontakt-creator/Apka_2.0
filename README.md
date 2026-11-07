@@ -61,7 +61,7 @@ npm run demo       # http://localhost:5173/
 Cała apka działa jak zwykle, ale zamiast Firebase dostaje atrapę bazy
 w pamięci przeglądarki ([`src/demo/`](src/demo/)), wypełnioną losowymi danymi
 we wszystkich modułach — razem z przypadkami brzegowymi (bardzo długie nazwy,
-kwota 0,01 i 125 999,99 zł, wydatek bez konta, w USD albo z usuniętą kategorią,
+kwota 0,01 i 12 599,99 zł, wydatek bez konta, w USD albo z usuniętą kategorią,
 przeterminowane zadania, przerwa w nawykach). Kod aplikacji się nie zmienia:
 w `vite --mode demo` aliasy podmieniają tylko importy `firebase/*`.
 

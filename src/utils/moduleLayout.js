@@ -70,6 +70,19 @@ export function moveModule(order, id, dir) {
   return [...head, ...next]
 }
 
+// Przeciąganie: moduł `id` ląduje na miejscu modułu `naId` (Pulpit zostaje pierwszy).
+export function moveModuleTo(order, id, naId) {
+  if (id === FIXED_FIRST || naId === FIXED_FIRST || id === naId) return [...order]
+  const head = order.filter(x => x === FIXED_FIRST)
+  const rest = order.filter(x => x !== FIXED_FIRST)
+  const from = rest.indexOf(id), to = rest.indexOf(naId)
+  if (from === -1 || to === -1) return [...order]
+  const next = [...rest]
+  next.splice(from, 1)
+  next.splice(to, 0, id)
+  return [...head, ...next]
+}
+
 export function toggleHidden(layout, id) {
   if (id === FIXED_FIRST) return layout
   const hidden = new Set(layout.hidden || [])
