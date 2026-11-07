@@ -79,7 +79,10 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
       onDone()
     } catch (e) {
       log.blad('import', 'Import kopii nie powiódł się', e)
-      setError(`Import przerwany (${e?.code || 'błąd'}). To, co się zapisało, zostaje — uruchom import jeszcze raz, a dopisze tylko brakujące.`)
+      const code = e?.code || 'błąd'
+      setError(code === 'timeout' || code === 'resource-exhausted'
+        ? 'Serwer przestał przyjmować zapisy. Najczęściej to dzienny limit darmowego planu Firebase (zeruje się codziennie ok. 9:00). To, co się zapisało, zostaje — uruchom import później, a dopisze tylko brakujące.'
+        : `Import przerwany (${code}). To, co się zapisało, zostaje — uruchom import jeszcze raz, a dopisze tylko brakujące.`)
       setProgress(null); setWaiting(null)
     }
   }

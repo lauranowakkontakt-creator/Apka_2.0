@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, writeBatch, query, where, limit } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { wPaczkach } from '../../utils/zapisWPaczkach'
 import { planImportCleanup } from '../../utils/importCleanup'
@@ -28,9 +28,25 @@ export default function ImportCleanup({ user }) {
       cats.exists() ? cats.data() : null,
     ))
   }
-  useEffect(() => { load().catch(() => setPlan(null)) }, [user.uid]) // eslint-disable-line
+  // Najpierw tylko 1 odczyt: czy w ogóle był import. Pełne wczytanie (tysiące
+  // odczytów z dziennego limitu Firebase) dopiero po kliknięciu „Cofnij import".
+  const [hasImport, setHasImport] = useState(false)
+  useEffect(() => {
+    getDocs(query(collection(db, 'users', user.uid, 'transactions'), where('source', '==', 'import'), limit(1)))
+      .then(s => setHasImport(!s.empty)).catch(() => setHasImport(false))
+  }, [user.uid])
 
-  if (!plan || !plan.transactions.length) return done ? <p className="imp-hint">{done}</p> : null
+  if (!hasImport) return done ? <p className="imp-hint">{done}</p> : null
+  if (!plan) return (
+    <div className="imp-cleanup">
+      <div className="imp-cleanup-head">
+        <span>W apce są transakcje z wcześniejszego importu (z pliku Excel/CSV).</span>
+        <button type="button" className="imp-link" onClick={() => { setOpen(true); load().catch(() => toast.error('Nie udało się wczytać danych')) }}>Cofnij import</button>
+      </div>
+      {open && <p className="imp-hint">Sprawdzam, co usunąć…</p>}
+    </div>
+  )
+  if (!plan.transactions.length) return null
 
   const run = async () => {
     setBusy(true)
@@ -40,7 +56,7 @@ export default function ImportCleanup({ user }) {
       await wPaczkach(refs, { makeBatch: () => writeBatch(db), apply: (b, r) => b.delete(r), onProgress: (d, t) => setProg(`${d} / ${t}`) })
       if (plan.categories) await setDoc(doc(db, ...base, 'settings', 'categories'), plan.categories)
       const msg = `Usunięto ${plan.transactions.length} transakcji z importu${plan.accounts.length ? ` i ${plan.accounts.length} pustych kont` : ''}.`
-      toast.success(msg); setDone(msg); setOpen(false); setPlan(null)
+      toast.success(msg); setDone(msg); setOpen(false); setPlan(null); setHasImport(false)
     } catch (e) {
       console.error('Cofanie importu:', e)
       toast.error(`Nie udało się (${e?.code || 'błąd'}). Spróbuj ponownie — usunie resztę.`)
