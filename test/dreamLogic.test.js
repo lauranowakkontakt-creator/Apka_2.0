@@ -277,6 +277,7 @@ test('formMatch: dosłowne i odmienione', () => {
   assert.deepEqual(_fm('mateusza w', 'Mateusz'), { len: 8, exact: false })
   assert.deepEqual(_fm('kasię w', 'Kasia'), { len: 5, exact: false })
   assert.deepEqual(_fm('franka w', 'Franek'), { len: 6, exact: false })
+  assert.deepEqual(_fm('jankiem w', 'Janek'), { len: 7, exact: false })
   assert.equal(_fm('olek', 'Ola'), null)          // krótka forma tylko dosłownie
   assert.equal(_fm('mateuszowskiego', 'Mateusz'), null) // za długa końcówka
 })

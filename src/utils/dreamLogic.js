@@ -115,7 +115,9 @@ export function formMatch(restLow, form) {
   const maxExtra = /[aąęo]$/u.test(f) ? 2 : /[eiyu]$/u.test(f) ? 3 : 4
   for (const st of stems) {
     const extra = word.length - st.length
-    if (word.startsWith(st) && extra <= Math.min(maxExtra, st.length <= 4 ? 2 : 4)) best = Math.max(best, word.length)
+    // Rdzeń z wypadającym -e- (Janek → Jank-iem, Franek → Frank-iem) bierze końcówki do 3 liter.
+    const cap = f.endsWith('ek') && st === f.slice(0, -2) + 'k' ? 3 : st.length <= 4 ? 2 : 4
+    if (word.startsWith(st) && extra <= Math.min(maxExtra, cap)) best = Math.max(best, word.length)
   }
   return best ? { len: best, exact: false } : null
 }
