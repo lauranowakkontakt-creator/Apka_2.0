@@ -2,6 +2,9 @@ import PersonBubble from '../PersonBubble'
 import { findDreamCategory, getEmotion } from '../../utils/dreams'
 import { IconCalendar, IconChevronLeft, IconEdit, IconMoon, IconTag, IconTrash, IconUsers } from '../Icons'
 import { Chip, DreamText, fmtDate, SymbolChip } from './wspolne'
+import {
+  DREAM_POSITIONS, DREAM_ORIGINS, DREAM_KINDS, DREAM_VIVIDNESS, DREAM_COLORS, BEFORE_SLEEP, findIn,
+} from '../../utils/dreamJackson'
 
 // Pojedynczy sen w całości, z podświetlonymi osobami i symbolami.
 
@@ -12,6 +15,17 @@ export default function DreamDetail({ dream, categories, peopleById, symbolsById
     .map(id => peopleById[id]).filter(Boolean)
   const linkedPeople = [...new Set([...(dream.peopleIds || []), ...(dream.mentionIds || [])])]
     .map(id => peopleById[id]).filter(Boolean)
+  const details = [
+    ['Pozycja', findIn(DREAM_POSITIONS, dream.position)?.label],
+    ['Obraz', findIn(DREAM_VIVIDNESS, dream.vividness)?.label],
+    ['Główny element', dream.mainElement],
+    ['Liczby', dream.numbers],
+  ].filter(([, v]) => v)
+  const colorList = (dream.colors || []).map(id => findIn(DREAM_COLORS, id)).filter(Boolean)
+  const tagList = [
+    findIn(DREAM_ORIGINS, dream.origin), findIn(DREAM_KINDS, dream.kind),
+    ...(dream.beforeSleep || []).map(id => findIn(BEFORE_SLEEP, id) && { ...findIn(BEFORE_SLEEP, id), color: '#D98B5F' }),
+  ].filter(Boolean)
   const syms = (dream.symbolIds || []).map(id => symbolsById[id]).filter(Boolean)
 
   return (
@@ -44,12 +58,46 @@ export default function DreamDetail({ dream, categories, peopleById, symbolsById
         </div>
       )}
 
+      {(details.length > 0 || colorList.length > 0 || tagList.length > 0) && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase' }}>Szczegóły snu</div>
+          {details.map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', gap: 8, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-muted)', minWidth: 96 }}>{k}</span>
+              <span style={{ fontWeight: 500 }}>{v}</span>
+            </div>
+          ))}
+          {colorList.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {colorList.map(c => <Chip key={c.id} color={c.color} active>{c.label}</Chip>)}
+            </div>
+          )}
+          {colorList.some(c => c.plus) && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              {colorList.filter(c => c.plus).map(c => `${c.label}: dobrze: ${c.plus}; źle: ${c.minus}`).join(' · ')}
+            </div>
+          )}
+          {tagList.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {tagList.map(t => <Chip key={t.id} color={t.color}>{t.label}</Chip>)}
+            </div>
+          )}
+        </div>
+      )}
+
       {dream.interpretation && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)', borderRadius: 'var(--r)', padding: 16 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
             <IconMoon size={12} /> Interpretacja
           </div>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--text-sub)' }}>{dream.interpretation}</p>
+        </div>
+      )}
+
+      {dream.application && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderLeft: '3px solid #5FBF98', borderRadius: 'var(--r)', padding: 16 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10 }}>Zastosowanie</div>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--text-sub)' }}>{dream.application}</p>
         </div>
       )}
 

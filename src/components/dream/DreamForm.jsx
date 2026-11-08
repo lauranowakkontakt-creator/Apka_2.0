@@ -4,7 +4,10 @@ import { DREAM_EMOTIONS, detectTrigger, nameStem, parseMentions, personForms } f
 import { IconCheck, IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
-import { GUIDE_QUESTIONS, appendQuestion } from '../../utils/dreamLessons'
+import {
+  GUIDE_QUESTIONS, appendQuestion, hasJacksonFields, DREAM_POSITIONS, DREAM_ORIGINS, DREAM_KINDS,
+  DREAM_VIVIDNESS, DREAM_COLORS, BEFORE_SLEEP,
+} from '../../utils/dreamJackson'
 import { Timestamp, addDoc, arrayUnion, collection, doc, updateDoc } from 'firebase/firestore'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
@@ -22,6 +25,17 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
   const [localSymbols, setLocalSymbols] = useState([]) // symbole utworzone w tej sesji
   const [saving, setSaving]     = useState(false)
   const [showGuide, setShowGuide] = useState(false)
+  // Pola wg metody Jacksona — sekcja zwinięta przy szybkim zapisie, rozwinięta gdy sen je ma.
+  const [showMore, setShowMore] = useState(hasJacksonFields(editData))
+  const [position, setPosition] = useState(editData?.position || '')
+  const [origin, setOrigin]     = useState(editData?.origin || '')
+  const [kind, setKind]         = useState(editData?.kind || '')
+  const [vividness, setVividness] = useState(editData?.vividness || '')
+  const [colors, setColors]     = useState(editData?.colors || [])
+  const [mainElement, setMainElement] = useState(editData?.mainElement || '')
+  const [numbers, setNumbers]   = useState(editData?.numbers || '')
+  const [beforeSleep, setBeforeSleep] = useState(editData?.beforeSleep || [])
+  const [application, setApplication] = useState(editData?.application || '')
 
   const textRef = useRef(null)
   const [trigger, setTrigger]   = useState(null) // { type:'person'|'symbol', query, start }
@@ -126,6 +140,9 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
       title: title.trim(), date, text: text.trim(),
       interpretation: interpretation.trim(),
       category: category || null, emotions, peopleIds, mentionIds, symbolIds,
+      position: position || null, origin: origin || null, kind: kind || null, vividness: vividness || null,
+      colors, mainElement: mainElement.trim(), numbers: numbers.trim(), beforeSleep,
+      application: application.trim(),
       updatedAt: Timestamp.now(),
     }
     try {
@@ -138,6 +155,10 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
           category: editData.category ?? null, emotions: editData.emotions ?? [],
           peopleIds: editData.peopleIds ?? [], mentionIds: editData.mentionIds ?? [],
           symbolIds: editData.symbolIds ?? [],
+          position: editData.position ?? null, origin: editData.origin ?? null, kind: editData.kind ?? null,
+          vividness: editData.vividness ?? null, colors: editData.colors ?? [],
+          mainElement: editData.mainElement ?? '', numbers: editData.numbers ?? '',
+          beforeSleep: editData.beforeSleep ?? [], application: editData.application ?? '',
         }
         await updateDoc(ref, data)
         onClose()
@@ -294,6 +315,89 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
             )}
           </div>
 
+          <button type="button" onClick={() => setShowMore(v => !v)} style={{
+            alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--accent)',
+          }}>
+            {showMore ? 'Ukryj szczegóły snu' : 'Szczegóły snu: pozycja, kolory, rodzaj, liczby'}
+          </button>
+
+          {showMore && (
+            <>
+              <div className="form-group">
+                <label>Kim byłam w śnie <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— obserwator: nie o mnie, w centrum: o mnie</span></label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_POSITIONS.map(o => (
+                    <Chip key={o.id} color="#9B7CF0" active={position === o.id}
+                      onClick={() => setPosition(position === o.id ? '' : o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Główny element <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— bez czego sen by się rozpadł</span></label>
+                <input type="text" className="form-input" value={mainElement} maxLength={120}
+                  onChange={e => setMainElement(e.target.value)} placeholder="np. zamknięte drzwi, powódź, dziecko..." />
+              </div>
+
+              <div className="form-group">
+                <label>Obraz</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_VIVIDNESS.map(o => (
+                    <Chip key={o.id} color="#7C8AF0" active={vividness === o.id}
+                      onClick={() => setVividness(vividness === o.id ? '' : o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Wyraźne kolory</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_COLORS.map(c => (
+                    <Chip key={c.id} color={c.color} active={colors.includes(c.id)}
+                      onClick={() => toggle(colors, setColors, c.id)}>{c.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Liczby <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— tylko zapisz, nie przeliczaj</span></label>
+                <input type="text" className="form-input" value={numbers} maxLength={80}
+                  onChange={e => setNumbers(e.target.value)} placeholder="np. 3, 12, godzina 4:44" />
+              </div>
+
+              <div className="form-group">
+                <label>Skąd może być ten sen</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_ORIGINS.map(o => (
+                    <Chip key={o.id} color={o.color} active={origin === o.id}
+                      onClick={() => setOrigin(origin === o.id ? '' : o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Rodzaj snu</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_KINDS.map(o => (
+                    <Chip key={o.id} color={o.color} active={kind === o.id}
+                      onClick={() => setKind(kind === o.id ? '' : o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Przed snem <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— odróżnia sen cielesny i chemiczny od przesłania</span></label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {BEFORE_SLEEP.map(o => (
+                    <Chip key={o.id} color="#D98B5F" active={beforeSleep.includes(o.id)}
+                      onClick={() => toggle(beforeSleep, setBeforeSleep, o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
           <div className="form-group">
             <label>Interpretacja <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— opcjonalnie</span></label>
             <textarea className="form-input" value={interpretation} onChange={e => setInterpretation(e.target.value)}
@@ -323,6 +427,15 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
               </div>
             )}
           </div>
+
+          {showMore && (
+            <div className="form-group">
+              <label>Zastosowanie <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— co mam z tym zrobić</span></label>
+              <textarea className="form-input" value={application} onChange={e => setApplication(e.target.value)}
+                rows={3} placeholder="Modlitwa, rozmowa, decyzja, a może poczekać..."
+                style={{ resize: 'vertical', minHeight: 70, lineHeight: 1.6 }} />
+            </div>
+          )}
 
           <button type="submit" className="btn-save" disabled={saving || (!title.trim() && !text.trim())}>
             {saving ? 'Zapisywanie...' : editData ? 'Zapisz zmiany' : 'Zapisz sen'}
