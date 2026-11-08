@@ -9,6 +9,8 @@
 // W regułach: `<` = początek słowa, `>` = koniec słowa (Unicode — działa z polskimi literami);
 // `(?<!…)` i `(?<=…)` zostają zwykłymi lookbehindami.
 
+import { NUMBER_TABLE } from './dreamJackson.js'
+
 const rx = (p) => new RegExp(p.replace(/(?<!\?)</g, '(?<![\\p{L}\\p{N}])').replace(/>/g, '(?![\\p{L}\\p{N}])'), 'giu')
 
 // ─── Symbole ────────────────────────────────────────────────────────────────
@@ -65,10 +67,10 @@ const DEFS = [
   ['Motocykl', '<motor>|<motorem|<motocykl|<motorzyst', 1, 4, POJAZD],
   ['Pociąg', '<pociąg', 1, 3, POJAZD],
   // przyroda i żywioły
-  ['Woda', '<wod(?:a|ą|ę|y|zie)>|<basen|<jacuzzi|<morz|<ocean|<rzek|<jezior|<staw>|<powódź|<wodospad', 1, 4, ''],
-  ['Góry', '<gór(?:y|ami|ach|om)>|<wspin', 1, 3, ''],
+  ['Woda', '<wod(?:a|ą|ę|y|zie)>|<jacuzzi|<ocean|<staw>|<oczko wodne', 1, 4, ''],
+  ['Góry', '(?<!z )<gór(?:y|ami|ach|om)>|<wspin', 1, 3, ''],
   ['Las', '<las>|<lesie|<lasu|<drzew|<ogród|<ogródk', 1, 3, ''],
-  ['Burza', '<burz|<sztorm|<tornad|<trzęsieni', 1, 4, ''],
+  ['Burza', '<burz|<sztorm|<trzęsieni', 1, 4, ''],
   ['Śnieg', '<śnieg', 1, 3, ''],
   ['Ogień', '<pożar|<płon|<zaczęło się palić|<ogień|<ognia', 1, 4, ''],
   ['Światło', '<światł|<zorz|<latark', 1, 3, ''],
@@ -102,15 +104,169 @@ const DEFS = [
   ['Demon', '<demon|<duchy>|<duchów|<diabe|<szatan', 1, 5, ''],
   ['Jezus', '<jezus|<chrystus|<duch święty', 1, 4, ''],
   ['Anioł', '<anioł|<aniołow', 1, 4, ''],
+  // ── zjawiska, przyroda, krajobraz (kurs: zwracaj uwagę na każdy szczegół, bo każdy może coś znaczyć) ──
+  ['Wodospad', '<wodospad', 1, 4, ''],
+  ['Morze', '<morz(?:e|a|u|em)>|<morsk|<przypływ', 1, 3, ''],
+  ['Rzeka', '<rzek(?:a|i|ę|ą|ach|ę)>|<potok|<strumyk', 1, 3, ''],
+  ['Jezioro', '<jezior|<staw(?:u|em)>', 1, 3, ''],
+  ['Basen', '<basen|<pływal', 1, 3, ''],
+  ['Powódź', '<powódź|<powodzi|<zalan|<zalewa|<zalało', 1, 4, ''],
+  ['Deszcz', '<deszcz|<pada>|<padał|<ulew|<kropi|<mokr', 1, 3, ''],
+  ['Huragan', '<huragan|<wichur|<orkan|<nawałnic|<cyklon', 1, 4, ''],
+  ['Tornado', '<lej>|<leja>|<lejem|<leju|<tornad|<trąb(?:a|ę|y|ą) powietrzn|<trąby powietrzn|<wir>|<wiry>|<wirem', 1, 5, ''],
+  ['Kataklizm', '<kataklizm|<katastrof|<apokalips|<koniec świata|<końca świata|<armagedon|<żywioł|<żywioły', 1, 5, ''],
+  ['Wybuch', '<wybuch|<eksplozj|<huk>|<huku|<huknię|<fala uderzeniow|<bomb|<granat|<detonac', 1, 5, ''],
+  ['Fala', '<fal(?:a|e|ę|ą|i|ami)>|<tsunami', 1, 4, ''],
+  ['Wiatr', '<wiatr|<wiał|<powiew', 1, 3, ''],
+  ['Grad', '<grad>|<gradu|<gradem', 1, 3, ''],
+  ['Mgła', '<mgł|<zamglon', 1, 3, ''],
+  ['Chmury', '<chmur', 1, 3, ''],
+  ['Tęcza', '<tęcz', 1, 4, ''],
+  ['Błyskawica', '<błyskawic|<piorun|<grzmot|<zagrzmi', 1, 4, ''],
+  ['Trzęsienie ziemi', '<trzęsieni|<wstrząs|<ziemia się trzęsł|<ziemia się zatrzęsł', 1, 5, ''],
+  ['Lawina', '<lawin|<osuwisk|<tsunami', 1, 4, ''],
+  ['Wulkan', '<wulkan|<lawa>|<lawy>', 1, 4, ''],
+  ['Meteoryt', '<meteor|<kometa|<komety|<spadając[ae] gwiazd|<asteroid', 1, 4, ''],
+  ['Niebo', '<nieb(?:o|a|ie|em)>|<niebiesk(?:ie|im) nieb', 1, 3, ''],
+  ['Słońce', '<słońc|<słonecz|<wschód słońca|<zachód słońca|<zaćmieni', 1, 3, ''],
+  ['Księżyc', '<księżyc|<księżyca|<księżycu', 1, 3, ''],
+  ['Gwiazdy', '<gwiazd(?:a|y|ę|ami|ach)>|<gwiazdk|<galaktyk|<kosmos', 1, 3, ''],
+  ['Planeta', '<planet(?:a|y|ę|ami)>|<statek kosmiczn|<ufo>|<obc(?:y|ych) planet', 1, 3, ''],
+  ['Pustynia', '<pustyn', 1, 3, ''],
+  ['Plaża', '<plaż|<piasek|<piasku|<piasku|<wydm', 1, 3, ''],
+  ['Wyspa', '<wysp(?:a|y|ę|ie|ą)>|<półwysep', 1, 3, ''],
+  ['Pole i łąka', '<pole>|<pola>|<polu>|<łąk|<polan|<zboże|<zbóż|<pszenic|<kukurydz', 1, 3, ''],
+  ['Drzewo', '<drzew(?:o|a|em|ie|u|ami|ach)>|<drzewk|<dąb>|<dębu|<palm|<choink|<sosn|<wierzb|<brzoz|<topol', 1, 4, ''],
+  ['Kwiaty', '<kwiat|<róża|<róży|<róże|<tulipan|<lilia|<słonecznik|<bukiet|<wieniec', 1, 3, ''],
+  ['Trawa', '<traw(?:a|y|ę|ie|ą)>|<mech>|<krzak|<zaroś|<chwast', 1, 2, ''],
+  ['Kamień', '<kami(?:eń|enia|eniu|eniem|enie|eni)>|<kamyk|<głaz|<bruk|<żwir', 1, 3, ''],
+  ['Skała', '<skał(?:a|y|ę|ą|ach)>|<urwisk|<klif|<szczyt|<przepaść|<przepaśc', 1, 4, ''],
+  ['Lód', '<lód>|<lodu>|<lodem|<lodow|<zamarz|<lodowc|<sopel', 1, 3, ''],
+  ['Mróz i zimno', '<zimn|<mróz|<mrozu|<chłód|<chłodn|<marzłam|<marzł|<zmarzł|<lodowat|<dreszcz', 1, 3, ''],
+  ['Gorąco', '<gorąc|<upał|<żar>|<żaru|<skwar|<poci(?:łam|ć)', 1, 3, ''],
+  ['Cisza', '<cisza|<ciszy|<ciszę|<cichy|<cicho>|<w ciszy', 1, 3, ''],
+  ['Hałas i krzyk', '<hałas|<krzyk|<krzycz|<krzyczał|<wrzask|<wrzesz', 1, 3, ''],
+  ['Piękno', '<piękn|<cudown|<zachwyc|<cud>|<cudu>|<niesamowic', 1, 3, ''],
+  ['Brzydota i brud', '<brzydk|<brud|<obrzydl|<śmierdz|<smród|<śmieci|<wstrętn|<zgnił|<gnijąc', 1, 3, ''],
+  ['Wielkość', '<ogrom|<gigant|<olbrzym|<wielki(?:e|ego|ej|ą)?>|<ogromn|<kolosaln', 1, 3, ''],
+  ['Mały rozmiar', '<malutk|<maleńk|<miniatur|<kieszonkow|<zmniejsz', 1, 3, ''],
+  ['Wysokość', '<wysok|<wieża>|<wieży>|<wieżę>|<wieżą>|<z góry>|<dach(?:u|em|y)?>', 1, 3, ''],
+  ['Głębia', '<głęb|<otchłań|<dno>|<studni|<studzien', 1, 3, ''],
+  ['Pustka', '<pust(?:y|a|e|ka|ki|ce|ym|ą|ej)>|<pustk|<opuszczon|<wymarł', 1, 3, ''],
+  ['Ruina i zniszczenie', '<ruin|<zniszczon|<zrujnow|<zawali|<runął|<runęł|<runęła|<rozpad|<zburz|<spalon|<połamany|<zepsut|<pęknięt|<rozbit', 1, 4, ''],
+  ['Błoto', '<błot|<bagn|<grzęzł|<utkn', 1, 3, ''],
+  ['Dym i popiół', '<dym>|<dymu>|<dymem|<popiół|<popiołu|<zadymion|<kurz>|<kurzu', 1, 3, ''],
+  ['Ciężar', '<ciężk|<ciężar|<przygniot|<uciążl', 1, 3, ''],
+  ['Blask i jasność', '<jasn|<blask|<błysk|<świeci|<lśni|<jaśni|<olśni', 1, 3, ''],
+  ['Cień', '<cień>|<cienia>|<cieniu>|<cienie>|<sylwetk', 1, 3, ''],
+  // ── rzeczy i budowle (kurs: rzeczy bywają znakami; zwykłe drobiazgi pomijamy, a te bywają symbolami) ──
+  ['Okno', '<okn(?:o|a|em|ie|u)>', 1, 3, ''],
+  ['Brama i płot', '<brama>|<bramy>|<bramę|<bramą|<furtk|<płot|<ogrodzeni|<szlaban|<krat(?:a|y|ę|ami)>', 1, 3, ''],
+  ['Droga', '<drog(?:a|ą|ę|i|ze)>|<ulic|<ścieżk|<szlak|<autostrad|<skrzyżowani|<rondo|<chodnik', 1, 3, ''],
+  ['Ściana i mur', '<ścian|<mur(?:u|em|y)?>|<mury>|<barier', 1, 3, ''],
+  ['Stół', '<stół|<stołu|<stole|<stołem|<ławk|<biurk', 1, 2, ''],
+  ['Lustro', '<lustr|<odbici', 1, 4, ''],
+  ['Zegar', '<zegar|<zegarek|<budzik|<minuty>', 1, 3, ''],
+  ['Książka', '<książk|<biblia|<biblii|<biblię|<notatnik|<gazet', 1, 3, ''],
+  ['Krzyż', '<krzyż', 1, 4, ''],
+  ['Korona', '<koron|<tron>|<tronu|<berło|<królow|<król>|<króla|<książę|<książęc|<księżnicz', 1, 4, ''],
+  ['Pierścień', '<pierścion|<obrączk|<biżuter|<naszyjnik|<bransolet|<kolczyk|<łańcuszek|<złoto|<złota>|<złotą>|<diament', 1, 3, ''],
+  ['Lina i łańcuch', '<lin(?:a|y|ę|ą|ach)>|<łańcuch|<sznur|<kajdan|<więzieni|<cela>|<celi>|<łańcuchy', 1, 3, ''],
+  ['Prezent', '<prezent|<paczk|<pudełk|<skrzyn|<szkatuł|<kufer', 1, 3, ''],
+  ['Lampa i świeca', '<lamp|<świec(?:a|e|ę|ach|ami)>|<pochodni|<latarni', 1, 3, ''],
+  ['Muzyka', '<muzyk|<piosenk|<śpiew|<śpiewa|<gitar|<pianin|<skrzypc|<organ(?:y|ach)>|<trąb|<dzwon|<bębn', 1, 3, ''],
+  ['Taniec', '<tańcz|<taniec|<tańca|<tańc', 1, 3, ''],
+  ['Flaga', '<flag(?:a|i|ę|ą)>|<sztandar|<proporc', 1, 3, ''],
+  ['Mapa', '<map(?:a|y|ę|ie|ą)>|<kompas|<nawigacj', 1, 3, ''],
+  ['Namiot', '<namiot|<obóz>|<obozie|<ognisk', 1, 3, ''],
+  ['Statek i łódź', '<statek|<statku|<łódź|<łodzi|<łódk|<kajak|<jacht|<prom>|<promie|<okręt|<żagl', 1, 3, POJAZD],
+  ['Autobus i tramwaj', '<autobus|<tramwaj|<metro>|<tir>|<ciężarów|<wagon|<peron|<dworc', 1, 3, POJAZD],
+  ['Hulajnoga i skuter', '<hulajnog|<skuter|<quad|<deskorolk|<wózek>|<wózka', 1, 2, POJAZD],
+  ['Narzędzia', '<młot|<siekier|<piła>|<piłą|<śrubokręt|<łopat|<kilof|<drabin|<gwóźdź|<gwoździ|<haczyk', 1, 3, ''],
+  ['Miecz i tarcza', '<miecz|<tarcz(?:a|y|ę|ą)>|<łuk>|<łuku>|<strzał(?:a|y|ę|ami)>|<włócz', 1, 4, ''],
+  ['Sieć', '<siec(?:i|ią)>|<sieć>|<pajęczyn|<pułap(?:ka|ki|ce)>|<sidł', 1, 3, ''],
+  ['Wino i chleb', '<wino>|<winem>|<wina>|<winogron|<chleb|<bochen|<kielich|<komuni|<kielicha', 1, 4, ''],
+  ['Owoce', '<jabłk|<owoc|<gruszk|<truskaw|<winogr|<banan|<pomarańcz|<cytryn|<śliwk|<wiśni', 1, 3, ''],
+  ['Miód i mleko', '<miód|<miodu|<mleko|<mleka|<mlecz', 1, 3, ''],
+  ['Mięso', '<mięs|<kotlet|<kiełbas|<szynk', 1, 2, ''],
+  // ── więcej zwierząt (kurs: lista zwierząt) — osobno, żeby symbol nazywał to, co naprawdę się śniło ──
+  ['Ryba', '<ryb(?:a|y|ę|ą|ki|ek|om|ami|ach)>|<rybk', 1, 4, ''],
+  ['Delfin', '<delfin', 1, 4, ''], ['Rekin', '<rekin', 1, 4, ''], ['Wieloryb', '<wieloryb', 1, 4, ''],
+  ['Wilk', '<wilk', 1, 4, ''], ['Lis', '<lis>|<lisa>|<lisem|<lisy>', 1, 4, ''],
+  ['Niedźwiedź', '<niedźwie|<miś>|<misia|<misiem', 1, 4, ''],
+  ['Słoń', '<słoń>|<słonia|<słoni>|<słonie>', 1, 4, ''], ['Żyrafa', '<żyraf', 1, 4, ''],
+  ['Małpa', '<małp|<goryl|<szympans', 1, 4, ''], ['Zebra', '<zebr', 1, 4, ''],
+  ['Krowa', '<krow(?:a|y|ę|ą)>|<byk>|<byka>|<byki>', 1, 3, ''], ['Świnia', '<świni|<prosiak|<wieprz', 1, 3, ''],
+  ['Owca', '<owc(?:a|e|y|ą)>|<baran|<jagni|<baranek', 1, 4, ''], ['Koza', '<kozł|<kozy>|<koza>|<kozę|<kozą', 1, 3, ''],
+  ['Kura', '<kur(?:a|y|ę|ą|ach|czak)>|<kurczak|<kurnik', 1, 3, ''], ['Kogut', '<kogut|<kogucie', 1, 4, ''],
+  ['Gołąb', '<gołąb|<gołęb', 1, 5, ''], ['Sowa', '<sowa>|<sowy>|<sową|<sowę', 1, 4, ''],
+  ['Kruk', '<wron|<kruk|<kruki', 1, 4, ''], ['Mewa', '<mewa>|<mewy>|<mewę|<mew>', 1, 3, ''],
+  ['Orzeł', '<sokół|<sokoł|<jastrz|<orł|<orze[łl]>', 1, 4, ''], ['Jaskółka', '<jaskółk', 1, 3, ''],
+  ['Motyl', '<motyl', 1, 4, ''], ['Pszczoła', '<pszczoł|<osa>|<osy>|<osę|<szerszeń', 1, 4, ''],
+  ['Mucha', '<mucha>|<muchy>|<muchę|<komar|<pluskw', 1, 3, ''], ['Mrówki', '<mrówk', 1, 3, ''],
+  ['Robaki', '<robak|<robaki|<karaluch|<szarańcz|<gąsienic|<larw', 1, 3, ''],
+  ['Szczur', '<szczur', 1, 4, ''], ['Królik', '<królik|<zając|<zająca', 1, 4, ''], ['Chomik', '<chomik|<wiewiór', 1, 3, ''],
+  ['Tygrys', '<tygrys', 1, 4, ''], ['Pantera', '<pantera|<pantery|<lampart|<gepard|<puma>|<jaguar', 1, 4, ''],
+  ['Krokodyl', '<krokodyl|<aligator', 1, 4, ''], ['Żółw', '<żółw', 1, 4, ''], ['Jaszczurka', '<jaszczur|<kameleon|<gekon', 1, 4, ''],
+  ['Jeleń', '<jeleń|<jelenia|<sarn|<łoś>|<łosia', 1, 4, ''], ['Dzik', '<dzik', 1, 4, ''],
+  ['Smok', '<smok|<smoka|<smoki', 1, 5, ''], ['Dinozaur', '<dinozaur', 1, 4, ''], ['Jednorożec', '<jednoroż|<feniks', 1, 4, ''],
+  // ── ciało (kurs: części ciała i ich stan) ──
+  ['Oczy', '<oczy>|<oczu>|<oczami|<oko>|<oka>|<ślep|<niewidom|<okular', 1, 3, ''],
+  ['Serce', '<serc(?:e|a|u|em)>|<serduszk|<bicie serca|<puls', 1, 3, ''],
+  ['Głos', '<głos(?:u|em|ie)?>|<szept|<szeptał|<krzyknął', 1, 2, ''],
+  ['Rana i blizna', '<ran(?:a|y|ę|ą)>|<ranny|<ranna|<blizn|<siniak|<opuchn|<zadrap|<kulał|<kuśtyk|<bandaż|<gips', 1, 3, ''],
+  ['Łzy', '<łez|<łzy>|<łzami|<płacz', 1, 3, ''],
+  ['Twarz i maska', '<maska|<maski>|<maskę|<maską|<twarz>|<twarzy>|<bez twarzy|<przebran', 1, 3, ''],
+  ['Białe ubranie', '<biał(?:ą|a|e|y) (?:sukni|koszul|szat|bluz|ubra|sukienk)|<szat(?:a|y|ę|ami)>|<welon', 1, 4, ''],
+  ['Sukienka', '<sukienk|<spódnic|<garnitur|<koszul|<kurtk|<czapk|<kapelusz|<okular', 1, 2, ''],
+  ['Buty', '<buty>|<butów|<butach|<butami|<but>|<klapk|<szpilk|<boso>|<bosa>|<bosy>|<bosą|<obuwi', 1, 3, ''],
+  // ── stany i zdarzenia, które pomaga zauważyć ──
+  ['Zamknięcie', '<zamknięt|<zamknął|<zamknęł|<zaryglow|<uwięzion|<więzień|<klatce>|<klatkę|<w klatce|<pułapk', 1, 4, ''],
+  ['Latanie', '<latał|<latam|<latać|<unosi|<lewitow|<fruw|<szybowa|<unosiłam|<poleciał|<poleciałam', 1, 4, ''],
+  ['Spadanie', '<spadał|<spadam|<spadać|<spada>|<spadało|<lecieć w dół|<runęł|<upadł|<przewróc|<zjechał|<wpadł', 1, 4, ''],
+  ['Tonięcie', '<ton(?:ęła|ęłam|ął|ie|ąć|ęli)>|<topi|<utop|<zatop|<zanurz|<nurk|<tonął', 1, 4, ''],
+  ['Pływanie', '<pływ|<płynęł|<płynie>|<przepłyn', 1, 3, ''],
+  ['Wspinaczka', '<wspin|<wchodz(?:iłam|ić|imy) na|<wdrapa|<schodz(?:iłam|ić) z', 1, 3, ''],
+  ['Chodzenie bez celu', '<błąka|<zgubiłam się|<nie wiedziałam gdzie|<labirynt|<kluczy|<w kółko', 1, 4, ''],
+  ['Pogoń za czasem', '<pośpiech|<śpieszy|<śpieszyć|<musiałam szybko|<prędko|<w biegu|<biegn|<biegła|<biegałam|<biegał', 1, 3, ''],
+  ['Tłum', '<tłum|<tłumie|<tłumu|<zgromadzen|<publicz|<widown|<wszyscy patrz|<ludzi zbiegają|<ludzie zbiegają|<setki ludzi|<tysiące ludzi', 1, 3, ''],
+  ['Wesele i impreza', '<impreza|<imprez|<przyjęci|<urodzin|<bal>|<balu>|<zabaw(?:a|y|ę|ie)>|<uroczysto|<świętowa|<bankiet|<koncert', 1, 3, ''],
+  ['Więzienie i sąd', '<więzieni|<sąd>|<sądzie|<sądu|<wyrok|<kar(?:a|y|ę)>|<skazan|<areszt|<proces>|<sędzi', 1, 4, ''],
+  ['Szpital', '<szpital|<lekarz|<lekarsk|<pielęgniar|<operacj|<karetk|<pogotowi|<apteka|<tablet(?:k|ki)>', 1, 4, ''],
+  ['Praca', '<praca>|<pracy>|<pracę|<pracowa|<szef|<biuro|<biurze|<firm(?:a|y|ie|ę)>|<zmian(?:a|y|ę)> w pracy', 1, 3, ''],
 ].map(([name, p, min, weight, hint]) => ({ name, re: rx(p), min, weight, hint }))
 
 export const AUTO_SYMBOL_NAMES = DEFS.map(d => d.name)
-export const autoSymbolHint = (name) => DEFS.find(d => d.name === name)?.hint || ''
+export const autoSymbolHint = (name) => {
+  const num = /^Liczba (\d+)$/.exec(name)
+  if (num) return NUMBER_TABLE.find(e => e.n === Number(num[1]))?.meaning || ''
+  return DEFS.find(d => d.name === name)?.hint || ''
+}
 
 const count = (re, text) => (text.match(re) || []).length
 
 // Do ilu symboli maksymalnie na sen — kurs: sen ma jedną główną myśl, nie samą listę rzeczy.
-const MAX_SYMBOLS = 8
+const MAX_SYMBOLS = 14
+
+// Liczby (kurs: liczby w snach mają znaczenie) — każda wspomniana liczba to osobny symbol „Liczba N".
+// Pomijamy godziny, kwoty, lata, jednostki i numery długie.
+const NUM_WORDS = [
+  [2, 'dwa|dwie|dwóch|dwoje|dwojga|dwójk'], [3, 'trzy|trzech|troje|trojga|trójk'], [4, 'cztery|czterech|czworo'],
+  [5, 'pięć|pięciu|pięcioro'], [6, 'sześć|sześciu'], [7, 'siedem|siedmiu'], [8, 'osiem|ośmiu'],
+  [9, 'dziewięć|dziewięciu'], [10, 'dziesięć|dziesięciu'], [11, 'jedenaście|jedenastu'], [12, 'dwanaście|dwunastu'],
+  [13, 'trzynaście|trzynastu'], [20, 'dwadzieścia|dwudziestu'], [40, 'czterdzieści|czterdziestu'], [100, 'sto>|stu>'],
+].map(([n, p]) => [n, rx('<(?:' + p.replace(/>$/, '') + ')' + (p.endsWith('>') ? '>' : ''))])
+export function numbersInText(text) {
+  const freq = new Map()
+  const add = (n) => freq.set(n, (freq.get(n) || 0) + 1)
+  for (const m of text.matchAll(/(?<![\d:.,/-])(\d{1,4})(?![\d:.,/-]| ?zł| ?tys| ?km| ?min| ?metr| ?proc| ?%| ?godz| ?lat| ?r\.)/g)) {
+    const n = Number(m[1])
+    if (n > 0 && !(n >= 1900 && n <= 2100)) add(n)
+  }
+  for (const [n, re] of NUM_WORDS) { const c = count(re, text); for (let i = 0; i < c; i++) add(n) }
+  return [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([n]) => n)
+}
+const MAX_LICZBY = 5
 
 export function autoSymbols(text, title = '') {
   const found = []
@@ -119,7 +275,8 @@ export function autoSymbols(text, title = '') {
     const inTitle = count(d.re, title) > 0
     if (n >= d.min || inTitle) found.push({ name: d.name, score: (inTitle ? 100 : 0) + n * 3 + d.weight })
   }
-  return found.sort((a, b) => b.score - a.score).slice(0, MAX_SYMBOLS).map(f => f.name)
+  const names = found.sort((a, b) => b.score - a.score).slice(0, MAX_SYMBOLS).map(f => f.name)
+  return [...names, ...numbersInText(title + ' ' + text).slice(0, MAX_LICZBY).map(n => `Liczba ${n}`)]
 }
 
 // ─── Emocje (tylko to, co piszesz o sobie) ──────────────────────────────────
@@ -163,12 +320,7 @@ export const autoColors = (text) => Object.entries(COLORS).filter(([, re]) => co
 
 const TABLE_NUMBERS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 25, 30, 37, 40, 111, 120, 153, 666, 888, 1500])
 export function autoNumbers(text) {
-  const out = []
-  for (const m of text.matchAll(/(?<![\d:.,])(\d{1,4})(?![\d:.,]| ?zł| ?tys| ?km| ?min| ?metr)/g)) {
-    const n = Number(m[1])
-    if (TABLE_NUMBERS.has(n) && !out.includes(n)) out.push(n)
-  }
-  return out.join(', ')
+  return numbersInText(text).filter(n => TABLE_NUMBERS.has(n)).sort((a, b) => a - b).join(', ')
 }
 
 // ─── Całość ─────────────────────────────────────────────────────────────────

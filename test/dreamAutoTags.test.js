@@ -35,7 +35,7 @@ test('Czemu oszukujesz: sklep, oszustwo, pieniądze i liczba 30 z tabeli kursu',
 test('Kotek i myszka: kot i mysz z tytułu, ucieczka, walka, park rozrywki', () => {
   const s = autoSymbols(KOTEK, 'Kotek i myszka')
   for (const n of ['Kot', 'Mysz', 'Ucieczka', 'Walka', 'Park rozrywki', 'Sklep', 'Ukrywanie']) assert.ok(s.includes(n), n)
-  assert.ok(s.length <= 8)
+  assert.ok(s.length <= 14)
 })
 
 test('Odpowiedz na pytanie: policja, zagrożenie, ucieczka, dom', () => {
@@ -55,7 +55,7 @@ test('telefon, pokój i jedzenie nie są symbolami', () => {
 
 test('liczby: tylko z tabeli kursu, bez godzin i cen', () => {
   assert.equal(autoNumbers('o 9:00 zapłaciłam 280 zł i było 12 osób, a numer 18'), '12')
-  assert.equal(autoNumbers('trzy'), '')
+  assert.equal(autoNumbers('trzy auta'), '3')
 })
 
 test('applyAutoTags uzupełnia tylko braki i szanuje własne tagi', () => {
@@ -74,4 +74,26 @@ test('applyAutoTags uzupełnia tylko braki i szanuje własne tagi', () => {
   assert.equal(out[2].category, 'przyjemny')
   assert.equal(out[3].categoryName, 'Moja')
   assert.ok(usedSymbols.includes('Ucieczka'))
+})
+
+const KATAKLIZM = 'Zaczęły nadchodzić ciemne chmury i utworzył się ogromny lej, potem fala uderzeniowa i huknięcie. Patrzyłam z góry, a z ziemi wydobywał się ogień. Spadł deszcz, a obok był wodospad, góry, drzewo i wielki kamień. Było zimno i pięknie. Mieliśmy 7 minut, a potem trzy osoby.'
+test('konkretne rzeczczowniki i zjawiska: wodospad, góry, deszcz, kamień, zimno, piękno', () => {
+  const s = autoSymbols(KATAKLIZM, '')
+  for (const n of ['Wodospad', 'Góry', 'Deszcz', 'Kamień', 'Drzewo', 'Chmury', 'Tornado', 'Wybuch', 'Ogień']) assert.ok(s.includes(n), n)
+  const t = autoSymbols('Było zimno i pięknie.', '')
+  assert.ok(t.includes('Mróz i zimno') && t.includes('Piękno'))
+})
+test('„z góry" to nie Góry; fala to nie morze', () => {
+  const s = autoSymbols('Patrzyłam z góry, nadeszła fala.', '')
+  assert.ok(!s.includes('Góry'))
+  assert.ok(!s.includes('Morze'))
+  assert.ok(s.includes('Fala'))
+})
+test('liczby jako symbole (cyfry i słowa), bez godzin i kwot', () => {
+  const s = autoSymbols('Było 7 osób, trzy auta, o 12:30 za 50 zł, w 2021 roku.', '')
+  assert.ok(s.includes('Liczba 7'))
+  assert.ok(s.includes('Liczba 3'))
+  assert.ok(!s.includes('Liczba 12'))
+  assert.ok(!s.includes('Liczba 50'))
+  assert.ok(!s.includes('Liczba 2021'))
 })
