@@ -12,7 +12,9 @@ import {
   IconCash, IconTodo, IconArrowUp, IconArrowDown, IconPlus
 } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
-import { setPersonHidden, purgePerson } from '../../utils/people'
+import { setPersonHidden, setPersonCircle, purgePerson } from '../../utils/people'
+import { CIRCLES, circleOf, circleCounts, visiblePeople } from '../../utils/personCircles'
+import SegTabs from '../SegTabs'
 import { PERSON_COLORS } from '../../utils/personColors'
 import { IconPicker, ColorPicker } from '../Pickers'
 import { getCategory, dreamPeopleIds } from '../../utils/dreams'
@@ -35,6 +37,8 @@ export default function PeopleHub({ user, onOpenDream, setHeaderExtras }) {
   const [selectedId, setSelectedId] = useState(null)
   const [showForm, setShowForm]     = useState(false)
   const [editPerson, setEditPerson] = useState(null)
+  const [circle, setCircle]         = useState('close')   // close | far | all
+  const [q, setQ]                   = useState('')
 
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'calendarPeople'), orderBy('createdAt', 'asc'))
@@ -77,6 +81,9 @@ export default function PeopleHub({ user, onOpenDream, setHeaderExtras }) {
     const field = module === 'calendar' ? 'hiddenInCalendar' : 'hiddenInPrayer'
     await setPersonHidden(user.uid, person.id, module, !person[field])
   }
+  const toggleCircle = (person) => setPersonCircle(user.uid, person.id, circleOf(person) === 'far' ? 'close' : 'far')
+  const counts = useMemo(() => circleCounts(people), [people])
+  const shown = useMemo(() => visiblePeople(people, { circle, q }), [people, circle, q])
   const deletePersonH = async (id) => {
     const ok = await confirmDialog({
       title: 'Usunąć osobę trwale?',
@@ -117,17 +124,34 @@ export default function PeopleHub({ user, onOpenDream, setHeaderExtras }) {
           onOpenDream={onOpenDream}
           onBack={() => setSelectedId(null)}
           onToggleHidden={toggleHidden}
+          onToggleCircle={() => toggleCircle(selected)}
           onEdit={() => { setEditPerson(selected); setShowForm(true) }}
           onDelete={() => deletePersonH(selected.id)}
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {people.length > 0 && (
+            <>
+              <SegTabs active={circle} onChange={setCircle} items={[
+                { id: 'close', label: `Bliscy (${counts.close})` },
+                { id: 'far',   label: `Dalsi (${counts.far})` },
+                { id: 'all',   label: `Wszyscy (${counts.all})` },
+              ]} />
+              <input type="search" className="form-input" value={q} onChange={e => setQ(e.target.value)}
+                placeholder="Szukaj osoby (we wszystkich kręgach)…" />
+            </>
+          )}
           {people.length === 0 ? (
             <div className="list-empty">
               <p>Brak osób</p>
               <p className="list-empty-hint">Osoby dodane tutaj, w Kalendarzu lub w Modlitwie trafiają do wspólnej bazy</p>
             </div>
-          ) : people.map(p => {
+          ) : shown.length === 0 ? (
+            <div className="list-empty">
+              <p>{q.trim() ? 'Nikogo nie znaleziono' : circle === 'far' ? 'Brak osób w dalszym kręgu' : 'Brak osób w tym kręgu'}</p>
+              {!q.trim() && circle === 'far' && <p className="list-empty-hint">Przenieś osobę przyciskiem ze strzałką przy jej nazwisku</p>}
+            </div>
+          ) : shown.map(p => {
             const s = stats[p.id] || { events: 0, intentions: 0 }
             return (
               <div key={p.id} onClick={() => setSelectedId(p.id)} style={{
@@ -146,6 +170,10 @@ export default function PeopleHub({ user, onOpenDream, setHeaderExtras }) {
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                  <button className="t-btn" onClick={() => toggleCircle(p)} title={circleOf(p) === 'far' ? 'Przenieś do bliskich' : 'Przenieś do dalszych'}
+                    style={{ padding: '4px 7px', fontSize: 10, fontWeight: 600 }}>
+                    {circleOf(p) === 'far' ? <IconArrowUp size={12} /> : <IconArrowDown size={12} />}
+                  </button>
                   <VisToggle active={!p.hiddenInCalendar} label="Kalendarz" Icon={IconCalendar} onClick={() => toggleHidden(p, 'calendar')} />
                   <VisToggle active={!p.hiddenInPrayer} label="Modlitwa" Icon={IconPrayer} onClick={() => toggleHidden(p, 'prayer')} />
                 </div>
@@ -180,7 +208,7 @@ function VisToggle({ active, label, Icon, onClick }) {
 }
 
 /* ─── PersonDetail ─────────────────────────────────────────────────────── */
-function PersonDetail({ uid, person, events, intentions, dreams = [], debts = [], todos = [], onOpenDream, onBack, onToggleHidden, onEdit, onDelete }) {
+function PersonDetail({ uid, person, events, intentions, dreams = [], debts = [], todos = [], onOpenDream, onBack, onToggleHidden, onToggleCircle, onEdit, onDelete }) {
   const today = TODAY()
   const personDreams = [...dreams].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
   const upcoming = events.filter(e => (e.dateEnd || e.date) >= today).sort((a, b) => a.date.localeCompare(b.date))
@@ -206,6 +234,15 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
         <button className="t-btn" title="Edytuj" onClick={onEdit}><IconEdit size={15} /></button>
         <button className="t-btn delete" title="Usuń trwale" onClick={onDelete}><IconTrash size={15} /></button>
       </div>
+
+      {/* Krąg: bliscy / dalsi (dalsi nie pokazują się na głównej liście) */}
+      <button onClick={onToggleCircle} style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', borderRadius: 10, cursor: 'pointer',
+        fontSize: 12, fontWeight: 600, fontFamily: 'inherit', border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text-sub)',
+      }}>
+        {circleOf(person) === 'far' ? <IconArrowUp size={13} /> : <IconArrowDown size={13} />}
+        Krąg: {circleOf(person) === 'far' ? 'dalsi' : 'bliscy'}. Dotknij, żeby przenieść do {circleOf(person) === 'far' ? 'bliskich' : 'dalszych'}
+      </button>
 
       {/* Widoczność w modułach */}
       <div style={{ display: 'flex', gap: 8 }}>
@@ -489,13 +526,14 @@ function PersonForm({ user, editData, onClose }) {
   const [info, setInfo]     = useState(editData?.info || '')
   const [icon, setIcon]     = useState(editData?.icon || 'IcUsers')
   const [color, setColor]   = useState(editData?.color || PERSON_COLORS[Math.floor(Math.random() * PERSON_COLORS.length)])
+  const [circleSel, setCircleSel] = useState(circleOf(editData))
   const [saving, setSaving] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!name.trim()) return
     setSaving(true)
-    const data = { name: name.trim(), note: note.trim(), info: info.trim(), icon, color, updatedAt: Timestamp.now() }
+    const data = { name: name.trim(), note: note.trim(), info: info.trim(), icon, color, circle: circleSel, updatedAt: Timestamp.now() }
     try {
       if (editData) {
         await updateDoc(doc(db, 'users', user.uid, 'calendarPeople', editData.id), data)
@@ -523,6 +561,11 @@ function PersonForm({ user, editData, onClose }) {
           <div className="form-group">
             <label>Kolor</label>
             <ColorPicker value={color} onChange={setColor} />
+          </div>
+
+          <div className="form-group">
+            <label>Krąg <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— dalsi nie pokazują się na głównej liście</span></label>
+            <SegTabs active={circleSel} onChange={setCircleSel} items={CIRCLES.map(c => ({ id: c.id, label: c.label }))} />
           </div>
 
           <div className="form-group">
