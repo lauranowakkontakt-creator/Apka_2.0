@@ -133,3 +133,23 @@ export function doTegoDnia(wpisy, rok, teraz = new Date()) {
   for (const w of wpisy) if (w.klucz && w.klucz.startsWith(pref) && w.klucz.slice(5) <= md) s += w.wartosc ?? 1
   return s
 }
+
+/**
+ * Pozycje (kategorie, rodzaje…) rozbite na lata — do tabel „przez wszystkie lata".
+ * `zdarzenia`: [{ nazwa, rok, wartosc? }] (brak wartości = 1).
+ * Zwraca { lata (rosnąco), wiersze: [{ nazwa, suma, poLatach: { [rok]: liczba } }] } od największej sumy.
+ */
+export function rozbijWgLat(zdarzenia) {
+  const lata = new Set()
+  const m = new Map()
+  for (const z of zdarzenia) {
+    if (!z || !Number.isFinite(z.rok)) continue
+    lata.add(z.rok)
+    const w = m.get(z.nazwa) || { nazwa: z.nazwa, suma: 0, poLatach: {} }
+    const v = z.wartosc ?? 1
+    w.suma += v
+    w.poLatach[z.rok] = (w.poLatach[z.rok] || 0) + v
+    m.set(z.nazwa, w)
+  }
+  return { lata: [...lata].sort((a, b) => a - b), wiersze: [...m.values()].sort((a, b) => b.suma - a.suma) }
+}

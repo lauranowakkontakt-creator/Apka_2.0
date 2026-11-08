@@ -130,7 +130,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
       ) : tab === 'memory' ? (
         <DreamMemory user={user} />
       ) : tab === 'stats' ? (
-        <DreamStats dreams={dreams} />
+        <DreamStats dreams={dreams} categories={categories} />
       ) : tab === 'categories' ? (
         <DreamCategoryManager user={user} />
       ) : tab === 'symbols' ? (

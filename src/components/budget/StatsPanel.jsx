@@ -6,8 +6,8 @@ import { fmt } from '../../utils/currency'
 import { IconChart } from '../Icons'
 import { GroupedBars } from '../ChartPrimitives'
 import SegTabs from '../SegTabs'
-import { Rozwijana, Kafle, MiesiaceRoku, Ranking, DniTygodnia, DonutSzczegoly } from '../Analityka'
-import { zmiana, miesiaceMinione, wgDniaTygodnia, kluczDnia, MIESIACE_KROTKO, MIESIACE_PELNE, DNI_TYG_KROTKO } from '../../utils/analityka'
+import { Rozwijana, Kafle, MiesiaceRoku, Ranking, DniTygodnia, DonutSzczegoly, TabelaLat } from '../Analityka'
+import { rozbijWgLat, zmiana, miesiaceMinione, wgDniaTygodnia, kluczDnia, MIESIACE_KROTKO, MIESIACE_PELNE, DNI_TYG_KROTKO } from '../../utils/analityka'
 import { isTransfer } from '../../utils/categories'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 import { inPLN, investedNet, isInvestmentFlow } from '../../utils/moneyFlow'
@@ -210,6 +210,14 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
     )
   }
 
+  const [miaraLat, setMiaraLat] = useState('expense')
+  const kategorieLat = useMemo(() => {
+    const zb = (type) => rozbijWgLat(tx.filter(t => t.type === type).map(t => ({ nazwa: t.category || 'Inne', rok: t.date.getFullYear(), wartosc: t.amount })))
+    return { expense: zb('expense'), income: zb('income') }
+  }, [tx])
+  const najlepszyRok = years.reduce((p, y) => (!p || y.income - y.expense > p.income - p.expense ? y : p), null)
+  const najdrozszyRok = years.reduce((p, y) => (!p || y.expense > p.expense ? y : p), null)
+
   const MIARY = [{ id: 'expense', label: 'Wydatki' }, { id: 'income', label: 'Przychody' }, { id: 'balance', label: 'Oszczędzone' }]
   const kolorMiary = miara === 'income' ? 'var(--income)' : miara === 'expense' ? 'var(--expense)' : 'var(--info)'
 
@@ -302,9 +310,18 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
                 ) : <div className="an-pusty">Brak wydatków</div>}
               </Rozwijana>
 
-              {years.length > 1 && (
-                <Rozwijana id="fin-lata" tytul="Porównanie lat" podsumowanie={`${years.length} lat`}>
-                  <MiesiaceLat years={[...years].reverse()} money={money} />
+            </>
+          )}
+
+              {years.length > 0 && (
+                <Rozwijana id="fin-lata" tytul="Przez wszystkie lata" domyslnie podsumowanie={`${years.length} ${years.length === 1 ? 'rok' : 'lat'}`}>
+                  <Kafle min={130} items={[
+                    { label: 'Średnio / rok · przychody', value: `+${money(allTime.income / years.length)}`, color: 'var(--income)' },
+                    { label: 'Średnio / rok · wydatki', value: `−${money(allTime.expense / years.length)}`, color: 'var(--expense)' },
+                    najlepszyRok && { label: 'Najlepszy bilans', value: String(najlepszyRok.year), sub: `${najlepszyRok.income - najlepszyRok.expense >= 0 ? '+' : '−'}${money(Math.abs(najlepszyRok.income - najlepszyRok.expense))}`, color: 'var(--income)' },
+                    najdrozszyRok && { label: 'Najwięcej wydane', value: String(najdrozszyRok.year), sub: money(najdrozszyRok.expense), color: 'var(--expense)' },
+                  ]} />
+                  {years.length > 1 && <MiesiaceLat years={[...years].reverse()} money={money} />}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {years.map(y => {
                       const bal = y.income - y.expense
@@ -323,6 +340,14 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
                       )
                     })}
                   </div>
+                </Rozwijana>
+              )}
+
+              {years.length > 0 && (
+                <Rozwijana id="fin-kat-lata" tytul="Kategorie rok po roku" podsumowanie={kategorieLat[miaraLat].wiersze[0]?.nazwa}>
+                  <SegTabs items={[{ id: 'expense', label: 'Wydatki' }, { id: 'income', label: 'Przychody' }]} active={miaraLat} onChange={setMiaraLat} />
+                  <TabelaLat dane={kategorieLat[miaraLat]} fmt={moneyK} limit={10} pusty="Brak danych" />
+                  <p className="an-note">Kwoty w złotych, wszystkie lata z historii.</p>
                 </Rozwijana>
               )}
 
@@ -346,8 +371,6 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
                   </p>
                 )}
               </Rozwijana>
-            </>
-          )}
         </div>
   )
 }

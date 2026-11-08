@@ -405,3 +405,40 @@ export function DonutSzczegoly({ pozycje, fmt = (v) => String(Math.round(v)), sz
     </div>
   )
 }
+
+/**
+ * Tabela „pozycja × lata" (np. kategorie albo rodzaje snów w kolejnych latach)
+ * z sumą na końcu. `dane` pochodzi z rozbijWgLat. Przy wielu latach tabela
+ * przewija się poziomo, a pierwsza kolumna zostaje na miejscu.
+ */
+export function TabelaLat({ dane, fmt = (v) => String(Math.round(v)), limit = 10, kolory = {}, pusty = 'Brak danych' }) {
+  const [wszystko, setWszystko] = useState(false)
+  if (!dane.wiersze.length) return <div className="an-pusty">{pusty}</div>
+  const lista = wszystko ? dane.wiersze : dane.wiersze.slice(0, limit)
+  const sumyLat = dane.lata.map(r => dane.wiersze.reduce((s, w) => s + (w.poLatach[r] || 0), 0))
+  const razem = sumyLat.reduce((a, b) => a + b, 0)
+  return (
+    <div className="an-lata-wrap">
+      <table className="an-tabela an-tabela-lata">
+        <thead><tr><th></th>{dane.lata.map(r => <th key={r}>{r}</th>)}<th>Razem</th></tr></thead>
+        <tbody>
+          {lista.map(w => (
+            <tr key={w.nazwa}>
+              <td><i className="an-lata-dot" style={{ background: kolory[w.nazwa] || 'var(--accent)' }} />{w.nazwa}</td>
+              {dane.lata.map(r => <td key={r} style={w.poLatach[r] ? undefined : { color: 'var(--text-muted)' }}>{w.poLatach[r] ? fmt(w.poLatach[r]) : '·'}</td>)}
+              <td style={{ fontWeight: 700 }}>{fmt(w.suma)}</td>
+            </tr>
+          ))}
+          <tr className="an-lata-sum">
+            <td>Razem</td>{sumyLat.map((v, i) => <td key={i}>{fmt(v)}</td>)}<td>{fmt(razem)}</td>
+          </tr>
+        </tbody>
+      </table>
+      {dane.wiersze.length > limit && (
+        <button type="button" className="an-more" onClick={() => setWszystko(v => !v)}>
+          {wszystko ? 'Pokaż mniej' : `Pokaż wszystkie (${dane.wiersze.length})`}
+        </button>
+      )}
+    </div>
+  )
+}
