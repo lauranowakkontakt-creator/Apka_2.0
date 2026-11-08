@@ -191,6 +191,22 @@ export function seedDemoData(put, Timestamp) {
       })
     })
 
+  // Podkategorie (jedna z własnym kolorem), żeby było co edytować i kolorować.
+  const PODKAT = {
+    jedzenie: [{ id: 'sub_sklep', label: 'Sklep', icon: 'IcBasket', color: null }, { id: 'sub_dowoz', label: 'Dowóz', icon: 'IcTruck', color: '#5BB6D9' }, { id: 'sub_slodycze', label: 'Słodycze', icon: 'IcCandy', color: null }],
+    auto: [{ id: 'sub_serwis', label: 'Serwis', icon: 'IcTools', color: null, subcategories: [{ id: 'ss_opony', label: 'Opony', icon: 'IcCar' }] }, { id: 'sub_parking', label: 'Parking', icon: 'IcParking', color: null }],
+  }
+  put(base('settings'), 'categories', {
+    expense: DEFAULT_EXPENSE_CATEGORIES.map(c => PODKAT[c.id] ? { ...c, subcategories: PODKAT[c.id] } : c),
+    income: DEFAULT_INCOME_CATEGORIES,
+  })
+  for (let i = 0; i < 30; i++) {
+    const catId = pick(['jedzenie', 'auto'])
+    const c = exp.find(x => x.id === catId)
+    const sub = pick(PODKAT[catId])
+    tx({ type: 'expense', amount: money(8, 160), ...catFields(c), subcategoryId: sub.id, subcategoryLabel: sub.label, currency: 'PLN', description: '', date: ts(withTime(daysAgo(int(0, 60)))), accountId: bank.id })
+  }
+
   put(base('settings'), 'tithe', { enabled: true, percent: 10, carryOver: money(-50, 150) })
 
   // ── Nawyki ───────────────────────────────────────────────────────────────

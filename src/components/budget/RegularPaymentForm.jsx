@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, addDoc, updateDoc, doc, Timestamp, orderBy, query, getDoc } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
-import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, getSubcategoryColor } from '../../utils/categories'
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, kolorPodkategorii } from '../../utils/categories'
 import { getCurrencyCode, parseAmount } from '../../utils/currency'
 import { CatIcon, IconClose } from '../Icons'
 import { bladSubskrypcji } from '../../utils/polaczenie'
@@ -130,7 +130,7 @@ export default function RegularPaymentForm({ user, onClose, editData }) {
                 <label>Podkategoria <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcjonalna)</span></label>
                 <div className="category-icons-grid">
                   {subcats.map((sub, si) => {
-                    const subColor = getSubcategoryColor(selectedCat.color, si)
+                    const subColor = kolorPodkategorii(sub, selectedCat.color, si)
                     const active = subcategoryId === sub.id
                     return (
                       <button key={sub.id} type="button"

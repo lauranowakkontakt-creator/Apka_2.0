@@ -80,6 +80,12 @@ function hslToHex(h, s, l) {
   return `#${f(0)}${f(8)}${f(4)}`
 }
 
+// Kolor podkategorii: własny, jeśli ustawiony w „Zarządzaj kategoriami",
+// a bez niego automatyczny odcień koloru kategorii nadrzędnej (jak dotąd).
+export function kolorPodkategorii(sub, parentHex, index) {
+  return sub?.color || getSubcategoryColor(parentHex, index)
+}
+
 export function getSubcategoryColor(parentHex, index) {
   if (!parentHex?.startsWith('#')) return parentHex || '#888'
   const [h, s, l] = hexToHsl(parentHex)
