@@ -102,3 +102,10 @@ test('przemoc: dźgnął, zaatakował, przytrzymał, zabił, udusił', () => {
   const s = autoSymbols('Mężczyzna mnie zaatakował, przytrzymał i dźgnął nożem, potem próbował mnie udusić. Zabił też mojego kota.', '')
   for (const n of ['Zaatakowanie', 'Przytrzymanie', 'Dźgnięcie', 'Duszenie', 'Zabójstwo']) assert.ok(s.includes(n), n)
 })
+
+test('atak to zaatakowanie, ale atak paniki i fala uderzeniowa nie', () => {
+  assert.ok(autoSymbols('Był atak na mnie.', '').includes('Zaatakowanie'))
+  assert.ok(!autoSymbols('Miałam atak paniki.', '').includes('Zaatakowanie'))
+  assert.ok(!autoSymbols('Nadeszła fala uderzeniowa.', '').includes('Bicie i uderzenie'))
+  assert.ok(autoSymbols('Uderzył mnie w twarz.', '').includes('Bicie i uderzenie'))
+})
