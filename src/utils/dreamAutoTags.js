@@ -189,6 +189,18 @@ const DEFS = [
   ['Owoce', '<jabłk|<owoc|<gruszk|<truskaw|<winogr|<banan|<pomarańcz|<cytryn|<śliwk|<wiśni', 1, 3, ''],
   ['Miód i mleko', '<miód|<miodu|<mleko|<mleka|<mlecz', 1, 3, ''],
   ['Mięso', '<mięs|<kotlet|<kiełbas|<szynk', 1, 2, ''],
+  // ── przemoc i zagrożenie (kurs: kim jest napastnik, co robi, jaką postawę przyjmuje śniąca) ──
+  ['Zabójstwo', '<zabi(?:ł|ła|li|ły|ć|ty|ci|ta|te|cie|ja|jać|ją|ć)>|<zamord|<zastrzel|<zadźg|<chciał mnie zabić|<chce mnie zabić|<chcieli mnie zabić|<zabójc', 1, 5, ''],
+  ['Dźgnięcie', '<dźgn|<dźga|<zadźg|<pchnął nożem|<wbił nóż|<wbiła nóż|<ugodzi|<kłuj|<pchnięt', 1, 5, ''],
+  ['Zaatakowanie', '<zaatak|<napad(?:ł|ła|li|ły|ać|u)>|<napadn|<rzucił się na mnie|<rzucił się na|<rzuciła się na|<rzucali się na|<rzucił się z', 1, 5, ''],
+  ['Przytrzymanie', '<przytrzym|<złapał mnie|<złapała mnie|<złapali mnie|<chwycił mnie|<chwycili mnie|<trzymał mnie|<trzymali mnie|<unieruchom|<związał|<związan|<nie mogłam się ruszyć|<przycisn|<przygwoździ|<przytrzym', 1, 5, ''],
+  ['Duszenie', '<dusi|<udusi|<dusił|<dusiła|<dławi|<podduszon|<zadusi|<nie mogłam oddychać|<zakneblow|<zakryć usta|<zatkał mi usta', 1, 5, ''],
+  ['Bicie i uderzenie', '<bił>|<bili>|<biła>|<bije>|<pobi|<uderzy|<uderzał|<kopn|<kopał|<kopali|<policzek|<spoliczkow|<pięści|<pięścią|<ciosy>|<cios>|<ciosem|<walnął|<walnęła|<sprał', 1, 5, ''],
+  ['Gwałt i molestowanie', '<gwałc|<gwałt|<molest|<obmacy|<napastow|<zgwałc|<dobierał się|<dotykał mnie|<próba gwałtu|<rozbier(?:ał|ać) mnie', 1, 5, ''],
+  ['Tortury', '<tortur|<katow|<męcz|<przesłuch|<torturow', 1, 5, ''],
+  ['Porwanie', '<porwa|<porwan|<uprowad|<wciągn(?:ął|ęli|ęła) mnie do (?:auta|samochodu)|<w bagażniku', 1, 5, ''],
+  ['Pościg i łapanka', '<ścigał|<goni(?:ł|ła|li|ć)>|<gonił mnie|<gonili mnie|<łapali mnie|<szukał mnie|<szukali mnie|<polowa(?:ł|li|nie)', 1, 4, ''],
+  ['Krzywda', '<skrzywdz|<krzywd|<zranił|<zraniła|<zranion|<poturbow|<okaleczy|<pocięt|<ciął|<pociął|<cięła|<poparzy', 1, 4, ''],
   // ── więcej zwierząt (kurs: lista zwierząt) — osobno, żeby symbol nazywał to, co naprawdę się śniło ──
   ['Ryba', '<ryb(?:a|y|ę|ą|ki|ek|om|ami|ach)>|<rybk', 1, 4, ''],
   ['Delfin', '<delfin', 1, 4, ''], ['Rekin', '<rekin', 1, 4, ''], ['Wieloryb', '<wieloryb', 1, 4, ''],
@@ -297,7 +309,7 @@ export function autoEmotions(text) {
 }
 
 // ─── Kategoria wbudowana (jak w Twojej Apce: Przyjemny, Koszmar, Duchowy…) ──
-const NEG = rx('przerażon|<panik|napastnik|<atakow|<atak>|<zabi|<morder|<zabój|<zastrzel|<włamywacz|<porwa|<strach|<bałam|<molest|<obmacyw|<gwałc|<ucieka|<goni|<zranił|<raniłam')
+const NEG = rx('<dźgn|<dusi|<udusi|<przytrzym|<zaatak|<napad(?:ł|ła|li)>|<zgwałc|<tortur|<pobi|<zabił|<zabiła|<kopn|<uderzy|<unieruchom|<zastrzel|przerażon|<panik|napastnik|<atakow|<atak>|<zabi|<morder|<zabój|<zastrzel|<włamywacz|<porwa|<strach|<bałam|<molest|<obmacyw|<gwałc|<ucieka|<goni|<zranił|<raniłam')
 const POS = rx('<piękn|<przytul|<objęła|z miłości|<zadowol|<cieszył|<śmiał|<radoś|<świetnie|<pokochał|<uwielbieni|<dumn|zależy na mnie|<spokojn')
 const SPIR = rx('<modl|<demon|<duchy>|<duchów|<diabe|w imieniu jezusa|na językach|duch święty')
 const FAM = rx('<mama>|<mamy>|<mamę|<tata>|<rodzic|<dziadk|<babci|<kuzyn|<brat>|<siostr|<ojciec')
