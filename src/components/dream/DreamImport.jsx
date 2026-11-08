@@ -197,6 +197,10 @@ export default function DreamImport({ user, onDone }) {
           <span className="imp-drop-sub">z telefonu lub komputera</span>
         </label>
         {error && <p className="form-error">{error}</p>}
+        <p className="imp-hint">
+          Masz sny w <b>starej Apce</b> (z własnymi tytułami, kategoriami, emocjami i symbolami)? Pobierz je <a href={`${import.meta.env.BASE_URL}stara-apka-eksport.html`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>na tej stronie</a>,
+          a potem wgraj powstały plik tutaj. Wgraj go <b>przed</b> snami z Dreamy: ten sam sen z dwóch źródeł zostanie wtedy w wersji ze starej Apki.
+        </p>
         <p className="imp-hint">Masz już sny w apce i dodałaś nową osobę albo symbol? Dopasuję je do snów, które już są.</p>
         <button type="button" className="btn-add-account" onClick={() => { setMode('relink'); setPeopleOff(new Set()); setChoices({}); setNewPeople({}); setSymbolOn(new Set()) }}>
           Dopasuj osoby i symbole w zapisanych snach ({base.dreams.length})

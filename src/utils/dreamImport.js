@@ -56,7 +56,10 @@ export function parseDreamFile(text) {
 
   const dreams = []
   let skipped = 0
-  const pickNames = (x) => ({ symbolNames: Array.isArray(x.symbole) ? x.symbole.map(str).filter(Boolean) : [], categoryName: str(x.kategoria) })
+  const pickNames = (x) => ({
+    symbolNames: Array.isArray(x.symbole) ? x.symbole.map(str).filter(Boolean) : [], categoryName: str(x.kategoria),
+    peopleNames: Array.isArray(x.uczestnicy) ? x.uczestnicy.map(str).filter(Boolean) : [],
+  })
   const pickLink = (x) => (x.powiazania && typeof x.powiazania === 'object' ? { skip: x.powiazania.pomin || [], force: x.powiazania.jako || {} } : undefined)
   for (const x of list) {
     if (!x || typeof x !== 'object') { skipped++; continue }
@@ -259,6 +262,26 @@ export function withAliases(people, choices = {}) {
   return people.map(p => byId[p.id] ? { ...p, aliases: [...new Set([...(p.aliases || []), ...byId[p.id]])] } : p)
 }
 
+// ─── Ten sam sen z dwóch źródeł ─────────────────────────────────────────────
+// Sen z Dreamy i ten sam sen przepisany do starej apki mają różne tytuły i trochę inny tekst,
+// więc samo „data + tytuł" nie wystarcza. Uznajemy za ten sam, gdy data się zgadza,
+// a teksty mają dużo wspólnych słów.
+const words = (t) => new Set(String(t || '').toLowerCase().replace(/[@#]/g, '').match(/[\p{L}\p{N}]{4,}/gu) || [])
+export function textSimilarity(a, b) {
+  const A = words(a), B = words(b)
+  if (!A.size || !B.size) return 0
+  let common = 0
+  for (const w of A) if (B.has(w)) common++
+  return common / Math.min(A.size, B.size)
+}
+export function isSameDream(d, other, threshold = 0.5) {
+  if (other.date !== d.date) return false
+  if ((other.title || '').trim().toLowerCase() === (d.title || '').trim().toLowerCase()) return true
+  const mine = [d.text, d.extra?.originalText]
+  const theirs = [other.text, other.originalText]
+  return mine.some(m => m && theirs.some(t => t && textSimilarity(m, t) >= threshold))
+}
+
 // ─── Plan importu ───────────────────────────────────────────────────────────
 // dreams: z parseDreamFile; existing: [{ id, date, title }]; people/symbols: z bazy.
 // options: { tag, link } — dopisywać @ i łączyć osoby/symbole.
@@ -266,6 +289,8 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
   const { tag = true, link = true, only = null } = options   // only: Set id osób do powiązania (null = wszystkie)
   const ids = new Set(existing.map(e => e.id))
   const keys = new Set(existing.map(dupKey))
+  const existingByDate = new Map()
+  for (const e of existing) { if (!existingByDate.has(e.date)) existingByDate.set(e.date, []); existingByDate.get(e.date).push(e) }
   const peopleUse = only ? people.filter(p => only.has(p.id)) : people
   const toAdd = []
   const perPerson = {}
@@ -276,8 +301,9 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
   let dup = 0
   for (const d of dreams) {
     const id = dreamId(d)
-    if (ids.has(id) || keys.has(dupKey(d))) { dup++; continue }
+    if (ids.has(id) || keys.has(dupKey(d)) || existingByDate.get(d.date)?.some(o => isSameDream(d, o))) { dup++; continue }
     ids.add(id); keys.add(dupKey(d))
+    ;(existingByDate.get(d.date) || existingByDate.set(d.date, []).get(d.date)).push({ date: d.date, title: d.title, text: d.text, originalText: d.extra?.originalText })
     const r = link ? linkText(d.text, peopleUse, symbols, { tag, ...(d.link || {}) }) : { text: d.text, mentionIds: [], symbolIds: [], ambiguous: [] }
     // Symbole wskazane w pliku wprost (np. „Woda", gdy w tekście jest „w wodzie") — suma z wykrytymi w tekście.
     if (link && d.symbolNames?.length) {
@@ -287,6 +313,13 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
         if (sy && !have.has(sy.id)) { have.add(sy.id); r.symbolIds.push(sy.id) }
       }
     }
+    // Uczestnicy wskazani w pliku z imienia (stara apka zapisuje je osobno od wzmianek w tekście).
+    const participantIds = []
+    for (const nm of d.peopleNames || []) {
+      const pe = people.find(x => (x.name || '').toLowerCase() === nm.toLowerCase())
+      if (pe && !participantIds.includes(pe.id)) participantIds.push(pe.id)
+    }
+    participantIds.forEach(p => { perPerson[p] = (perPerson[p] || 0) + 1 })
     r.mentionIds.forEach(p => { perPerson[p] = (perPerson[p] || 0) + 1 })
     r.symbolIds.forEach(s => { perSymbol[s] = (perSymbol[s] || 0) + 1 })
     const catByName = d.categoryName ? categories.find(c => (c.label || '').toLowerCase() === d.categoryName.toLowerCase()) : null
@@ -302,7 +335,7 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
       id,
       data: {
         title: d.title, date: d.date, text: r.text, interpretation: d.interpretation || '',
-        category, emotions: [], peopleIds: [], mentionIds: r.mentionIds, symbolIds: r.symbolIds,
+        category, emotions: [], peopleIds: participantIds, mentionIds: r.mentionIds.filter(id => !participantIds.includes(id)), symbolIds: r.symbolIds,
         ...(d.extra || {}), imported: true,
       },
     })

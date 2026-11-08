@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eksport snów ze starej Apki</title>
+<style>
+  :root{--bg:#14110d;--card:#1f1a14;--text:#f0e8dc;--muted:#a89c8a;--accent:#d4a574;--line:#3a3128;--ok:#6fcf97;--err:#eb6b6b}
+  @media (prefers-color-scheme: light){:root{--bg:#f7f2ea;--card:#fff;--text:#1d1b19;--muted:#6b665f;--accent:#a8693a;--line:#e4e0d8;--ok:#2f8f5b;--err:#c0392b}}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px}
+  main{max-width:560px;margin:0 auto}h1{font-size:20px;margin:0 0 6px}p{color:var(--muted);margin:8px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+  button{width:100%;padding:13px;border-radius:12px;border:0;background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  #status{margin-top:12px;font-size:14px;white-space:pre-line}.ok{color:var(--ok)}.err{color:var(--err)}
+  ol{padding-left:20px;color:var(--muted)}li{margin:4px 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Eksport snów ze starej Apki</h1>
+  <p>Ta strona jednorazowo <b>tylko czyta</b> Twoje sny, symbole, kategorie i osoby ze starej Apki i zapisuje je do pliku. Niczego w starej Apce nie zmienia ani nie usuwa. Nowa Apka 2.0 dalej nie łączy się ze starą bazą.</p>
+  <div class="card">
+    <ol>
+      <li>Kliknij przycisk i zaloguj się <b>tym samym kontem Google</b>, którego używasz w starej Apce.</li>
+      <li>Pobierze się plik <b>sny-ze-starej-apki.json</b>.</li>
+      <li>W Apce 2.0: <b>Sen → ⋮ → Import snów</b> i wybierz ten plik.</li>
+    </ol>
+    <button id="go">Zaloguj przez Google i pobierz sny</button>
+    <div id="status"></div>
+  </div>
+</main>
+<script type="module">
+import { convertOldApp } from './stara-apka-konwersja.js'
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'
+import { getAuth, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'
+import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'
+
+// Publiczna konfiguracja STAREJ Apki (ta sama, którą zna jej strona).
+const OLD = {
+  apiKey: 'AIzaSyDIuO8Q_gjmbWrUQc_pnigWfrEfT8FmGA0', authDomain: 'aplikacja-0.firebaseapp.com', projectId: 'aplikacja-0',
+  storageBucket: 'aplikacja-0.firebasestorage.app', messagingSenderId: '781228324479', appId: '1:781228324479:web:ea109051fbea2f30ebf14a',
+}
+const btn = document.getElementById('go'), st = document.getElementById('status')
+const say = (t, cls = '') => { st.className = cls; st.textContent = t }
+
+btn.addEventListener('click', async () => {
+  btn.disabled = true; say('Logowanie…')
+  try {
+    const app = initializeApp(OLD, 'stara-apka')
+    const auth = getAuth(app)
+    const { user } = await signInWithPopup(auth, new GoogleAuthProvider())
+    say('Zalogowano jako ' + (user.email || user.displayName) + '. Pobieram dane…')
+    const db = getFirestore(app)
+    const read = async (name) => (await getDocs(collection(db, 'users', user.uid, name))).docs.map(d => ({ id: d.id, ...d.data() }))
+    const [dreams, symbols, categories, people] = await Promise.all(['dreams', 'dreamSymbols', 'dreamCategories', 'calendarPeople'].map(read))
+    if (!dreams.length) { say('Na tym koncie nie ma snów w starej Apce. Sprawdź, czy to na pewno to samo konto Google.', 'err'); btn.disabled = false; return }
+    const data = convertOldApp({ dreams, symbols, categories, people })
+    const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sny-ze-starej-apki.json'
+    document.body.appendChild(a); a.click(); a.remove()
+    say(`Gotowe. Pobrałam ${data.dreams.length} snów, ${data.symbols.length} symboli, ${data.categories.length} własnych kategorii i ${data.people.length} osób.\nPlik wgraj w Apce 2.0: Sen → ⋮ → Import snów.`, 'ok')
+  } catch (e) {
+    const code = e && e.code ? e.code : 'błąd'
+    say('Nie udało się (' + code + ').' + (code === 'auth/popup-blocked' ? ' Przeglądarka zablokowała okno logowania, zezwól na wyskakujące okna i spróbuj ponownie.' : code === 'auth/unauthorized-domain' ? ' Ta strona nie jest dopuszczona do logowania w starej Apce.' : code === 'permission-denied' ? ' Brak dostępu do danych tego konta.' : ''), 'err')
+  }
+  btn.disabled = false
+})
+</script>
+</body>
+</html>
