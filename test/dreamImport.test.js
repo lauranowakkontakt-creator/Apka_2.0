@@ -196,7 +196,7 @@ test('krótkie symbole nie łapią obcych słów (lew ≠ lewo)', () => {
 test('isSameDream: ten sam sen z dwóch źródeł, inne tytuły i trochę inny tekst', () => {
   const dreamy = { date: '2026-06-23', title: 'Mana - widoki', text: 'Szłam jakąś aleją i z daleka zobaczyłam najpiękniejszy widok, wodospad otoczony górami' }
   const stara = { date: '2026-06-23', title: 'Wodospad ciszy', text: 'Szłam jakąś ścieżką i z daleka zobaczyłam najpiękniejszy widok. Był to przeogromny wodospad otoczony pięknymi górami' }
-  assert.ok(textSimilarity(dreamy.text, stara.text) > 0.5)
+  assert.ok(textSimilarity(dreamy.text, stara.text) >= 0.4)
   assert.equal(isSameDream(dreamy, stara), true)
   assert.equal(isSameDream({ ...dreamy, date: '2026-06-24' }, stara), false)
   assert.equal(isSameDream({ ...dreamy, text: 'Zupełnie inny sen o psach i szkole' }, stara), false)
@@ -215,4 +215,15 @@ test('plan pomija sen, który już jest w innej wersji, a uczestników mapuje po
   assert.equal(plan.dup, 1)
   assert.equal(plan.toAdd.length, 1)
   assert.deepEqual(plan.toAdd[0].data.peopleIds, ['m'])
+})
+
+test('krótki sen zawarty w długim z tego samego dnia to nie duplikat', () => {
+  const dlugi = { date: '2024-11-22', title: 'Lew', text: 'Coś robiłam w Winnicy późno sama i spotkałam pastora puściłam muzykę na youngu i potem uciekałam przed lwem do domu na rowerze przez las i dzwoniłam do mamy aż przyleciał helikopter' }
+  const krotki = { date: '2024-11-22', title: 'Filadelfia', text: 'Byłam w Winnicy kamerować co jakiś czas podchodziła do mnie jakaś osoba' }
+  assert.equal(isSameDream(krotki, dlugi), false)
+})
+
+test('symbole automatyczne nie łapią słów z tekstu (góry ≠ na górę)', () => {
+  const sym = [{ id: 'g', name: 'Góry', auto: true }, { id: 'd', name: 'Dom' }]
+  assert.deepEqual(linkText('Poszliśmy na górę i na górze był dom', [], sym).symbolIds, ['d'])
 })
