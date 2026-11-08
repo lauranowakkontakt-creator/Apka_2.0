@@ -15,6 +15,11 @@ export async function setPersonHidden(uid, personId, module, hidden) {
   await updateDoc(doc(db, 'users', uid, 'calendarPeople', personId), { [field]: hidden })
 }
 
+// Przenieś osobę do kręgu „bliscy" albo „dalsi" (dalsi znikają z głównej listy w Osobach).
+export async function setPersonCircle(uid, personId, circle) {
+  await updateDoc(doc(db, 'users', uid, 'calendarPeople', personId), { circle: circle === 'far' ? 'far' : 'close' })
+}
+
 // Trwałe usunięcie — kasuje osobę ORAZ wszystkie jej wydarzenia i prośby modlitewne.
 export async function purgePerson(uid, personId) {
   for (const col of ['calendarEvents', 'prayerIntentions']) {

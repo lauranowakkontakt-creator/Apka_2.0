@@ -5,6 +5,7 @@ import { IconCheck, IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
 import DreamWriteModes from './DreamWriteModes'
+import { circleOf } from '../../utils/personCircles'
 import { cleanDiagram, cleanMindMap } from '../../utils/dreamForms'
 import {
   GUIDE_QUESTIONS, appendQuestion, hasJacksonFields, dreamKindIds, numberMeanings, NUMBER_CAVEAT,
@@ -44,6 +45,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
   const [mindMap, setMindMap]   = useState(editData?.mindMap || null)
   const [diagram, setDiagram]   = useState(editData?.diagram || [])
   const [spiral, setSpiral]     = useState(editData?.spiral || '')
+  const [showFar, setShowFar] = useState(false)
   const [showModes, setShowModes] = useState(!!(editData?.story || editData?.mindMap || editData?.diagram?.length || editData?.spiral))
   const [wakeTime, setWakeTime] = useState(editData?.wakeTime || '')
   const [vividness, setVividness] = useState(editData?.vividness || '')
@@ -318,7 +320,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
               </p>
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {people.map(p => {
+                {people.filter(p => showFar || circleOf(p) === 'close' || peopleIds.includes(p.id)).map(p => {
                   const on = peopleIds.includes(p.id)
                   return (
                     <button type="button" key={p.id} onClick={() => toggle(peopleIds, setPeopleIds, p.id)} style={{
@@ -335,6 +337,11 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
                   )
                 })}
               </div>
+            )}
+            {people.some(p => circleOf(p) === 'far' && !peopleIds.includes(p.id)) && (
+              <button type="button" onClick={() => setShowFar(v => !v)} style={{ background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
+                {showFar ? 'Ukryj dalszych' : 'Pokaż dalszych'}
+              </button>
             )}
           </div>
 
