@@ -83,18 +83,67 @@ export function personForms(person) {
   return [...forms]
 }
 
+// ─── Dopasowanie polskich odmian imion ──────────────────────────────────────
+// „@Mateusza", „@Kasię", „@Franka" mają trafiać w osoby Mateusz, Kasia, Franek.
+// Dopasowanie dosłowne ma pierwszeństwo, odmiana liczy się tylko, gdy dosłownego brak.
+const isWordCh = (c) => !!c && /[\p{L}\p{N}]/u.test(c)
+
+// Możliwe rdzenie odmiany jednowyrazowej formy (≥4 litery; krótsze tylko dosłownie).
+function inflectionStems(formLow) {
+  if (formLow.length < 4 || /\s/.test(formLow)) return []
+  const out = new Set()
+  const base = formLow.replace(/(a|e|o|y|i|ą|ę|u|ó)$/u, '')
+  out.add(base.length >= 3 ? base : formLow)
+  if (formLow.endsWith('ek')) out.add(formLow.slice(0, -2) + 'k')   // Franek → Franka
+  if (formLow.endsWith('eł')) out.add(formLow.slice(0, -2) + 'ł')   // Paweł → Pawła
+  return [...out]
+}
+
+// Ile znaków `restLow` (tekst PO znaczniku, małymi literami) pochłania forma.
+// Zwraca { len, exact } albo null.
+export function formMatch(restLow, form) {
+  const f = (form || '').toLowerCase()
+  if (!f) return null
+  if (restLow.startsWith(f) && !isWordCh(restLow[f.length])) return { len: f.length, exact: true }
+  const stems = inflectionStems(f)
+  if (!stems.length) return null
+  const word = (restLow.match(/^[\p{L}\p{N}]+/u) || [''])[0]
+  let best = 0
+  // Imiona na samogłoskę (Kasia, Paula) odmieniają się krótką końcówką (Kasię, Pauli), więc
+  // dopuszczamy ≤2 litery (formy mnogie na -e/-i/-y: 3, np. rodzicami); imiona na spółgłoskę (Mateusz → Mateuszowi) do 4.
+  const maxExtra = /[aąęo]$/u.test(f) ? 2 : /[eiyu]$/u.test(f) ? 3 : 4
+  for (const st of stems) {
+    const extra = word.length - st.length
+    if (word.startsWith(st) && extra <= Math.min(maxExtra, st.length <= 3 ? 2 : 4)) best = Math.max(best, word.length)
+  }
+  return best ? { len: best, exact: false } : null
+}
+
+// Najlepsze dopasowanie osoby na początku `restLow`. Dosłowne wygrywa z odmianą,
+// potem dłuższe. Zwraca { len, exact, ids } (ids: wszystkie osoby remisujące) albo null.
+export function bestPersonMatch(restLow, people) {
+  let best = null
+  for (const p of people) {
+    for (const form of personForms(p)) {
+      const m = formMatch(restLow, form)
+      if (!m) continue
+      const better = !best || (m.exact && !best.exact) || (m.exact === best.exact && m.len > best.len)
+      if (better) best = { ...m, ids: [p.id] }
+      else if (m.exact === best.exact && m.len === best.len && !best.ids.includes(p.id)) best.ids.push(p.id)
+    }
+  }
+  return best
+}
+
 // Wyłuskaj z treści snu osoby wspomniane przez @Forma (najdłuższe dopasowanie pierwsze).
 // Formą może być pełne imię, samo imię lub ksywka (patrz personForms).
 export function parseMentions(text, people) {
   if (!text) return []
   const found = new Set()
-  const entries = []
-  for (const p of people) for (const form of personForms(p)) entries.push({ form, id: p.id })
-  entries.sort((a, b) => b.form.length - a.form.length)
-  for (const { form, id } of entries) {
-    const esc = form.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const re = new RegExp('@' + esc + '(?![\\p{L}\\p{N}])', 'u')
-    if (re.test(text)) found.add(id)
+  const low = text.toLowerCase()
+  for (let i = low.indexOf('@'); i !== -1; i = low.indexOf('@', i + 1)) {
+    const m = bestPersonMatch(low.slice(i + 1), people)
+    if (m) m.ids.forEach(id => found.add(id))
   }
   return [...found]
 }
@@ -144,10 +193,6 @@ export function tokenizeDreamText(text, people = [], symbols = []) {
   const symList = symbols.filter(s => s.name?.trim())
     .map(s => ({ s, low: s.name.trim().toLowerCase() }))
     .sort((a, b) => b.low.length - a.low.length)
-  // Formy osób (imię, odmiany, ksywki) — najdłuższa pierwsza.
-  const forms = []
-  for (const p of people) for (const f of personForms(p)) if (f) forms.push({ p, low: f.toLowerCase(), len: f.length })
-  forms.sort((a, b) => b.len - a.len)
 
   const segs = []
   let plain = ''
@@ -171,8 +216,11 @@ export function tokenizeDreamText(text, people = [], symbols = []) {
         const w = text.slice(i + 1).match(/^[\p{L}\p{N}]+/u)
         if (w) { pushPlain(); segs.push({ t: w[0], kind: 'symbol', id: null, color: '#5BB6D9' }); i += 1 + w[0].length; continue }
       } else {
-        const m = forms.find(({ low, len }) => restLow.startsWith(low) && !isWord(text[i + 1 + len]))
-        if (m) { pushPlain(); segs.push({ t: text.slice(i + 1, i + 1 + m.len), kind: 'person', id: m.p.id, color: m.p.color || null }); i += 1 + m.len; continue }
+        const m = bestPersonMatch(restLow, people)
+        if (m) {
+          const p = people.find(x => x.id === m.ids[0])
+          pushPlain(); segs.push({ t: text.slice(i + 1, i + 1 + m.len), kind: 'person', id: p.id, color: p.color || null }); i += 1 + m.len; continue
+        }
         const w = text.slice(i + 1).match(/^[\p{L}\p{N}]+/u)
         if (w) { pushPlain(); segs.push({ t: w[0], kind: 'person', id: null, color: null }); i += 1 + w[0].length; continue }
       }

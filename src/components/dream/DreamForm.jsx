@@ -1,6 +1,6 @@
 import PersonBubble from '../PersonBubble'
 import { db } from '../../firebase/config'
-import { DREAM_EMOTIONS, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
+import { DREAM_EMOTIONS, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
 import { IconCheck, IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
@@ -111,7 +111,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
     const typed = (trigger?.query || '').trim()
     const form = typed || (p.name || '').trim().split(/\s+/)[0] || p.name
     if (!peopleIds.includes(p.id)) setPeopleIds([...peopleIds, p.id])
-    if (typed && !personForms(p).some(f => f.toLowerCase() === typed.toLowerCase())) {
+    if (typed && !formRecognized(p, typed)) {
       updateDoc(doc(db, 'users', user.uid, 'calendarPeople', p.id), { aliases: arrayUnion(typed) }).catch(() => {})
     }
     insertToken('@', form)
@@ -237,7 +237,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
               }}>
                 {trigger.type === 'person' && personMatches.map(p => {
                   const typed = (trigger.query || '').trim()
-                  const known = !typed || personForms(p).some(f => f.toLowerCase() === typed.toLowerCase())
+                  const known = !typed || formRecognized(p, typed)
                   return (
                     <button type="button" key={p.id} onClick={() => pickPerson(p)} style={dropItemStyle}>
                       <PersonBubble title person={p} size={26} />
@@ -546,6 +546,13 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
       </div>
     </div>
   )
+}
+
+// Czy wpisana forma (np. odmieniona „Manueli") jest już rozpoznawana jako ta osoba.
+// Odmiany łapie samo dopasowanie, więc ksywkę zapisujemy tylko dla form, których nie zna.
+const formRecognized = (person, typed) => {
+  const m = bestPersonMatch(typed.toLowerCase(), [person])
+  return !!m && m.len === typed.length
 }
 
 const hintStyle = { margin: '6px 0 0', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }

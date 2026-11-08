@@ -8,6 +8,7 @@ import DreamCard from './DreamCard'
 import DreamCategoryManager from './DreamCategoryManager'
 import DreamDetail from './DreamDetail'
 import DreamForm from './DreamForm'
+import DreamImport from './DreamImport'
 import DreamMemory from './DreamMemory'
 import DreamMenu from './DreamMenu'
 import DreamStats from './DreamStats'
@@ -104,11 +105,11 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
   return (
     <div className="dream-dashboard">
       {/* Podstrona Symbole / Statystyki — pasek ze strzałką wstecz do dziennika */}
-      {!selected && (tab === 'symbols' || tab === 'stats' || tab === 'categories' || tab === 'memory') && (
+      {!selected && (tab === 'symbols' || tab === 'stats' || tab === 'categories' || tab === 'memory' || tab === 'import') && (
         <div className="rev-subhead">
           <button className="rev-back" onClick={() => { setTab('dreams'); setSelectedSymbolId(null) }} title="Wróć"><IconChevronLeft size={18} /></button>
           <div className="rev-subhead-title">
-            {tab === 'symbols' ? 'Symbole' : tab === 'categories' ? 'Kategorie snów' : tab === 'memory' ? 'Ćwiczenie pamięci' : 'Statystyki'}
+            {tab === 'symbols' ? 'Symbole' : tab === 'categories' ? 'Kategorie snów' : tab === 'memory' ? 'Ćwiczenie pamięci' : tab === 'import' ? 'Import snów' : 'Statystyki'}
           </div>
         </div>
       )}
@@ -124,6 +125,8 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
           onEdit={() => { setEditDream(selected); setShowForm(true) }}
           onDelete={() => deleteDream(selected.id)}
         />
+      ) : tab === 'import' ? (
+        <DreamImport user={user} onDone={() => setTab('dreams')} />
       ) : tab === 'memory' ? (
         <DreamMemory user={user} />
       ) : tab === 'stats' ? (

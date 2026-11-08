@@ -10,7 +10,7 @@ import { db } from '../firebase/config'
 export {
   DREAM_EMOTIONS, DREAM_CATEGORIES, SYMBOL_COLORS,
   getEmotion, getCategory, mergeDreamCategories, findDreamCategory, parseMentions, parseSymbols, dreamPeopleIds, nameStem, personForms,
-  detectTrigger, tokenizeDreamText,
+  detectTrigger, tokenizeDreamText, formMatch, bestPersonMatch,
 } from './dreamLogic'
 
 // Przy usunięciu symbolu — odpiąć go od snów (sny zostają).
