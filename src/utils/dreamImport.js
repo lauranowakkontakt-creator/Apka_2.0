@@ -189,7 +189,7 @@ const STOP = new Set(`to ten ta te tej tym tych tego jest są był była było b
   mówi mówił mówiła powiedział powiedziała chciał miał miała mają miało czas czasie osoba osoby osobę osobą rzecz rzeczy rzeczą
   ludzi ludzie ludziom miejsce miejsca miejscu chwila chwile chwilę strona strony stronę stronie śnie potem najpierw później
   zaczęli zaczęliśmy poszliśmy weszliśmy wyszliśmy pojechaliśmy dobrze super fajny fajna fajne normalnie prawie znowu znów
-  jakiś jakiegoś którymś kimś czymś komuś czegoś gdzie indziej pewnie można trzeba musiałam musiałem musi muszę końcu jakby jedną grupie osób chce różne wyjeździe dzień prostu przyszedł innego inni jestem mamy moją kogoś szybko początku przykro robi dlaczego drugi każdego międzyczasie mocno nawet pierwsza starym wyszedł angielsku`.split(/\s+/))
+  jakiś jakiegoś którymś kimś czymś komuś czegoś gdzie indziej pewnie można trzeba musiałam musiałem musi muszę końcu jakby jedną grupie osób chce różne wyjeździe dzień prostu przyszedł innego inni jestem mamy moją kogoś szybko początku przykro robi dlaczego drugi każdego międzyczasie mocno nawet pierwsza starym wyszedł angielsku innymi jakichś jakiś lekko nasze pani jednak mówię patrzę`.split(/\s+/))
 // Czasowniki (czas przeszły i bezokolicznik) odsiewamy po końcówce — zostają głównie rzeczowniki.
 const VERBISH = /(łam|łem|ła|ło|ły|li|liśmy|łyśmy|ć|ąc|ając|ęła|ęło|ęli|ąłem|ąłam|ał|ił|eł|ął|ował|owała|ować|ejmy|ajmy|uje|uję)$/u
 

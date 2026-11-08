@@ -97,3 +97,8 @@ test('liczby jako symbole (cyfry i słowa), bez godzin i kwot', () => {
   assert.ok(!s.includes('Liczba 50'))
   assert.ok(!s.includes('Liczba 2021'))
 })
+
+test('przemoc: dźgnął, zaatakował, przytrzymał, zabił, udusił', () => {
+  const s = autoSymbols('Mężczyzna mnie zaatakował, przytrzymał i dźgnął nożem, potem próbował mnie udusić. Zabił też mojego kota.', '')
+  for (const n of ['Zaatakowanie', 'Przytrzymanie', 'Dźgnięcie', 'Duszenie', 'Zabójstwo']) assert.ok(s.includes(n), n)
+})
