@@ -88,7 +88,7 @@ export default function DreamImport({ user, onDone }) {
         }
       } else {
         newPeople.push({ id: `imp-person-${slug(fp.name)}`, name: fp.name, aliases: fp.aliases, note: fp.note,
-          color: PERSON_COLORS[(i * 7 + fp.name.length) % PERSON_COLORS.length], isNew: true })
+          color: fp.color || PERSON_COLORS[(i * 7 + fp.name.length) % PERSON_COLORS.length], isNew: true })
       }
     })
     const haveSym = new Set(base.symbols.map(x => (x.name || '').toLowerCase()))
