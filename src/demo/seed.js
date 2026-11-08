@@ -344,7 +344,9 @@ export function seedDemoData(put, Timestamp) {
 
   // ── Sen ──────────────────────────────────────────────────────────────────
   const symbols = [['Woda', '#5BB6D9'], ['Dom z dzieciństwa', '#D98B5F'], ['Lot', '#7C8AF0'], ['Pies', '#E0B15A'], ['Szkoła', '#9B7CF0'], ['Pociąg', '#64748B']]
-    .map(([name, color]) => { const sid = id('symbol'); put(base('dreamSymbols'), sid, { name, color, createdAt: created(100) }); return sid })
+    .map(([name, color], i) => { const sid = id('symbol'); put(base('dreamSymbols'), sid, { name, color, ...(i === 0 ? { meaning: 'Oczyszczenie, ale też emocje, które mnie zalewają.' } : {}), createdAt: created(100) }); return sid })
+  ;['Salon', 'Kuchnia', 'Sypialnia'].forEach((room, i) =>
+    put(base('dreamMemory'), id('cwicz'), { date: isoAgo(i), room, details: ['okno', 'zasłony w kratę', 'lampa', 'fotel', 'dywan'], createdAt: created(i) }))
   const customDreamCat = id('senkat')
   put(base('dreamCategories'), customDreamCat, { label: 'Powracający', color: '#14B8A6', createdAt: created(100) })
   const DREAMS = ['Lot nad miastem', 'Egzamin bez przygotowania', 'Spotkanie z Babcią', 'Zgubiona walizka', 'Dom nad morzem', 'Spóźniony pociąg', 'Pies, który mówił', '']

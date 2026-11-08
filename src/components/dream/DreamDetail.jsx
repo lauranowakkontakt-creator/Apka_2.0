@@ -2,6 +2,7 @@ import PersonBubble from '../PersonBubble'
 import { findDreamCategory, getEmotion } from '../../utils/dreams'
 import { IconCalendar, IconChevronLeft, IconEdit, IconMoon, IconTag, IconTrash, IconUsers } from '../Icons'
 import { Chip, DreamText, fmtDate, SymbolChip } from './wspolne'
+import { DiagramView, MindMapView, SpiralView } from './DreamDrawings'
 import {
   DREAM_POSITIONS, DREAM_SPHERES, DREAM_ORIGINS, DREAM_KINDS, DREAM_VIVIDNESS, DREAM_ATMOSPHERE, DREAM_COLORS,
   DREAM_ELEMENTS, BEFORE_SLEEP, dreamKindIds, numberMeanings, findIn,
@@ -112,6 +113,35 @@ export default function DreamDetail({ dream, categories, peopleById, symbolsById
         </div>
       )}
 
+      {dream.story && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10 }}>Sen jako opowieść</div>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{dream.story}</p>
+          {dream.storyMoral && <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>Morał: {dream.storyMoral}</p>}
+        </div>
+      )}
+
+      {dream.mindMap && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 6 }}>Mapa myśli</div>
+          <MindMapView map={dream.mindMap} />
+        </div>
+      )}
+
+      {dream.diagram?.length > 0 && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10 }}>Diagram historii</div>
+          <DiagramView scenes={dream.diagram} />
+        </div>
+      )}
+
+      {dream.spiral && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10 }}>Spirala</div>
+          <SpiralView text={dream.spiral} />
+        </div>
+      )}
+
       {dream.interpretation && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)', borderRadius: 'var(--r)', padding: 16 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -136,6 +166,15 @@ export default function DreamDetail({ dream, categories, peopleById, symbolsById
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {syms.map(s => <SymbolChip key={s.id} symbol={s} onClick={() => onOpenSymbol(s.id)} />)}
           </div>
+          {syms.some(s => s.meaning) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 10 }}>
+              {syms.filter(s => s.meaning).map(s => (
+                <div key={s.id} style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.5 }}>
+                  <span style={{ fontWeight: 600, color: s.color || '#5BB6D9' }}>{s.name}:</span> {s.meaning}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -4,6 +4,8 @@ import { DREAM_EMOTIONS, detectTrigger, nameStem, parseMentions, personForms } f
 import { IconCheck, IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
+import DreamWriteModes from './DreamWriteModes'
+import { cleanDiagram, cleanMindMap } from '../../utils/dreamForms'
 import {
   GUIDE_QUESTIONS, appendQuestion, hasJacksonFields, dreamKindIds, numberMeanings, NUMBER_CAVEAT,
   DREAM_POSITIONS, DREAM_SPHERES, DREAM_ORIGINS, DREAM_KINDS, DREAM_VIVIDNESS, DREAM_ATMOSPHERE,
@@ -36,6 +38,13 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
   const [elements, setElements] = useState(editData?.elements || [])
   const [openGroup, setOpenGroup] = useState(null)
   const [context, setContext]   = useState(editData?.context || '')
+  // Zaawansowane formy zapisu (opowieść, mapa myśli, diagram, spirala).
+  const [story, setStory]       = useState(editData?.story || '')
+  const [storyMoral, setStoryMoral] = useState(editData?.storyMoral || '')
+  const [mindMap, setMindMap]   = useState(editData?.mindMap || null)
+  const [diagram, setDiagram]   = useState(editData?.diagram || [])
+  const [spiral, setSpiral]     = useState(editData?.spiral || '')
+  const [showModes, setShowModes] = useState(!!(editData?.story || editData?.mindMap || editData?.diagram?.length || editData?.spiral))
   const [wakeTime, setWakeTime] = useState(editData?.wakeTime || '')
   const [vividness, setVividness] = useState(editData?.vividness || '')
   const [colors, setColors]     = useState(editData?.colors || [])
@@ -151,6 +160,8 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
       atmosphere, elements, context: context.trim(), wakeTime: wakeTime || null,
       colors, mainElement: mainElement.trim(), numbers: numbers.trim(), beforeSleep,
       application: application.trim(),
+      story: story.trim(), storyMoral: storyMoral.trim(), mindMap: cleanMindMap(mindMap),
+      diagram: cleanDiagram(diagram), spiral: spiral.trim(),
       updatedAt: Timestamp.now(),
     }
     try {
@@ -166,6 +177,8 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
           position: editData.position ?? null, origin: editData.origin ?? null, kinds: dreamKindIds(editData),
           sphere: editData.sphere ?? null, atmosphere: editData.atmosphere ?? [], elements: editData.elements ?? [],
           context: editData.context ?? '', wakeTime: editData.wakeTime ?? null,
+          story: editData.story ?? '', storyMoral: editData.storyMoral ?? '', mindMap: editData.mindMap ?? null,
+          diagram: editData.diagram ?? null, spiral: editData.spiral ?? '',
           vividness: editData.vividness ?? null, colors: editData.colors ?? [],
           mainElement: editData.mainElement ?? '', numbers: editData.numbers ?? '',
           beforeSleep: editData.beforeSleep ?? [], application: editData.application ?? '',
@@ -472,6 +485,19 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
                   style={{ resize: 'vertical', minHeight: 56, lineHeight: 1.6 }} />
               </div>
             </>
+          )}
+
+          <button type="button" onClick={() => setShowModes(v => !v)} style={{
+            alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--accent)',
+          }}>
+            {showModes ? 'Ukryj zapis rozszerzony' : 'Zapis rozszerzony: opowieść, mapa myśli, diagram, spirala'}
+          </button>
+          {showModes && (
+            <DreamWriteModes dreamText={text}
+              story={story} setStory={setStory} storyMoral={storyMoral} setStoryMoral={setStoryMoral}
+              mindMap={mindMap} setMindMap={setMindMap} diagram={diagram} setDiagram={setDiagram}
+              spiral={spiral} setSpiral={setSpiral} />
           )}
 
           <div className="form-group">
