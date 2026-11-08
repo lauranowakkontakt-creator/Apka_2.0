@@ -1,9 +1,16 @@
 import PersonBubble from '../PersonBubble'
 import { db } from '../../firebase/config'
-import { DREAM_EMOTIONS, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
+import { DREAM_EMOTIONS, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
 import { IconCheck, IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
+import DreamWriteModes from './DreamWriteModes'
+import { cleanDiagram, cleanMindMap } from '../../utils/dreamForms'
+import {
+  GUIDE_QUESTIONS, appendQuestion, hasJacksonFields, dreamKindIds, numberMeanings, NUMBER_CAVEAT,
+  DREAM_POSITIONS, DREAM_SPHERES, DREAM_ORIGINS, DREAM_KINDS, DREAM_VIVIDNESS, DREAM_ATMOSPHERE,
+  DREAM_COLORS, DREAM_ELEMENTS, BEFORE_SLEEP,
+} from '../../utils/dreamJackson'
 import { Timestamp, addDoc, arrayUnion, collection, doc, updateDoc } from 'firebase/firestore'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
@@ -20,6 +27,31 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
   const [symbolIds, setSymbolIds] = useState(editData?.symbolIds || [])
   const [localSymbols, setLocalSymbols] = useState([]) // symbole utworzone w tej sesji
   const [saving, setSaving]     = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  // Pola wg metody Jacksona — sekcja zwinięta przy szybkim zapisie, rozwinięta gdy sen je ma.
+  const [showMore, setShowMore] = useState(hasJacksonFields(editData))
+  const [position, setPosition] = useState(editData?.position || '')
+  const [origin, setOrigin]     = useState(editData?.origin || '')
+  const [kinds, setKinds]       = useState(dreamKindIds(editData))
+  const [sphere, setSphere]     = useState(editData?.sphere || '')
+  const [atmosphere, setAtmosphere] = useState(editData?.atmosphere || [])
+  const [elements, setElements] = useState(editData?.elements || [])
+  const [openGroup, setOpenGroup] = useState(null)
+  const [context, setContext]   = useState(editData?.context || '')
+  // Zaawansowane formy zapisu (opowieść, mapa myśli, diagram, spirala).
+  const [story, setStory]       = useState(editData?.story || '')
+  const [storyMoral, setStoryMoral] = useState(editData?.storyMoral || '')
+  const [mindMap, setMindMap]   = useState(editData?.mindMap || null)
+  const [diagram, setDiagram]   = useState(editData?.diagram || [])
+  const [spiral, setSpiral]     = useState(editData?.spiral || '')
+  const [showModes, setShowModes] = useState(!!(editData?.story || editData?.mindMap || editData?.diagram?.length || editData?.spiral))
+  const [wakeTime, setWakeTime] = useState(editData?.wakeTime || '')
+  const [vividness, setVividness] = useState(editData?.vividness || '')
+  const [colors, setColors]     = useState(editData?.colors || [])
+  const [mainElement, setMainElement] = useState(editData?.mainElement || '')
+  const [numbers, setNumbers]   = useState(editData?.numbers || '')
+  const [beforeSleep, setBeforeSleep] = useState(editData?.beforeSleep || [])
+  const [application, setApplication] = useState(editData?.application || '')
 
   const textRef = useRef(null)
   const [trigger, setTrigger]   = useState(null) // { type:'person'|'symbol', query, start }
@@ -79,7 +111,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
     const typed = (trigger?.query || '').trim()
     const form = typed || (p.name || '').trim().split(/\s+/)[0] || p.name
     if (!peopleIds.includes(p.id)) setPeopleIds([...peopleIds, p.id])
-    if (typed && !personForms(p).some(f => f.toLowerCase() === typed.toLowerCase())) {
+    if (typed && !formRecognized(p, typed)) {
       updateDoc(doc(db, 'users', user.uid, 'calendarPeople', p.id), { aliases: arrayUnion(typed) }).catch(() => {})
     }
     insertToken('@', form)
@@ -124,6 +156,12 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
       title: title.trim(), date, text: text.trim(),
       interpretation: interpretation.trim(),
       category: category || null, emotions, peopleIds, mentionIds, symbolIds,
+      position: position || null, origin: origin || null, kinds, sphere: sphere || null, vividness: vividness || null,
+      atmosphere, elements, context: context.trim(), wakeTime: wakeTime || null,
+      colors, mainElement: mainElement.trim(), numbers: numbers.trim(), beforeSleep,
+      application: application.trim(),
+      story: story.trim(), storyMoral: storyMoral.trim(), mindMap: cleanMindMap(mindMap),
+      diagram: cleanDiagram(diagram), spiral: spiral.trim(),
       updatedAt: Timestamp.now(),
     }
     try {
@@ -136,6 +174,14 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
           category: editData.category ?? null, emotions: editData.emotions ?? [],
           peopleIds: editData.peopleIds ?? [], mentionIds: editData.mentionIds ?? [],
           symbolIds: editData.symbolIds ?? [],
+          position: editData.position ?? null, origin: editData.origin ?? null, kinds: dreamKindIds(editData),
+          sphere: editData.sphere ?? null, atmosphere: editData.atmosphere ?? [], elements: editData.elements ?? [],
+          context: editData.context ?? '', wakeTime: editData.wakeTime ?? null,
+          story: editData.story ?? '', storyMoral: editData.storyMoral ?? '', mindMap: editData.mindMap ?? null,
+          diagram: editData.diagram ?? null, spiral: editData.spiral ?? '',
+          vividness: editData.vividness ?? null, colors: editData.colors ?? [],
+          mainElement: editData.mainElement ?? '', numbers: editData.numbers ?? '',
+          beforeSleep: editData.beforeSleep ?? [], application: editData.application ?? '',
         }
         await updateDoc(ref, data)
         onClose()
@@ -191,7 +237,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
               }}>
                 {trigger.type === 'person' && personMatches.map(p => {
                   const typed = (trigger.query || '').trim()
-                  const known = !typed || personForms(p).some(f => f.toLowerCase() === typed.toLowerCase())
+                  const known = !typed || formRecognized(p, typed)
                   return (
                     <button type="button" key={p.id} onClick={() => pickPerson(p)} style={dropItemStyle}>
                       <PersonBubble title person={p} size={26} />
@@ -292,12 +338,206 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
             )}
           </div>
 
+          <button type="button" onClick={() => setShowMore(v => !v)} style={{
+            alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--accent)',
+          }}>
+            {showMore ? 'Ukryj szczegóły snu' : 'Szczegóły snu: pozycja, kolory, liczby, kategorie'}
+          </button>
+
+          {showMore && (
+            <>
+              <div className="form-group">
+                <label>Gdzie jestem w śnie <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— to mówi, o kim jest sen</span></label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_POSITIONS.map(o => (
+                    <Chip key={o.id} color="#9B7CF0" active={position === o.id}
+                      onClick={() => setPosition(position === o.id ? '' : o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+                {position && <p style={hintStyle}>{DREAM_POSITIONS.find(o => o.id === position)?.hint}</p>}
+              </div>
+
+              <div className="form-group">
+                <label>Główny element <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— kto lub co jest w centrum uwagi</span></label>
+                <input type="text" className="form-input" value={mainElement} maxLength={120}
+                  onChange={e => setMainElement(e.target.value)} placeholder="np. zamknięte drzwi, powódź, dziecko..." />
+              </div>
+
+              <div className="form-group">
+                <label>Sfera snu</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_SPHERES.map(o => (
+                    <Chip key={o.id} color="#5BB6D9" active={sphere === o.id}
+                      onClick={() => setSphere(sphere === o.id ? '' : o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+                {sphere && <p style={hintStyle}>{DREAM_SPHERES.find(o => o.id === sphere)?.hint}</p>}
+              </div>
+
+              <div className="form-group">
+                <label>Barwa obrazu</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_VIVIDNESS.map(o => (
+                    <Chip key={o.id} color="#7C8AF0" active={vividness === o.id}
+                      onClick={() => setVividness(vividness === o.id ? '' : o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Wyraźne kolory</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_COLORS.map(c => (
+                    <Chip key={c.id} color={c.color} active={colors.includes(c.id)}
+                      onClick={() => toggle(colors, setColors, c.id)}>{c.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Wydźwięk snu</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_ATMOSPHERE.map(o => (
+                    <Chip key={o.id} color="#E0B15A" active={atmosphere.includes(o.id)}
+                      onClick={() => toggle(atmosphere, setAtmosphere, o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Co pojawiło się w śnie <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— dotknij grupy</span></label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_ELEMENTS.map(g => {
+                    const n = elements.filter(e => e.startsWith(g.id + ':')).length
+                    return (
+                      <Chip key={g.id} color="#5FBF98" active={openGroup === g.id || n > 0}
+                        onClick={() => setOpenGroup(openGroup === g.id ? null : g.id)}>
+                        {g.label}{n > 0 ? ` (${n})` : ''}
+                      </Chip>
+                    )
+                  })}
+                </div>
+                {openGroup && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, padding: 10, borderRadius: 10, background: 'var(--surface2)', border: '1px solid var(--border)' }}>
+                    {DREAM_ELEMENTS.find(g => g.id === openGroup).items.map(item => {
+                      const key = openGroup + ':' + item
+                      return (
+                        <Chip key={key} color="#5FBF98" active={elements.includes(key)}
+                          onClick={() => toggle(elements, setElements, key)}>{item}</Chip>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Liczby <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— wpisz, a pokażę znaczenie z tabeli</span></label>
+                <input type="text" className="form-input" value={numbers} maxLength={80}
+                  onChange={e => setNumbers(e.target.value)} placeholder="np. 3, 12, 2010" />
+                {numberMeanings(numbers).length > 0 && (
+                  <div style={hintStyle}>
+                    {numberMeanings(numbers).map(m => `${m.n} = ${m.meaning}`).join(' · ')}
+                    <br />{NUMBER_CAVEAT}
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Skąd może być ten sen</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_ORIGINS.map(o => (
+                    <Chip key={o.id} color={o.color} active={origin === o.id}
+                      onClick={() => setOrigin(origin === o.id ? '' : o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Kategorie snu <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— może być kilka</span></label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {DREAM_KINDS.map(o => (
+                    <Chip key={o.id} color={o.color} active={kinds.includes(o.id)}
+                      onClick={() => toggle(kinds, setKinds, o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Przed snem <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— gniew, pycha i alkohol osłabiają pamięć snów</span></label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {BEFORE_SLEEP.map(o => (
+                    <Chip key={o.id} color="#D98B5F" active={beforeSleep.includes(o.id)}
+                      onClick={() => toggle(beforeSleep, setBeforeSleep, o.id)}>{o.label}</Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Godzina przebudzenia <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— najlepsza pora na zapis to 4:00–5:00</span></label>
+                <input type="time" className="form-input" value={wakeTime} onChange={e => setWakeTime(e.target.value)} />
+              </div>
+
+              <div className="form-group">
+                <label>Kontekst <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— nad czym Bóg teraz pracuje, o co się modlę</span></label>
+                <textarea className="form-input" value={context} onChange={e => setContext(e.target.value)}
+                  rows={2} placeholder="Co dzieje się w moim życiu w tym czasie..."
+                  style={{ resize: 'vertical', minHeight: 56, lineHeight: 1.6 }} />
+              </div>
+            </>
+          )}
+
+          <button type="button" onClick={() => setShowModes(v => !v)} style={{
+            alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--accent)',
+          }}>
+            {showModes ? 'Ukryj zapis rozszerzony' : 'Zapis rozszerzony: opowieść, mapa myśli, diagram, spirala'}
+          </button>
+          {showModes && (
+            <DreamWriteModes dreamText={text}
+              story={story} setStory={setStory} storyMoral={storyMoral} setStoryMoral={setStoryMoral}
+              mindMap={mindMap} setMindMap={setMindMap} diagram={diagram} setDiagram={setDiagram}
+              spiral={spiral} setSpiral={setSpiral} />
+          )}
+
           <div className="form-group">
             <label>Interpretacja <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— opcjonalnie</span></label>
             <textarea className="form-input" value={interpretation} onChange={e => setInterpretation(e.target.value)}
               rows={4} placeholder="Co ten sen może oznaczać? Twoje przemyślenia, skojarzenia..."
               style={{ resize: 'vertical', minHeight: 90, lineHeight: 1.6 }} />
+            <button type="button" onClick={() => setShowGuide(v => !v)} style={{
+              marginTop: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+            }}>
+              {showGuide ? 'Ukryj pytania pomocnicze' : 'Pytania pomocnicze do interpretacji'}
+            </button>
+            {showGuide && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Dotknij pytania, a wstawi się do interpretacji.</span>
+                {GUIDE_QUESTIONS.map((g, i) => (
+                  <div key={g.id}>
+                    {(i === 0 || GUIDE_QUESTIONS[i - 1].group !== g.group) && (
+                      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', margin: '6px 0 4px' }}>{g.group}</div>
+                    )}
+                    <button type="button" onClick={() => setInterpretation(cur => appendQuestion(cur, g.q))} style={{
+                      width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+                      fontFamily: 'inherit', fontSize: 12, lineHeight: 1.5, color: 'var(--text-sub)',
+                      background: 'var(--surface2)', border: '1px solid var(--border)',
+                    }}>{g.q}</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
+          {showMore && (
+            <div className="form-group">
+              <label>Zastosowanie <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— co mam z tym zrobić</span></label>
+              <textarea className="form-input" value={application} onChange={e => setApplication(e.target.value)}
+                rows={3} placeholder="Modlitwa, rozmowa, decyzja, a może poczekać..."
+                style={{ resize: 'vertical', minHeight: 70, lineHeight: 1.6 }} />
+            </div>
+          )}
 
           <button type="submit" className="btn-save" disabled={saving || (!title.trim() && !text.trim())}>
             {saving ? 'Zapisywanie...' : editData ? 'Zapisz zmiany' : 'Zapisz sen'}
@@ -307,6 +547,15 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
     </div>
   )
 }
+
+// Czy wpisana forma (np. odmieniona „Manueli") jest już rozpoznawana jako ta osoba.
+// Odmiany łapie samo dopasowanie, więc ksywkę zapisujemy tylko dla form, których nie zna.
+const formRecognized = (person, typed) => {
+  const m = bestPersonMatch(typed.toLowerCase(), [person])
+  return !!m && m.len === typed.length
+}
+
+const hintStyle = { margin: '6px 0 0', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }
 
 const dropItemStyle = {
   display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px',

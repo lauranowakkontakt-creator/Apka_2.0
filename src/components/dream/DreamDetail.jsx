@@ -2,6 +2,11 @@ import PersonBubble from '../PersonBubble'
 import { findDreamCategory, getEmotion } from '../../utils/dreams'
 import { IconCalendar, IconChevronLeft, IconEdit, IconMoon, IconTag, IconTrash, IconUsers } from '../Icons'
 import { Chip, DreamText, fmtDate, SymbolChip } from './wspolne'
+import { DiagramView, MindMapView, SpiralView } from './DreamDrawings'
+import {
+  DREAM_POSITIONS, DREAM_SPHERES, DREAM_ORIGINS, DREAM_KINDS, DREAM_VIVIDNESS, DREAM_ATMOSPHERE, DREAM_COLORS,
+  DREAM_ELEMENTS, BEFORE_SLEEP, dreamKindIds, numberMeanings, findIn,
+} from '../../utils/dreamJackson'
 
 // Pojedynczy sen w całości, z podświetlonymi osobami i symbolami.
 
@@ -12,6 +17,28 @@ export default function DreamDetail({ dream, categories, peopleById, symbolsById
     .map(id => peopleById[id]).filter(Boolean)
   const linkedPeople = [...new Set([...(dream.peopleIds || []), ...(dream.mentionIds || [])])]
     .map(id => peopleById[id]).filter(Boolean)
+  const details = [
+    ['Pozycja', findIn(DREAM_POSITIONS, dream.position)?.label],
+    ['Sfera', findIn(DREAM_SPHERES, dream.sphere)?.label],
+    ['Barwa obrazu', findIn(DREAM_VIVIDNESS, dream.vividness)?.label],
+    ['Główny element', dream.mainElement],
+    ['Liczby', dream.numbers],
+    ['Przebudzenie', dream.wakeTime],
+    ['Kontekst', dream.context],
+  ].filter(([, v]) => v)
+  const colorList = (dream.colors || []).map(id => findIn(DREAM_COLORS, id)).filter(Boolean)
+  const nums = numberMeanings(dream.numbers)
+  const atmos = (dream.atmosphere || []).map(id => findIn(DREAM_ATMOSPHERE, id)).filter(Boolean)
+  const elementList = (dream.elements || []).map(e => {
+    const [gid, ...rest] = e.split(':')
+    const g = DREAM_ELEMENTS.find(x => x.id === gid)
+    return g ? { id: e, label: rest.join(':'), group: g.label } : null
+  }).filter(Boolean)
+  const tagList = [
+    findIn(DREAM_ORIGINS, dream.origin),
+    ...dreamKindIds(dream).map(id => findIn(DREAM_KINDS, id)),
+    ...(dream.beforeSleep || []).map(id => findIn(BEFORE_SLEEP, id) && { ...findIn(BEFORE_SLEEP, id), color: '#D98B5F' }),
+  ].filter(Boolean)
   const syms = (dream.symbolIds || []).map(id => symbolsById[id]).filter(Boolean)
 
   return (
@@ -44,12 +71,90 @@ export default function DreamDetail({ dream, categories, peopleById, symbolsById
         </div>
       )}
 
+      {(details.length > 0 || colorList.length > 0 || tagList.length > 0 || elementList.length > 0 || atmos.length > 0) && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase' }}>Szczegóły snu</div>
+          {details.map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', gap: 8, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-muted)', minWidth: 96 }}>{k}</span>
+              <span style={{ fontWeight: 500 }}>{v}</span>
+            </div>
+          ))}
+          {colorList.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {colorList.map(c => <Chip key={c.id} color={c.color} active>{c.label}</Chip>)}
+            </div>
+          )}
+          {colorList.some(c => c.plus) && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              {colorList.filter(c => c.plus).map(c => `${c.label}: dobrze: ${c.plus}; źle: ${c.minus}`).join(' · ')}
+            </div>
+          )}
+          {nums.length > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              {nums.map(m => `${m.n} = ${m.meaning}`).join(' · ')}. Znaczenie zależy od kontekstu snu.
+            </div>
+          )}
+          {atmos.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {atmos.map(a => <Chip key={a.id} color="#E0B15A">{a.label}</Chip>)}
+            </div>
+          )}
+          {elementList.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {elementList.map(e => <Chip key={e.id} color="#5FBF98">{e.label}</Chip>)}
+            </div>
+          )}
+          {tagList.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {tagList.map(t => <Chip key={t.id} color={t.color}>{t.label}</Chip>)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {dream.story && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10 }}>Sen jako opowieść</div>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{dream.story}</p>
+          {dream.storyMoral && <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>Morał: {dream.storyMoral}</p>}
+        </div>
+      )}
+
+      {dream.mindMap && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 6 }}>Mapa myśli</div>
+          <MindMapView map={dream.mindMap} />
+        </div>
+      )}
+
+      {dream.diagram?.length > 0 && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10 }}>Diagram historii</div>
+          <DiagramView scenes={dream.diagram} />
+        </div>
+      )}
+
+      {dream.spiral && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10 }}>Spirala</div>
+          <SpiralView text={dream.spiral} />
+        </div>
+      )}
+
       {dream.interpretation && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)', borderRadius: 'var(--r)', padding: 16 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
             <IconMoon size={12} /> Interpretacja
           </div>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--text-sub)' }}>{dream.interpretation}</p>
+        </div>
+      )}
+
+      {dream.application && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderLeft: '3px solid #5FBF98', borderRadius: 'var(--r)', padding: 16 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 10 }}>Zastosowanie</div>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--text-sub)' }}>{dream.application}</p>
         </div>
       )}
 
@@ -61,6 +166,15 @@ export default function DreamDetail({ dream, categories, peopleById, symbolsById
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {syms.map(s => <SymbolChip key={s.id} symbol={s} onClick={() => onOpenSymbol(s.id)} />)}
           </div>
+          {syms.some(s => s.meaning) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 10 }}>
+              {syms.filter(s => s.meaning).map(s => (
+                <div key={s.id} style={{ fontSize: 12, color: 'var(--text-sub)', lineHeight: 1.5 }}>
+                  <span style={{ fontWeight: 600, color: s.color || '#5BB6D9' }}>{s.name}:</span> {s.meaning}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -258,3 +258,43 @@ test('findDreamCategory — szuka w podanej liście, bez listy we wbudowanych', 
   assert.equal(findDreamCategory([], 'koszmar').label, 'Koszmar')
   assert.equal(findDreamCategory(cats, 'nie-ma'), undefined)
 })
+
+// ─── Odmiany imion przy @ ───────────────────────────────────────────────────
+import { formMatch as _fm, bestPersonMatch as _bpm, parseMentions as _pm, tokenizeDreamText as _tok } from '../src/utils/dreamLogic.js'
+
+const LUDZIE = [
+  { id: 'mt', name: 'Mateusz Telenga' },
+  { id: 'mo', name: 'Mateusz Tomczak', aliases: ['Mat', 'Mati', 'Matiego', 'Matim'] },
+  { id: 'ka', name: 'Kasia Nowak' },
+  { id: 'fr', name: 'Franek Wielgus' },
+  { id: 'ma', name: 'Manuela Filipska', aliases: ['Man', 'Mana', 'Many', 'Manueli'] },
+  { id: 'ol', name: 'Ola Kowal' },
+  { id: 'ro', name: 'Rodzice' },
+]
+
+test('formMatch: dosłowne i odmienione', () => {
+  assert.deepEqual(_fm('mateusz i', 'Mateusz'), { len: 7, exact: true })
+  assert.deepEqual(_fm('mateusza w', 'Mateusz'), { len: 8, exact: false })
+  assert.deepEqual(_fm('kasię w', 'Kasia'), { len: 5, exact: false })
+  assert.deepEqual(_fm('franka w', 'Franek'), { len: 6, exact: false })
+  assert.equal(_fm('olek', 'Ola'), null)          // krótka forma tylko dosłownie
+  assert.equal(_fm('mateuszowskiego', 'Mateusz'), null) // za długa końcówka
+})
+
+test('parseMentions łączy odmienione imiona', () => {
+  assert.deepEqual(_pm('Byłam z @Kasię i @Franka w domu', LUDZIE).sort(), ['fr', 'ka'])
+  assert.deepEqual(_pm('Rozmowa z @Manueli o @Rodziców', LUDZIE).sort(), ['ma', 'ro'])
+})
+
+test('dosłowne dopasowanie wygrywa z odmianą innej osoby', () => {
+  // „Mateusz" dosłownie pasuje do dwóch osób (oba remisują), „Matiego" tylko do aliasu Tomczaka
+  assert.deepEqual(_bpm('mateusz', LUDZIE).ids.sort(), ['mo', 'mt'])
+  assert.deepEqual(_bpm('matiego rano', LUDZIE).ids, ['mo'])
+})
+
+test('tokenizeDreamText linkuje odmienione imię z id osoby', () => {
+  const segs = _tok('Rozmawiałam z @Kasię wieczorem', LUDZIE, [])
+  const p = segs.find(s => s.kind === 'person')
+  assert.equal(p.t, 'Kasię')
+  assert.equal(p.id, 'ka')
+})

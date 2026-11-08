@@ -5,10 +5,41 @@ import { confirmDialog } from '../ConfirmModal'
 import { IconChevronLeft, IconChevronRight, IconTag, IconTrash } from '../Icons'
 import { toast } from '../Toast'
 import DreamCard from './DreamCard'
-import { deleteDoc, doc } from 'firebase/firestore'
+import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { useMemo, useState } from 'react'
 
 // Symbole ze snów: lista, ich wystąpienia i przejście do konkretnego snu.
+
+// Własne znaczenie symbolu — „słownik" śniącej. Znaczenie zależy od kontekstu snu, więc
+// zapisujemy je jako tekst, a nie sztywną definicję (podręcznik kursu 201, rozdz. 3.4 i 6.1).
+function SymbolMeaning({ user, symbol }) {
+  const [text, setText] = useState(symbol.meaning || '')
+  const [saving, setSaving] = useState(false)
+  const dirty = text.trim() !== (symbol.meaning || '').trim()
+  const save = async () => {
+    setSaving(true)
+    try {
+      await updateDoc(doc(db, 'users', user.uid, 'dreamSymbols', symbol.id), { meaning: text.trim() })
+      toast.success('Zapisano znaczenie')
+    } catch (err) {
+      toast.error('Nie udało się zapisać: ' + (err?.message || 'błąd'))
+    }
+    setSaving(false)
+  }
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase' }}>Co to dla mnie znaczy</div>
+      <textarea className="form-input" value={text} onChange={e => setText(e.target.value)} rows={3}
+        placeholder="Znaczenie dobre i złe, skojarzenia, kiedy się pojawia. Pamiętaj: ten sam symbol nie znaczy w każdym śnie tego samego."
+        style={{ resize: 'vertical', minHeight: 70, lineHeight: 1.6 }} />
+      {dirty && (
+        <button type="button" className="btn-save" disabled={saving} onClick={save} style={{ margin: 0 }}>
+          {saving ? 'Zapisywanie...' : 'Zapisz znaczenie'}
+        </button>
+      )}
+    </div>
+  )
+}
 
 export default function SymbolsView({ user, symbols, dreams, counts, categories, peopleById, symbolsById, selectedSymbolId, onSelectSymbol, onOpenDream, onCreateSymbol }) {
   const [adding, setAdding] = useState(false)
@@ -57,6 +88,7 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>w {its.length} {its.length === 1 ? 'śnie' : 'snach'}</span>
           <button className="t-btn delete" title="Usuń symbol" onClick={() => remove(selected)} style={{ marginLeft: 'auto' }}><IconTrash size={14} /></button>
         </div>
+        <SymbolMeaning key={selected.id} user={user} symbol={selected} />
         {its.length === 0 ? (
           <div className="list-empty"><p>Brak snów z tym symbolem</p></div>
         ) : its.map(d => (
@@ -108,6 +140,9 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
                 {c === 0 ? 'jeszcze w żadnym śnie' : `w ${c} ${c === 1 ? 'śnie' : c < 5 ? 'snach' : 'snach'}`}
               </p>
+              {s.meaning && (
+                <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-sub)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.meaning}</p>
+              )}
             </div>
             <span style={{ fontSize: 15, fontWeight: 700, color: s.color || '#5BB6D9', flexShrink: 0 }}>{c}</span>
             <button className="t-btn delete" title="Usuń" onClick={e => { e.stopPropagation(); remove(s) }}><IconTrash size={13} /></button>
