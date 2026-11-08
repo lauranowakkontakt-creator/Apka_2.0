@@ -1,7 +1,7 @@
 import PersonBubble from '../PersonBubble'
 import { db } from '../../firebase/config'
 import { DREAM_EMOTIONS, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
-import { IconCheck, IconClose, IconPlus, IconTag } from '../Icons'
+import { IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
 import DreamWriteModes from './DreamWriteModes'
@@ -45,7 +45,8 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
   const [mindMap, setMindMap]   = useState(editData?.mindMap || null)
   const [diagram, setDiagram]   = useState(editData?.diagram || [])
   const [spiral, setSpiral]     = useState(editData?.spiral || '')
-  const [showFar, setShowFar] = useState(false)
+  const [personQuery, setPersonQuery] = useState('')
+  const [showAllPeople, setShowAllPeople] = useState(false)
   const [showModes, setShowModes] = useState(!!(editData?.story || editData?.mindMap || editData?.diagram?.length || editData?.spiral))
   const [wakeTime, setWakeTime] = useState(editData?.wakeTime || '')
   const [vividness, setVividness] = useState(editData?.vividness || '')
@@ -313,35 +314,51 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
           </div>
 
           <div className="form-group">
-            <label>Osoby, które brały udział w śnie</label>
+            <label>Osoby, które brały udział w śnie <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— {peopleIds.length > 0 ? `wybrano ${peopleIds.length}` : 'możesz też wpisać @ w treści'}</span></label>
             {people.length === 0 ? (
               <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
                 Brak osób — dodaj je w module „Osoby", a pojawią się tutaj i po wpisaniu @.
               </p>
             ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {people.filter(p => showFar || circleOf(p) === 'close' || peopleIds.includes(p.id)).map(p => {
-                  const on = peopleIds.includes(p.id)
+              <>
+                {/* Wybrane osoby — zawsze widoczne */}
+                {peopleIds.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {people.filter(p => peopleIds.includes(p.id)).map(p => (
+                      <button type="button" key={p.id} onClick={() => toggle(peopleIds, setPeopleIds, p.id)} style={personChip(p, true)}>
+                        <PersonBubble title person={p} size={22} />{p.name}<IconClose size={11} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <input type="search" className="form-input" value={personQuery} onChange={e => setPersonQuery(e.target.value)}
+                  placeholder="Szukaj osoby…" />
+                {/* Podpowiedzi: przy wpisywaniu dopasowania ze wszystkich, inaczej bliscy; zawsze zwinięte do kilku */}
+                {(() => {
+                  const q = personQuery.trim().toLowerCase()
+                  const pool = people.filter(p => !peopleIds.includes(p.id) &&
+                    (q ? personForms(p).some(f => f.toLowerCase().includes(q)) || (p.name || '').toLowerCase().includes(q)
+                       : showAllPeople || circleOf(p) === 'close'))
+                  const list = showAllPeople || q ? pool : pool.slice(0, 8)
                   return (
-                    <button type="button" key={p.id} onClick={() => toggle(peopleIds, setPeopleIds, p.id)} style={{
-                      display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px 5px 5px', borderRadius: 999,
-                      cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
-                      border: `1px solid ${on ? (p.color || 'var(--accent)') : 'var(--border)'}`,
-                      background: on ? (p.color || 'var(--accent)') + '1e' : 'var(--surface2)',
-                      color: on ? (p.color || 'var(--accent)') : 'var(--text-sub)',
-                    }}>
-                      <PersonBubble title person={p} size={24} />
-                      {p.name}
-                      {on && <IconCheck size={13} />}
-                    </button>
+                    <>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, maxHeight: showAllPeople ? 220 : undefined, overflowY: showAllPeople ? 'auto' : undefined }}>
+                        {list.map(p => (
+                          <button type="button" key={p.id} onClick={() => { toggle(peopleIds, setPeopleIds, p.id); setPersonQuery('') }} style={personChip(p, false)}>
+                            <PersonBubble title person={p} size={22} />{p.name}
+                          </button>
+                        ))}
+                        {list.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nikogo nie znaleziono</span>}
+                      </div>
+                      {!q && pool.length > 8 && (
+                        <button type="button" onClick={() => setShowAllPeople(v => !v)} style={{ background: 'none', border: 'none', padding: '6px 0 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
+                          {showAllPeople ? 'Zwiń listę' : `Pokaż wszystkich (${people.filter(p => !peopleIds.includes(p.id)).length})`}
+                        </button>
+                      )}
+                    </>
                   )
-                })}
-              </div>
-            )}
-            {people.some(p => circleOf(p) === 'far' && !peopleIds.includes(p.id)) && (
-              <button type="button" onClick={() => setShowFar(v => !v)} style={{ background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
-                {showFar ? 'Ukryj dalszych' : 'Pokaż dalszych'}
-              </button>
+                })()}
+              </>
             )}
           </div>
 
@@ -561,6 +578,15 @@ const formRecognized = (person, typed) => {
   const m = bestPersonMatch(typed.toLowerCase(), [person])
   return !!m && m.len === typed.length
 }
+
+// Pigułka osoby w wyborze uczestników snu.
+const personChip = (p, on) => ({
+  display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 4px', borderRadius: 999,
+  cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+  border: `1px solid ${on ? (p.color || 'var(--accent)') : 'var(--border)'}`,
+  background: on ? (p.color || 'var(--accent)') + '1e' : 'var(--surface2)',
+  color: on ? (p.color || 'var(--accent)') : 'var(--text-sub)',
+})
 
 const hintStyle = { margin: '6px 0 0', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }
 

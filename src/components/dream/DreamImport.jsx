@@ -47,13 +47,14 @@ export default function DreamImport({ user, onDone }) {
   useEffect(() => {
     let alive = true
     const b = ['users', user.uid]
-    Promise.all(['calendarPeople', 'dreamSymbols', 'dreams'].map(c => getDocs(collection(db, ...b, c))))
-      .then(([p, s, d]) => {
+    Promise.all(['calendarPeople', 'dreamSymbols', 'dreams', 'dreamCategories'].map(c => getDocs(collection(db, ...b, c))))
+      .then(([p, s, d, c]) => {
         if (!alive) return
         setBase({
           people: p.docs.map(x => ({ id: x.id, ...x.data() })),
           symbols: s.docs.map(x => ({ id: x.id, ...x.data() })),
           dreams: d.docs.map(x => ({ id: x.id, ...x.data() })),
+          categories: c.docs.map(x => ({ id: x.id, ...x.data() })),
         })
       })
       .catch(e => alive && setLoadErr(`Nie udało się wczytać danych (${e?.code || e?.name || 'błąd'}). Sprawdź połączenie i spróbuj ponownie.`))
@@ -73,7 +74,7 @@ export default function DreamImport({ user, onDone }) {
   // Osoby i symbole podane w pliku. Osoba o tej samej nazwie co już istniejąca dostaje tylko brakujące ksywki;
   // pozostałe są dodawane. Symbol o istniejącej nazwie jest pomijany.
   const fromFile = useMemo(() => {
-    if (!base || !file) return { newPeople: [], aliasUpdates: [], newSymbols: [], peopleBase: base?.people || [] }
+    if (!base || !file) return { newPeople: [], aliasUpdates: [], newSymbols: [], newCategories: [], peopleBase: base?.people || [] }
     const byName = new Map(base.people.map(p => [(p.name || '').toLowerCase(), p]))
     const newPeople = [], aliasUpdates = []
     let peopleBase = base.people
@@ -94,7 +95,10 @@ export default function DreamImport({ user, onDone }) {
     const haveSym = new Set(base.symbols.map(x => (x.name || '').toLowerCase()))
     const newSymbols = file.parsed.symbols.filter(x => !haveSym.has(x.name.toLowerCase()))
       .map((x, i) => ({ id: `imp-sym-${slug(x.name)}`, name: x.name, meaning: x.meaning, color: x.color || SYMBOL_COLORS[i % SYMBOL_COLORS.length], isNew: true }))
-    return { newPeople, aliasUpdates, newSymbols, peopleBase: [...peopleBase, ...newPeople] }
+    const haveCat = new Set((base.categories || []).map(x => (x.label || x.name || '').toLowerCase()))
+    const newCategories = file.parsed.categories.filter(x => !haveCat.has(x.name.toLowerCase()))
+      .map((x, i) => ({ id: `imp-cat-${slug(x.name)}`, label: x.name, color: x.color || SYMBOL_COLORS[i % SYMBOL_COLORS.length] }))
+    return { newPeople, aliasUpdates, newSymbols, newCategories, peopleBase: [...peopleBase, ...newPeople] }
   }, [base, file])
 
   // Kandydaci z samego pliku (liczone raz po wczytaniu).
@@ -121,8 +125,8 @@ export default function DreamImport({ user, onDone }) {
   const symbolsUse = useMemo(() => base ? [...base.symbols, ...fromFile.newSymbols, ...chosenNewSymbols] : [], [base, fromFile, chosenNewSymbols])
 
   const importPlan = useMemo(() => mode === 'import' && base && file
-    ? planDreamImport({ dreams: file.parsed.dreams, existing: base.dreams, people: peopleUse, symbols: symbolsUse, options: { tag } })
-    : null, [mode, base, file, peopleUse, symbolsUse, tag])
+    ? planDreamImport({ dreams: file.parsed.dreams, existing: base.dreams, people: peopleUse, symbols: symbolsUse, categories: [...(base.categories || []).map(x => ({ id: x.id, label: x.label || x.name })), ...fromFile.newCategories], options: { tag } })
+    : null, [mode, base, file, peopleUse, symbolsUse, fromFile, tag])
   const relinkPlan = useMemo(() => mode === 'relink' && base
     ? planRelink({ dreams: base.dreams, people: peopleUse, symbols: base.symbols, options: { tag } })
     : null, [mode, base, peopleUse, tag])
@@ -140,6 +144,7 @@ export default function DreamImport({ user, onDone }) {
     if (importPlan) {
       for (const p of fromFile.newPeople) writes.push({ path: [...b, 'calendarPeople', p.id], data: { name: p.name, note: p.note || '', info: '', icon: 'IcUsers', color: p.color, aliases: p.aliases, createdAt: now, updatedAt: now } })
       for (const u of fromFile.aliasUpdates) writes.push({ path: [...b, 'calendarPeople', u.id], data: { aliases: u.aliases }, merge: true })
+      for (const x of fromFile.newCategories) writes.push({ path: [...b, 'dreamCategories', x.id], data: { label: x.label, color: x.color, createdAt: now } })
       for (const x of fromFile.newSymbols) writes.push({ path: [...b, 'dreamSymbols', x.id], data: { name: x.name, color: x.color, ...(x.meaning ? { meaning: x.meaning } : {}), createdAt: now } })
     }
     // Nowe osoby i symbole z podpowiedzi zapisujemy tylko wtedy, gdy faktycznie coś do nich trafiło.
@@ -236,6 +241,12 @@ export default function DreamImport({ user, onDone }) {
           <>
             <div className="imp-plan-row"><span>Nowe symbole z pliku</span><b>{fromFile.newSymbols.length}</b></div>
             <div className="imp-plan-sub">{fromFile.newSymbols.map(x => x.name).join(', ')}</div>
+          </>
+        )}
+        {importPlan && fromFile.newCategories.length > 0 && (
+          <>
+            <div className="imp-plan-row"><span>Nowe kategorie snów z pliku</span><b>{fromFile.newCategories.length}</b></div>
+            <div className="imp-plan-sub">{fromFile.newCategories.map(x => x.label).join(', ')}</div>
           </>
         )}
         <div className="imp-plan-row"><span>Znalezione osoby</span><b>{peopleRows.length}</b></div>
