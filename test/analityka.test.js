@@ -59,3 +59,14 @@ test('doTegoDnia — ten sam okres roku', () => {
   const w = [{ klucz: '2025-03-01' }, { klucz: '2025-11-07' }, { klucz: '2025-11-08' }, { klucz: '2024-01-01' }]
   assert.equal(A.doTegoDnia(w, 2025, new Date(2026, 10, 7)), 2)
 })
+
+test('rozbijWgLat — suma i podział na lata, od największej', () => {
+  const r = A.rozbijWgLat([
+    { nazwa: 'A', rok: 2024, wartosc: 10 }, { nazwa: 'A', rok: 2025, wartosc: 5 },
+    { nazwa: 'B', rok: 2025, wartosc: 30 }, { nazwa: 'B', rok: 2025 },
+  ])
+  assert.deepEqual(r.lata, [2024, 2025])
+  assert.equal(r.wiersze[0].nazwa, 'B')
+  assert.equal(r.wiersze[0].suma, 31)
+  assert.equal(r.wiersze[1].poLatach[2024], 10)
+})

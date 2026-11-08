@@ -2,13 +2,14 @@ import { IconChevronLeft, IconChevronRight } from '../Icons'
 import { addDays, addMonths, format, getDaysInMonth, parseISO, startOfMonth, subMonths } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { useMemo, useState } from 'react'
-import { AnalizaRoku, Rozwijana, Ranking } from '../Analityka'
-import { getEmotion } from '../../utils/dreamLogic'
+import { AnalizaRoku, Rozwijana, Ranking, Kafle, TabelaLat } from '../Analityka'
+import { findDreamCategory } from '../../utils/dreamLogic'
+import { rozbijWgLat } from '../../utils/analityka'
 
 // Statystyki snów: częstotliwość zapisywania i najczęstsze symbole.
 
 const DREAM_WD = ['P', 'W', 'Ś', 'C', 'P', 'S', 'N']
-export default function DreamStats({ dreams }) {
+export default function DreamStats({ dreams, categories }) {
   const [month, setMonth] = useState(new Date())
 
   // Liczba snów na dzień (klucz yyyy-MM-dd)
@@ -30,29 +31,51 @@ export default function DreamStats({ dreams }) {
   const shade = (lvl) => lvl === 0 ? 'var(--surface2)' : `color-mix(in oklab, var(--accent) ${28 + lvl * 22}%, var(--surface2))`
 
   const wpisy = useMemo(() => dreams.filter(d => d.date).map(d => ({ klucz: d.date })), [dreams])
-  const KOL = ['#6366F1', '#5BB6D9', '#C47BD9', '#5FBF98', '#E0B15A', '#E07A9B', '#9AA3B8']
-  const ranking = (rok, pole) => {
+  // Rodzaj snu (koszmar, zwykły, przyjemny, duchowy…) — bez kategorii liczy się jako „Bez rodzaju".
+  const rodzaj = (d) => {
+    const c = d.category ? findDreamCategory(categories, d.category) : null
+    return { nazwa: c?.label || (d.category ? d.category : 'Bez rodzaju'), kolor: c?.color || '#9E9E9E' }
+  }
+  const rodzajeRoku = (rok) => {
     const m = {}
     dreams.filter(d => d.date?.startsWith(String(rok))).forEach(d => {
-      const v = d[pole]
-      ;(Array.isArray(v) ? v : v ? [v] : []).forEach(x => { m[x] = (m[x] || 0) + 1 })
+      const r = rodzaj(d)
+      m[r.nazwa] = m[r.nazwa] || { nazwa: r.nazwa, kolor: r.kolor, wartosc: 0 }
+      m[r.nazwa].wartosc++
     })
-    return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([id, wartosc], i) => {
-      const em = pole === 'emotions' ? getEmotion(id) : null
-      return { nazwa: em?.label || id, wartosc, kolor: em?.color || KOL[i % KOL.length] }
-    })
+    return Object.values(m).sort((a, b) => b.wartosc - a.wartosc)
   }
+  const kolorRodzaju = useMemo(() => Object.fromEntries(dreams.map(rodzaj).map(r => [r.nazwa, r.kolor])), [dreams, categories]) // eslint-disable-line react-hooks/exhaustive-deps
+  const wLatach = useMemo(() => rozbijWgLat(dreams.filter(d => d.date).map(d => ({ nazwa: rodzaj(d).nazwa, rok: Number(d.date.slice(0, 4)) }))), [dreams, categories]) // eslint-disable-line react-hooks/exhaustive-deps
+  const sumyLat = wLatach.lata.map(r => ({ rok: r, n: wLatach.wiersze.reduce((s, w) => s + (w.poLatach[r] || 0), 0) }))
+  const razemSnow = sumyLat.reduce((a, b) => a + b.n, 0)
+  const najRok = sumyLat.reduce((p, c) => (!p || c.n > p.n ? c : p), null)
+  const topRodzaj = wLatach.wiersze[0]
   const fmtSny = (v) => `${v} ${v === 1 ? 'sen' : v % 10 >= 2 && v % 10 <= 4 && (v % 100 < 12 || v % 100 > 14) ? 'sny' : 'snów'}`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <AnalizaRoku id="sen" wpisy={wpisy} jednostka={['sen', 'sny', 'snów']} kolor="#6366F1" tytulDni="Noce ze snem">
         {(rok) => (
-          <Rozwijana id="sen-emocje" tytul={`Emocje w snach · ${rok}`} podsumowanie={ranking(rok, 'emotions')[0]?.nazwa}>
-            <Ranking pozycje={ranking(rok, 'emotions')} fmt={fmtSny} pusty="Brak oznaczonych emocji" />
+          <Rozwijana id="sen-rodzaje" tytul={`Rodzaje snów · ${rok}`} domyslnie podsumowanie={rodzajeRoku(rok)[0]?.nazwa}>
+            <Ranking pozycje={rodzajeRoku(rok)} fmt={fmtSny} pusty="Brak snów w tym roku" />
           </Rozwijana>
         )}
       </AnalizaRoku>
+
+      {sumyLat.length > 0 && (
+        <Rozwijana id="sen-lata" tytul="Przez wszystkie lata" domyslnie podsumowanie={`${razemSnow} snów · ${sumyLat.length} ${sumyLat.length === 1 ? 'rok' : 'lat'}`}>
+          <Kafle min={120} items={[
+            { label: 'Wszystkich snów', value: razemSnow.toLocaleString('pl-PL') },
+            { label: 'Najwięcej w roku', value: najRok ? String(najRok.rok) : '—', sub: najRok ? fmtSny(najRok.n) : null },
+            { label: 'Średnio / rok', value: sumyLat.length ? (Math.round(razemSnow / sumyLat.length * 10) / 10).toLocaleString('pl-PL') : '—' },
+            { label: 'Najczęstszy rodzaj', value: topRodzaj?.nazwa || '—', sub: topRodzaj ? `${Math.round(topRodzaj.suma / razemSnow * 100)}% snów` : null },
+          ]} />
+          <Ranking pozycje={[...sumyLat].reverse().map(y => ({ nazwa: String(y.rok), wartosc: y.n, kolor: '#6366F1' }))} fmt={fmtSny} limit={12} />
+          <p className="an-det-h">Rodzaje snów rok po roku</p>
+          <TabelaLat dane={wLatach} kolory={kolorRodzaju} />
+        </Rozwijana>
+      )}
 
       <Rozwijana id="sen-kal" tytul="Kalendarz miesiąca" podsumowanie={`${monthDreams} w ${format(month, 'LLLL', { locale: pl })}`}>
       {/* Podsumowanie miesiąca */}
