@@ -90,7 +90,8 @@ const isWordCh = (c) => !!c && /[\p{L}\p{N}]/u.test(c)
 
 // Możliwe rdzenie odmiany jednowyrazowej formy (≥4 litery; krótsze tylko dosłownie).
 function inflectionStems(formLow) {
-  if (formLow.length < 4 || /\s/.test(formLow)) return []
+  // Krótkie formy (do 3 liter), wielowyrazowe i zdrobnienia na -o (Karo) nie odmieniają się dowolnie.
+  if (formLow.length < 4 || /\s/.test(formLow) || /o$/u.test(formLow)) return []
   const out = new Set()
   const base = formLow.replace(/(a|e|o|y|i|ą|ę|u|ó)$/u, '')
   out.add(base.length >= 3 ? base : formLow)
@@ -114,7 +115,7 @@ export function formMatch(restLow, form) {
   const maxExtra = /[aąęo]$/u.test(f) ? 2 : /[eiyu]$/u.test(f) ? 3 : 4
   for (const st of stems) {
     const extra = word.length - st.length
-    if (word.startsWith(st) && extra <= Math.min(maxExtra, st.length <= 3 ? 2 : 4)) best = Math.max(best, word.length)
+    if (word.startsWith(st) && extra <= Math.min(maxExtra, st.length <= 4 ? 2 : 4)) best = Math.max(best, word.length)
   }
   return best ? { len: best, exact: false } : null
 }
