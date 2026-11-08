@@ -56,6 +56,7 @@ export function parseDreamFile(text) {
 
   const dreams = []
   let skipped = 0
+  const pickLink = (x) => (x.powiazania && typeof x.powiazania === 'object' ? { skip: x.powiazania.pomin || [], force: x.powiazania.jako || {} } : undefined)
   for (const x of list) {
     if (!x || typeof x !== 'object') { skipped++; continue }
     let d
@@ -71,6 +72,7 @@ export function parseDreamFile(text) {
         extra: Object.fromEntries(['emotions', 'position', 'sphere', 'origin', 'kinds', 'vividness', 'colors', 'atmosphere',
           'elements', 'numbers', 'mainElement', 'context', 'wakeTime', 'beforeSleep', 'application', 'story', 'storyMoral',
           'mindMap', 'diagram', 'spiral', 'originalText'].filter(k => x[k] != null && x[k] !== '' && !(Array.isArray(x[k]) && !x[k].length)).map(k => [k, x[k]])),
+        link: pickLink(x),
       }
     } else {
       d = {
@@ -78,6 +80,7 @@ export function parseDreamFile(text) {
         text: str(x.text ?? x.tresc ?? x['treść'] ?? x.content ?? x.description ?? x.opis ?? x.body),
         interpretation: str(x.interpretation ?? x.interpretacja), category: str(x.category) || null,
         extra: x.originalText ? { originalText: str(x.originalText) } : undefined,
+        link: pickLink(x),
       }
     }
     if (!d.date || (!d.title && !d.text)) { skipped++; continue }
@@ -85,7 +88,12 @@ export function parseDreamFile(text) {
   }
   if (!dreams.length) return { error: 'Nie znalazłam w pliku żadnego snu z datą i treścią.' }
   dreams.sort((a, b) => a.date.localeCompare(b.date))
-  return { format, dreams, skipped }
+  // Opcjonalne listy w pliku: osoby (name, aliases, note) i symbole (name, meaning, color).
+  const cleanList = (arr) => (Array.isArray(arr) ? arr : []).filter(x => x && str(x.name))
+    .map(x => ({ name: str(x.name), aliases: (x.aliases || []).map(str).filter(Boolean), note: str(x.note), meaning: str(x.meaning), color: str(x.color) }))
+  const people = Array.isArray(data) ? [] : cleanList(data.people)
+  const symbols = Array.isArray(data) ? [] : cleanList(data.symbols)
+  return { format, dreams, skipped, people, symbols }
 }
 
 // ─── Identyfikatory i duplikaty ─────────────────────────────────────────────
@@ -114,8 +122,12 @@ function symbolMatchLen(restLow, nameLow) {
 
 // Przeszukuje tekst: zwraca nową treść (z @ przed osobami, jeśli tag), listy id
 // i niejednoznaczności. Nie rusza słów już poprzedzonych @ albo #.
-export function linkText(text, people, symbols, { tag = true } = {}) {
+// opcje: tag — dopisz @ przed imionami; skip — słowa (małe litery, początek słowa), których NIE łączymy z osobami;
+// force — { początek słowa (małe litery) → pełna nazwa osoby }, gdy w tym śnie imię znaczy konkretną osobę.
+export function linkText(text, people, symbols, { tag = true, skip = [], force = {} } = {}) {
   const low = text.toLowerCase()
+  const skipList = skip.map(x => x.toLowerCase())
+  const forceList = Object.entries(force).map(([k, name]) => [k.toLowerCase(), people.find(p => (p.name || '').toLowerCase() === String(name).toLowerCase())])
   const mentionIds = new Set()
   const symbolIds = new Set()
   const ambiguous = []   // { word, ids }
@@ -129,6 +141,10 @@ export function linkText(text, people, symbols, { tag = true } = {}) {
       continue
     }
     const rest = low.slice(i)
+    const word = m[0].toLowerCase()
+    if (skipList.some(k => word.startsWith(k))) continue
+    const forced = forceList.find(([k, person]) => person && word.startsWith(k))
+    if (forced) { mentionIds.add(forced[1].id); inserts.push(i); continue }
     const pm = bestPersonMatch(rest, people)
     if (pm) {
       const matched = text.slice(i, i + pm.len)
@@ -201,7 +217,11 @@ const NOT_NAMES = new Set(`bóg boga bogu bogiem boże bożej bożego jezus jezu
 
 // Zwraca [{ name, count, forms }] — kandydaci na osoby (≥ `min` snów), najczęstsi pierwsi.
 // Odmiany tego samego imienia (Monia, Monią, Monie) łączymy w jedną osobę.
-export function suggestNewPeople(texts, people = [], { min = 2, limit = 40 } = {}) {
+export function suggestNewPeople(texts, people = [], { min = 2, limit = 40, exclude = [] } = {}) {
+  // Nazwiska znanych osób i nazwy symboli (np. koty, postacie) to nie nowe osoby.
+  const known = new Set(exclude.map(x => x.toLowerCase()))
+  for (const p of people) for (const w of (p.name || '').split(/\s+/).slice(1)) known.add(w.toLowerCase())
+  const isKnown = (low) => [...known].some(k => formMatch(low, k)?.len === low.length || low === k)
   const groups = new Map()   // rdzeń → { forms: Map(forma → ile), docs: Set }
   texts.forEach((t, di) => {
     for (const m of t.matchAll(/(?<![\p{L}@#])\p{Lu}[\p{L}]{2,}/gu)) {
@@ -209,7 +229,7 @@ export function suggestNewPeople(texts, people = [], { min = 2, limit = 40 } = {
       if (!before || /[.!?:]$/.test(before)) continue            // początek zdania
       const w = m[0], low = w.toLowerCase()
       if (NOT_NAMES.has(low) || VERBISH.test(low) || STOP.has(low)) continue
-      if (bestPersonMatch(low, people)) continue
+      if (bestPersonMatch(low, people) || isKnown(low)) continue
       const stem = low.length > 4 ? low.replace(/(em|om|ami|ach)$/u, '').replace(/[aąęeioyuó]+$/u, '') : low
       const g = groups.get(stem) || { forms: new Map(), docs: new Set() }
       g.forms.set(w, (g.forms.get(w) || 0) + 1); g.docs.add(di); groups.set(stem, g)
@@ -251,7 +271,7 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
     const id = dreamId(d)
     if (ids.has(id) || keys.has(dupKey(d))) { dup++; continue }
     ids.add(id); keys.add(dupKey(d))
-    const r = link ? linkText(d.text, peopleUse, symbols, { tag }) : { text: d.text, mentionIds: [], symbolIds: [], ambiguous: [] }
+    const r = link ? linkText(d.text, peopleUse, symbols, { tag, ...(d.link || {}) }) : { text: d.text, mentionIds: [], symbolIds: [], ambiguous: [] }
     r.mentionIds.forEach(p => { perPerson[p] = (perPerson[p] || 0) + 1 })
     r.symbolIds.forEach(s => { perSymbol[s] = (perSymbol[s] || 0) + 1 })
     for (const a of r.ambiguous) {

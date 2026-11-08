@@ -70,10 +70,37 @@ export default function DreamImport({ user, onDone }) {
     setPeopleOff(new Set()); setChoices({}); setNewPeople({}); setSymbolOn(new Set())
   }
 
+  // Osoby i symbole podane w pliku. Osoba o tej samej nazwie co już istniejąca dostaje tylko brakujące ksywki;
+  // pozostałe są dodawane. Symbol o istniejącej nazwie jest pomijany.
+  const fromFile = useMemo(() => {
+    if (!base || !file) return { newPeople: [], aliasUpdates: [], newSymbols: [], peopleBase: base?.people || [] }
+    const byName = new Map(base.people.map(p => [(p.name || '').toLowerCase(), p]))
+    const newPeople = [], aliasUpdates = []
+    let peopleBase = base.people
+    file.parsed.people.forEach((fp, i) => {
+      const ex = byName.get(fp.name.toLowerCase())
+      if (ex) {
+        const have = new Set((ex.aliases || []).map(a => a.toLowerCase()))
+        const add = fp.aliases.filter(a => !have.has(a.toLowerCase()))
+        if (add.length) {
+          aliasUpdates.push({ id: ex.id, aliases: [...(ex.aliases || []), ...add] })
+          peopleBase = peopleBase.map(p => p.id === ex.id ? { ...p, aliases: [...(p.aliases || []), ...add] } : p)
+        }
+      } else {
+        newPeople.push({ id: `imp-person-${slug(fp.name)}`, name: fp.name, aliases: fp.aliases, note: fp.note,
+          color: PERSON_COLORS[(i * 7 + fp.name.length) % PERSON_COLORS.length], isNew: true })
+      }
+    })
+    const haveSym = new Set(base.symbols.map(x => (x.name || '').toLowerCase()))
+    const newSymbols = file.parsed.symbols.filter(x => !haveSym.has(x.name.toLowerCase()))
+      .map((x, i) => ({ id: `imp-sym-${slug(x.name)}`, name: x.name, meaning: x.meaning, color: x.color || SYMBOL_COLORS[i % SYMBOL_COLORS.length], isNew: true }))
+    return { newPeople, aliasUpdates, newSymbols, peopleBase: [...peopleBase, ...newPeople] }
+  }, [base, file])
+
   // Kandydaci z samego pliku (liczone raz po wczytaniu).
   const texts = useMemo(() => file?.parsed.dreams.map(d => d.text) || [], [file])
-  const candPeople = useMemo(() => base && file ? suggestNewPeople(texts, base.people) : [], [base, file, texts])
-  const candSymbols = useMemo(() => base && file ? suggestSymbols(texts, { people: base.people, symbols: base.symbols }) : [], [base, file, texts])
+  const candPeople = useMemo(() => base && file ? suggestNewPeople(texts, fromFile.peopleBase, { exclude: [...base.symbols, ...fromFile.newSymbols].map(x => x.name) }) : [], [base, file, texts, fromFile])
+  const candSymbols = useMemo(() => base && file ? suggestSymbols(texts, { people: fromFile.peopleBase, symbols: [...base.symbols, ...fromFile.newSymbols] }) : [], [base, file, texts, fromFile])
 
   // Osoby i symbole wybrane do importu (nowe dostają stałe id, żeby ponowny import trafiał w te same dokumenty).
   const chosenNewPeople = useMemo(() => candPeople
@@ -88,10 +115,10 @@ export default function DreamImport({ user, onDone }) {
 
   const peopleUse = useMemo(() => {
     if (!base) return []
-    const all = [...base.people.filter(p => !peopleOff.has(p.id)), ...chosenNewPeople]
+    const all = [...fromFile.peopleBase.filter(p => !peopleOff.has(p.id)), ...chosenNewPeople]
     return withAliases(all, choices)
-  }, [base, peopleOff, chosenNewPeople, choices])
-  const symbolsUse = useMemo(() => base ? [...base.symbols, ...chosenNewSymbols] : [], [base, chosenNewSymbols])
+  }, [base, fromFile, peopleOff, chosenNewPeople, choices])
+  const symbolsUse = useMemo(() => base ? [...base.symbols, ...fromFile.newSymbols, ...chosenNewSymbols] : [], [base, fromFile, chosenNewSymbols])
 
   const importPlan = useMemo(() => mode === 'import' && base && file
     ? planDreamImport({ dreams: file.parsed.dreams, existing: base.dreams, people: peopleUse, symbols: symbolsUse, options: { tag } })
@@ -109,7 +136,13 @@ export default function DreamImport({ user, onDone }) {
     const now = new Date()
     const writes = []
     const perPerson = importPlan?.perPerson || relinkPlan?.perPerson || {}
-    // Nowe osoby i symbole zapisujemy tylko wtedy, gdy faktycznie coś do nich trafiło.
+    // Osoby i symbole podane w pliku zapisujemy zawsze; zaznaczone podpowiedzi tylko, gdy coś do nich trafiło.
+    if (importPlan) {
+      for (const p of fromFile.newPeople) writes.push({ path: [...b, 'calendarPeople', p.id], data: { name: p.name, note: p.note || '', info: '', icon: 'IcUsers', color: p.color, aliases: p.aliases, createdAt: now, updatedAt: now } })
+      for (const u of fromFile.aliasUpdates) writes.push({ path: [...b, 'calendarPeople', u.id], data: { aliases: u.aliases }, merge: true })
+      for (const x of fromFile.newSymbols) writes.push({ path: [...b, 'dreamSymbols', x.id], data: { name: x.name, color: x.color, ...(x.meaning ? { meaning: x.meaning } : {}), createdAt: now } })
+    }
+    // Nowe osoby i symbole z podpowiedzi zapisujemy tylko wtedy, gdy faktycznie coś do nich trafiło.
     for (const p of chosenNewPeople) if (perPerson[p.id]) writes.push({ path: [...b, 'calendarPeople', p.id], data: { name: p.name, note: '', info: '', icon: 'IcUsers', color: p.color, aliases: p.aliases, createdAt: now, updatedAt: now } })
     for (const s of chosenNewSymbols) if (importPlan?.perSymbol[s.id]) writes.push({ path: [...b, 'dreamSymbols', s.id], data: { name: s.name, color: s.color, createdAt: now } })
     // Odmiana wskazana w pytaniach o niejednoznaczne słowa → zapamiętana jako ksywka osoby.
@@ -190,6 +223,19 @@ export default function DreamImport({ user, onDone }) {
             <div className="imp-plan-sub">{Object.entries(importPlan.years).sort().map(([y, n]) => `${y}: ${n}`).join(' · ')}</div>
             <div className="imp-plan-row"><span>Już są w apce, pominę</span><b>{importPlan.dup}</b></div>
             {file.parsed.skipped > 0 && <div className="imp-plan-row"><span>Wpisy bez daty lub treści, pominę</span><b>{file.parsed.skipped}</b></div>}
+          </>
+        )}
+        {importPlan && (fromFile.newPeople.length > 0 || fromFile.aliasUpdates.length > 0) && (
+          <>
+            <div className="imp-plan-row"><span>Nowe osoby z pliku</span><b>{fromFile.newPeople.length}</b></div>
+            <div className="imp-plan-sub">{fromFile.newPeople.map(p => p.name).join(', ')}</div>
+            {fromFile.aliasUpdates.length > 0 && <div className="imp-plan-sub">Dopiszę ksywki u {fromFile.aliasUpdates.length} osób, które już masz.</div>}
+          </>
+        )}
+        {importPlan && fromFile.newSymbols.length > 0 && (
+          <>
+            <div className="imp-plan-row"><span>Nowe symbole z pliku</span><b>{fromFile.newSymbols.length}</b></div>
+            <div className="imp-plan-sub">{fromFile.newSymbols.map(x => x.name).join(', ')}</div>
           </>
         )}
         <div className="imp-plan-row"><span>Znalezione osoby</span><b>{peopleRows.length}</b></div>

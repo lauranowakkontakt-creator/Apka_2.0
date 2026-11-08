@@ -133,3 +133,36 @@ test('suggestSymbols zwraca częste słowa i pomija czasowniki oraz znane symbol
   const s2 = suggestSymbols(texts, { min: 3, symbols: [{ name: 'dom' }] })
   assert.ok(!s2.some(x => x.word.startsWith('dom')))
 })
+
+test('linkText: skip i force dla konkretnego snu', () => {
+  const ludzie = [
+    { id: 'bw', name: 'Bartek Wójcikowski' }, { id: 'bs', name: 'Bartłomiej Steleblak' },
+    { id: 'zs', name: 'Zosia Bogusławska' }, { id: 'ma', name: 'Mateusz Nowak' }, { id: 'mt', name: 'Mateusz Tomczak' },
+  ]
+  const a = linkText('Przyszedł Bartek, mój kuzyn', ludzie, [], { force: { bartek: 'Bartek Wójcikowski' } })
+  assert.deepEqual(a.mentionIds, ['bw'])
+  assert.equal(a.text, 'Przyszedł @Bartek, mój kuzyn')
+  const b = linkText('Wzięłam ciocię Zosię', ludzie, [], { skip: ['zosi'] })
+  assert.deepEqual(b.mentionIds, [])
+  assert.equal(b.text, 'Wzięłam ciocię Zosię')
+  const c = linkText('Zaszłam w ciążę z Mateuszem Nowakiem', ludzie, [], { force: { mateusz: 'Mateusz Nowak' } })
+  assert.deepEqual(c.mentionIds, ['ma'])
+})
+
+test('parseDreamFile: osoby, symbole i powiązania z pliku', () => {
+  const r = parseDreamFile(JSON.stringify({
+    people: [{ name: 'Monika Matuszak', aliases: ['Monia'], note: 'koleżanka' }, { name: '' }],
+    symbols: [{ name: 'Mila', meaning: 'mój kot' }],
+    dreams: [{ title: 'A', date: '2024-01-02', text: 'Bartek', powiazania: { pomin: ['x'], jako: { bartek: 'Bartek W' } } }],
+  }))
+  assert.equal(r.people.length, 1)
+  assert.deepEqual(r.people[0].aliases, ['Monia'])
+  assert.equal(r.symbols[0].meaning, 'mój kot')
+  assert.deepEqual(r.dreams[0].link, { skip: ['x'], force: { bartek: 'Bartek W' } })
+})
+
+test('suggestNewPeople pomija nazwiska znanych osób i nazwy symboli', () => {
+  const texts = ['Rozmawiałam z Prusem i Mila', 'Znowu Prusa i Mila', 'Była Mila', 'Była Monia i Monią', 'Spotkałam Monię']
+  const c = suggestNewPeople(texts, [{ id: 'n', name: 'Natalia Prus' }], { exclude: ['Mila'] })
+  assert.deepEqual(c.map(x => x.name), ['Monia'])
+})
