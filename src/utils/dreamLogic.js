@@ -89,6 +89,9 @@ export function personForms(person) {
 const isWordCh = (c) => !!c && /[\p{L}\p{N}]/u.test(c)
 
 // Możliwe rdzenie odmiany jednowyrazowej formy (≥4 litery; krótsze tylko dosłownie).
+// Zwykłe słowa, które wyglądają jak odmiana imienia (mamy = „mamy dom", nie „mama").
+const NO_INFLECT_WORDS = new Set(['mamy'])
+
 function inflectionStems(formLow) {
   // Krótkie formy (do 3 liter), wielowyrazowe i zdrobnienia na -o (Karo) nie odmieniają się dowolnie.
   if (formLow.length < 4 || /\s/.test(formLow) || /o$/u.test(formLow)) return []
@@ -108,8 +111,9 @@ export function formMatch(restLow, form) {
   if (restLow.startsWith(f) && !isWordCh(restLow[f.length])) return { len: f.length, exact: true }
   const stems = inflectionStems(f)
   if (!stems.length) return null
+  if (NO_INFLECT_WORDS.has((restLow.match(/^[\p{L}\p{N}]+/u) || [''])[0])) return null
   const word = (restLow.match(/^[\p{L}\p{N}]+/u) || [''])[0]
-  let best = 0
+  let best = 0, bestStem = 0
   // Imiona na samogłoskę (Kasia, Paula) odmieniają się krótką końcówką (Kasię, Pauli), więc
   // dopuszczamy ≤2 litery (formy mnogie na -e/-i/-y: 3, np. rodzicami); imiona na spółgłoskę (Mateusz → Mateuszowi) do 4.
   const maxExtra = /[aąęo]$/u.test(f) ? 2 : /[eiyu]$/u.test(f) ? 3 : 4
@@ -117,9 +121,9 @@ export function formMatch(restLow, form) {
     const extra = word.length - st.length
     // Rdzeń z wypadającym -e- (Janek → Jank-iem, Franek → Frank-iem) bierze końcówki do 3 liter.
     const cap = f.endsWith('ek') && st === f.slice(0, -2) + 'k' ? 3 : st.length <= 4 ? 2 : 4
-    if (word.startsWith(st) && extra <= Math.min(maxExtra, cap)) best = Math.max(best, word.length)
+    if (word.startsWith(st) && extra <= Math.min(maxExtra, cap)) { best = Math.max(best, word.length); bestStem = Math.max(bestStem, st.length) }
   }
-  return best ? { len: best, exact: false } : null
+  return best ? { len: best, exact: false, stem: bestStem } : null
 }
 
 // Najlepsze dopasowanie osoby na początku `restLow`. Dosłowne wygrywa z odmianą,
@@ -130,9 +134,10 @@ export function bestPersonMatch(restLow, people) {
     for (const form of personForms(p)) {
       const m = formMatch(restLow, form)
       if (!m) continue
-      const better = !best || (m.exact && !best.exact) || (m.exact === best.exact && m.len > best.len)
+      // Przy remisie odmian wygrywa dłuższy rdzeń (pastorową → pastorowa, a nie pastor).
+      const better = !best || (m.exact && !best.exact) || (m.exact === best.exact && (m.len > best.len || (m.len === best.len && (m.stem || 0) > (best.stem || 0))))
       if (better) best = { ...m, ids: [p.id] }
-      else if (m.exact === best.exact && m.len === best.len && !best.ids.includes(p.id)) best.ids.push(p.id)
+      else if (m.exact === best.exact && m.len === best.len && (m.stem || 0) === (best.stem || 0) && !best.ids.includes(p.id)) best.ids.push(p.id)
     }
   }
   return best
