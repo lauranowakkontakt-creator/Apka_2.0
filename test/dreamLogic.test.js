@@ -260,6 +260,7 @@ test('findDreamCategory — szuka w podanej liście, bez listy we wbudowanych', 
 })
 
 // ─── Odmiany imion przy @ ───────────────────────────────────────────────────
+const _fmLE = (a, b) => { const r = _fm(a, b); return r && { len: r.len, exact: r.exact } }
 import { formMatch as _fm, bestPersonMatch as _bpm, parseMentions as _pm, tokenizeDreamText as _tok } from '../src/utils/dreamLogic.js'
 
 const LUDZIE = [
@@ -273,11 +274,11 @@ const LUDZIE = [
 ]
 
 test('formMatch: dosłowne i odmienione', () => {
-  assert.deepEqual(_fm('mateusz i', 'Mateusz'), { len: 7, exact: true })
-  assert.deepEqual(_fm('mateusza w', 'Mateusz'), { len: 8, exact: false })
-  assert.deepEqual(_fm('kasię w', 'Kasia'), { len: 5, exact: false })
-  assert.deepEqual(_fm('franka w', 'Franek'), { len: 6, exact: false })
-  assert.deepEqual(_fm('jankiem w', 'Janek'), { len: 7, exact: false })
+  assert.deepEqual(_fmLE('mateusz i', 'Mateusz'), { len: 7, exact: true })
+  assert.deepEqual(_fmLE('mateusza w', 'Mateusz'), { len: 8, exact: false })
+  assert.deepEqual(_fmLE('kasię w', 'Kasia'), { len: 5, exact: false })
+  assert.deepEqual(_fmLE('franka w', 'Franek'), { len: 6, exact: false })
+  assert.deepEqual(_fmLE('jankiem w', 'Janek'), { len: 7, exact: false })
   assert.equal(_fm('olek', 'Ola'), null)          // krótka forma tylko dosłownie
   assert.equal(_fm('mateuszowskiego', 'Mateusz'), null) // za długa końcówka
 })
@@ -303,7 +304,15 @@ test('tokenizeDreamText linkuje odmienione imię z id osoby', () => {
 test('krótkie formy nie łapią obcych słów (Karo ≠ kartę, Zach ≠ zachować)', () => {
   assert.equal(_fm('kartę w', 'Karo'), null)
   assert.equal(_fm('zachować', 'Zach'), null)
-  assert.deepEqual(_fm('zuzą w', 'Zuza'), { len: 4, exact: false })
-  assert.deepEqual(_fm('maną', 'Mana'), { len: 4, exact: false })
-  assert.deepEqual(_fm('kubie', 'Kuba'), { len: 5, exact: false })
+  assert.deepEqual(_fmLE('zuzą w', 'Zuza'), { len: 4, exact: false })
+  assert.deepEqual(_fmLE('maną', 'Mana'), { len: 4, exact: false })
+  assert.deepEqual(_fmLE('kubie', 'Kuba'), { len: 5, exact: false })
+})
+
+test('pastorową trafia w Olę (pastorowa), a nie w pastora; „mamy" to nie mama', () => {
+  const L = [{ id: 'o', name: 'Ola W', aliases: ['pastorowa'] }, { id: 'w', name: 'Wojciech W', aliases: ['pastor'] }, { id: 'b', name: 'Bożena N', aliases: ['mama'] }]
+  assert.deepEqual(_bpm('pastorową i', L).ids, ['o'])
+  assert.deepEqual(_bpm('pastorem z', L).ids, ['w'])
+  assert.equal(_bpm('mamy jej', L), null)
+  assert.deepEqual(_bpm('mamie w', L).ids, ['b'])
 })
