@@ -166,3 +166,29 @@ test('suggestNewPeople pomija nazwiska znanych osób i nazwy symboli', () => {
   const c = suggestNewPeople(texts, [{ id: 'n', name: 'Natalia Prus' }], { exclude: ['Mila'] })
   assert.deepEqual(c.map(x => x.name), ['Monia'])
 })
+
+test('plan: symbole i kategoria wskazane w pliku wprost', () => {
+  const r = parseDreamFile(JSON.stringify({
+    dreams: [{ title: 'A', date: '2024-01-02', text: 'Byłam w wodzie', symbole: ['Woda', 'Nieznany'], kategoria: 'Walki duchowej', category: 'zwykly', emotions: ['lek'], kinds: ['walka'] }],
+    categories: [{ name: 'Walki duchowej', color: '#123456' }],
+  }))
+  assert.equal(r.categories.length, 1)
+  assert.deepEqual(r.dreams[0].symbolNames, ['Woda', 'Nieznany'])
+  const plan = planDreamImport({
+    dreams: r.dreams, people: [], symbols: [{ id: 's1', name: 'Woda' }],
+    categories: [{ id: 'imp-cat-walki', label: 'Walki duchowej' }],
+  })
+  const d = plan.toAdd[0].data
+  assert.deepEqual(d.symbolIds, ['s1'])
+  assert.equal(d.category, 'imp-cat-walki')
+  assert.deepEqual(d.emotions, ['lek'])
+  assert.deepEqual(d.kinds, ['walka'])
+  assert.deepEqual(plan.perCategory, { 'imp-cat-walki': 1 })
+})
+
+test('krótkie symbole nie łapią obcych słów (lew ≠ lewo)', () => {
+  const sym = [{ id: 'l', name: 'Lew' }, { id: 'd', name: 'Dom' }]
+  assert.deepEqual(linkText('Skręciłam w lewo, lewej strony', [], sym).symbolIds, [])
+  assert.deepEqual(linkText('Wszedłam do domu i domku', [], sym).symbolIds, ['d'])
+  assert.deepEqual(linkText('Zjadł mnie lew', [], sym).symbolIds, ['l'])
+})

@@ -56,6 +56,7 @@ export function parseDreamFile(text) {
 
   const dreams = []
   let skipped = 0
+  const pickNames = (x) => ({ symbolNames: Array.isArray(x.symbole) ? x.symbole.map(str).filter(Boolean) : [], categoryName: str(x.kategoria) })
   const pickLink = (x) => (x.powiazania && typeof x.powiazania === 'object' ? { skip: x.powiazania.pomin || [], force: x.powiazania.jako || {} } : undefined)
   for (const x of list) {
     if (!x || typeof x !== 'object') { skipped++; continue }
@@ -72,7 +73,7 @@ export function parseDreamFile(text) {
         extra: Object.fromEntries(['emotions', 'position', 'sphere', 'origin', 'kinds', 'vividness', 'colors', 'atmosphere',
           'elements', 'numbers', 'mainElement', 'context', 'wakeTime', 'beforeSleep', 'application', 'story', 'storyMoral',
           'mindMap', 'diagram', 'spiral', 'originalText'].filter(k => x[k] != null && x[k] !== '' && !(Array.isArray(x[k]) && !x[k].length)).map(k => [k, x[k]])),
-        link: pickLink(x),
+        link: pickLink(x), ...pickNames(x),
       }
     } else {
       d = {
@@ -80,7 +81,7 @@ export function parseDreamFile(text) {
         text: str(x.text ?? x.tresc ?? x['treść'] ?? x.content ?? x.description ?? x.opis ?? x.body),
         interpretation: str(x.interpretation ?? x.interpretacja), category: str(x.category) || null,
         extra: x.originalText ? { originalText: str(x.originalText) } : undefined,
-        link: pickLink(x),
+        link: pickLink(x), ...pickNames(x),
       }
     }
     if (!d.date || (!d.title && !d.text)) { skipped++; continue }
@@ -93,7 +94,8 @@ export function parseDreamFile(text) {
     .map(x => ({ name: str(x.name), aliases: (x.aliases || []).map(str).filter(Boolean), note: str(x.note), meaning: str(x.meaning), color: str(x.color) }))
   const people = Array.isArray(data) ? [] : cleanList(data.people)
   const symbols = Array.isArray(data) ? [] : cleanList(data.symbols)
-  return { format, dreams, skipped, people, symbols }
+  const categories = Array.isArray(data) ? [] : cleanList(data.categories)
+  return { format, dreams, skipped, people, symbols, categories }
 }
 
 // ─── Identyfikatory i duplikaty ─────────────────────────────────────────────
@@ -111,10 +113,14 @@ const WORD = /[\p{L}][\p{L}\p{N}]*/gu
 
 // Odmiana nazwy symbolu: „dom" → „domu", „domem"; wielowyrazowe tylko dosłownie.
 function symbolMatchLen(restLow, nameLow) {
+  const w = (restLow.match(/^[\p{L}\p{N}]+/u) || [''])[0]
+  // Krótkie nazwy (do 3 liter, np. „dom", „lew") tylko z typowymi końcówkami, żeby „lew" nie łapał „lewo".
+  if (!/\s/.test(nameLow) && nameLow.length <= 3) {
+    return w === nameLow || (w.startsWith(nameLow) && /^(u|em|owi|ie|y|a|ach|ów|om|ami|ek|ku|ka|ki)$/.test(w.slice(nameLow.length))) ? w.length : 0
+  }
   const m = formMatch(restLow, nameLow)
   if (m) return m.len
   if (!/\s/.test(nameLow) && nameLow.length >= 3) {
-    const w = (restLow.match(/^[\p{L}\p{N}]+/u) || [''])[0]
     if (w.startsWith(nameLow) && w.length - nameLow.length <= 3) return w.length
   }
   return 0
@@ -256,7 +262,7 @@ export function withAliases(people, choices = {}) {
 // ─── Plan importu ───────────────────────────────────────────────────────────
 // dreams: z parseDreamFile; existing: [{ id, date, title }]; people/symbols: z bazy.
 // options: { tag, link } — dopisywać @ i łączyć osoby/symbole.
-export function planDreamImport({ dreams, existing = [], people = [], symbols = [], options = {} }) {
+export function planDreamImport({ dreams, existing = [], people = [], symbols = [], categories = [], options = {} }) {
   const { tag = true, link = true, only = null } = options   // only: Set id osób do powiązania (null = wszystkie)
   const ids = new Set(existing.map(e => e.id))
   const keys = new Set(existing.map(dupKey))
@@ -264,6 +270,7 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
   const toAdd = []
   const perPerson = {}
   const perSymbol = {}
+  const perCategory = {}
   const ambiguous = new Map()   // słowo (mała litera) → { word, ids, count }
   const years = {}
   let dup = 0
@@ -272,8 +279,19 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
     if (ids.has(id) || keys.has(dupKey(d))) { dup++; continue }
     ids.add(id); keys.add(dupKey(d))
     const r = link ? linkText(d.text, peopleUse, symbols, { tag, ...(d.link || {}) }) : { text: d.text, mentionIds: [], symbolIds: [], ambiguous: [] }
+    // Symbole wskazane w pliku wprost (np. „Woda", gdy w tekście jest „w wodzie") — suma z wykrytymi w tekście.
+    if (link && d.symbolNames?.length) {
+      const have = new Set(r.symbolIds)
+      for (const nm of d.symbolNames) {
+        const sy = symbols.find(x => (x.name || '').toLowerCase() === nm.toLowerCase())
+        if (sy && !have.has(sy.id)) { have.add(sy.id); r.symbolIds.push(sy.id) }
+      }
+    }
     r.mentionIds.forEach(p => { perPerson[p] = (perPerson[p] || 0) + 1 })
     r.symbolIds.forEach(s => { perSymbol[s] = (perSymbol[s] || 0) + 1 })
+    const catByName = d.categoryName ? categories.find(c => (c.label || '').toLowerCase() === d.categoryName.toLowerCase()) : null
+    const category = catByName?.id || d.category || null
+    if (category) perCategory[category] = (perCategory[category] || 0) + 1
     for (const a of r.ambiguous) {
       const k = a.word.toLowerCase()
       const e = ambiguous.get(k) || { word: a.word, ids: a.ids, count: 0 }
@@ -284,12 +302,12 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
       id,
       data: {
         title: d.title, date: d.date, text: r.text, interpretation: d.interpretation || '',
-        category: d.category || null, emotions: [], peopleIds: [], mentionIds: r.mentionIds, symbolIds: r.symbolIds,
+        category, emotions: [], peopleIds: [], mentionIds: r.mentionIds, symbolIds: r.symbolIds,
         ...(d.extra || {}), imported: true,
       },
     })
   }
-  return { toAdd, dup, perPerson, perSymbol, ambiguous: [...ambiguous.values()].sort((a, b) => b.count - a.count), years }
+  return { toAdd, dup, perPerson, perSymbol, perCategory, ambiguous: [...ambiguous.values()].sort((a, b) => b.count - a.count), years }
 }
 
 // Dopasowanie osób i symboli w snach, które już są w apce (np. po dodaniu nowej osoby).
