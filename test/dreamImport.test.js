@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  appleToIso, dreamId, linkText, parseDreamFile, planDreamImport, planRelink, suggestNewPeople, suggestSymbols, withAliases,
+  appleToIso, dreamId, isSameDream, textSimilarity, linkText, parseDreamFile, planDreamImport, planRelink, suggestNewPeople, suggestSymbols, withAliases,
 } from '../src/utils/dreamImport.js'
 
 const LUDZIE = [
@@ -191,4 +191,28 @@ test('krótkie symbole nie łapią obcych słów (lew ≠ lewo)', () => {
   assert.deepEqual(linkText('Skręciłam w lewo, lewej strony', [], sym).symbolIds, [])
   assert.deepEqual(linkText('Wszedłam do domu i domku', [], sym).symbolIds, ['d'])
   assert.deepEqual(linkText('Zjadł mnie lew', [], sym).symbolIds, ['l'])
+})
+
+test('isSameDream: ten sam sen z dwóch źródeł, inne tytuły i trochę inny tekst', () => {
+  const dreamy = { date: '2026-06-23', title: 'Mana - widoki', text: 'Szłam jakąś aleją i z daleka zobaczyłam najpiękniejszy widok, wodospad otoczony górami' }
+  const stara = { date: '2026-06-23', title: 'Wodospad ciszy', text: 'Szłam jakąś ścieżką i z daleka zobaczyłam najpiękniejszy widok. Był to przeogromny wodospad otoczony pięknymi górami' }
+  assert.ok(textSimilarity(dreamy.text, stara.text) > 0.5)
+  assert.equal(isSameDream(dreamy, stara), true)
+  assert.equal(isSameDream({ ...dreamy, date: '2026-06-24' }, stara), false)
+  assert.equal(isSameDream({ ...dreamy, text: 'Zupełnie inny sen o psach i szkole' }, stara), false)
+  // porównuje też z oryginałem (originalText), gdy tekst jest poprawiony
+  assert.equal(isSameDream({ ...dreamy, text: 'zmieniony', extra: { originalText: dreamy.text } }, stara), true)
+})
+
+test('plan pomija sen, który już jest w innej wersji, a uczestników mapuje po imieniu', () => {
+  const r = parseDreamFile(JSON.stringify({ dreams: [
+    { title: 'Mana - widoki', date: '2026-06-23', text: 'Szłam jakąś aleją i z daleka zobaczyłam najpiękniejszy widok, wodospad otoczony górami' },
+    { title: 'Inny', date: '2026-06-24', text: 'Spotkałam Manę', uczestnicy: ['Manuela Filipska'] },
+  ] }))
+  const people = [{ id: 'm', name: 'Manuela Filipska' }]
+  const existing = [{ id: 'x', date: '2026-06-23', title: 'Wodospad ciszy', text: 'Szłam jakąś ścieżką i z daleka zobaczyłam najpiękniejszy widok. Był to wodospad otoczony pięknymi górami' }]
+  const plan = planDreamImport({ dreams: r.dreams, existing, people, symbols: [] })
+  assert.equal(plan.dup, 1)
+  assert.equal(plan.toAdd.length, 1)
+  assert.deepEqual(plan.toAdd[0].data.peopleIds, ['m'])
 })

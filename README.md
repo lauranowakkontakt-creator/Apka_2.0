@@ -76,6 +76,13 @@ w `vite --mode demo` aliasy podmieniają tylko importy `firebase/*`.
   Jeśli coś wybucha w demo, najpewniej wybuchnie też na prawdziwej bazie.
 - Zwykły `npm run build` nie zawiera ani linijki kodu demo.
 
+## Przeniesienie snów ze starej Apki
+
+Apka 2.0 nie łączy się ze starą bazą. Do jednorazowego przeniesienia snów jest osobna strona
+[`public/stara-apka-eksport.html`](public/stara-apka-eksport.html) (po wdrożeniu: `/Apka_2.0/stara-apka-eksport.html`).
+Po zalogowaniu tym samym kontem Google tylko czyta sny, symbole, kategorie i osoby ze starej bazy i zapisuje je do pliku
+JSON, który wgrywa się w **Sen → ⋮ → Import snów**. Stara baza nie jest zmieniana.
+
 ## Wdrożenie
 
 ```bash
