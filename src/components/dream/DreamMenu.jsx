@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { IconMoreVert, IconTag, IconChart } from '../Icons'
+import { IconMoreVert, IconTag, IconChart, IconBook } from '../Icons'
 
 // Menu „trzy kropki" dla Snu — Symbole / Kategorie / Statystyki.
 export default function DreamMenu({ onAction }) {
@@ -15,6 +15,7 @@ export default function DreamMenu({ onAction }) {
   const items = [
     { id: 'symbols',    Icon: IconTag,   label: 'Symbole' },
     { id: 'categories', Icon: IconTag,   label: 'Kategorie snów' },
+    { id: 'learn',      Icon: IconBook,  label: 'Nauka o snach' },
     { id: 'stats',      Icon: IconChart, label: 'Statystyki' },
   ]
 

@@ -4,6 +4,7 @@ import { DREAM_EMOTIONS, detectTrigger, nameStem, parseMentions, personForms } f
 import { IconCheck, IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
+import { GUIDE_QUESTIONS, appendQuestion } from '../../utils/dreamLessons'
 import { Timestamp, addDoc, arrayUnion, collection, doc, updateDoc } from 'firebase/firestore'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
@@ -20,6 +21,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
   const [symbolIds, setSymbolIds] = useState(editData?.symbolIds || [])
   const [localSymbols, setLocalSymbols] = useState([]) // symbole utworzone w tej sesji
   const [saving, setSaving]     = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
 
   const textRef = useRef(null)
   const [trigger, setTrigger]   = useState(null) // { type:'person'|'symbol', query, start }
@@ -297,6 +299,29 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
             <textarea className="form-input" value={interpretation} onChange={e => setInterpretation(e.target.value)}
               rows={4} placeholder="Co ten sen może oznaczać? Twoje przemyślenia, skojarzenia..."
               style={{ resize: 'vertical', minHeight: 90, lineHeight: 1.6 }} />
+            <button type="button" onClick={() => setShowGuide(v => !v)} style={{
+              marginTop: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+            }}>
+              {showGuide ? 'Ukryj pytania pomocnicze' : 'Pytania pomocnicze do interpretacji'}
+            </button>
+            {showGuide && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Dotknij pytania, a wstawi się do interpretacji.</span>
+                {GUIDE_QUESTIONS.map((g, i) => (
+                  <div key={g.id}>
+                    {(i === 0 || GUIDE_QUESTIONS[i - 1].group !== g.group) && (
+                      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase', margin: '6px 0 4px' }}>{g.group}</div>
+                    )}
+                    <button type="button" onClick={() => setInterpretation(cur => appendQuestion(cur, g.q))} style={{
+                      width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+                      fontFamily: 'inherit', fontSize: 12, lineHeight: 1.5, color: 'var(--text-sub)',
+                      background: 'var(--surface2)', border: '1px solid var(--border)',
+                    }}>{g.q}</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button type="submit" className="btn-save" disabled={saving || (!title.trim() && !text.trim())}>
