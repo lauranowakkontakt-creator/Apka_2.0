@@ -324,7 +324,10 @@ export function BarChartSVG({ data, height = 150, accent = 'var(--accent)', fmt 
                 transition: `height .8s cubic-bezier(.34,1.4,.64,1) ${i * .04}s, background .2s`,
               }}/>
             </div>
-            <span style={{ fontSize: 8, color: active ? 'var(--text)' : 'var(--text-muted)', letterSpacing: '.02em', flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'center' }}>{i % labelStep === 0 ? d.label : ''}</span>
+            {/* Wiersz podpisu ma stałą wysokość w KAŻDEJ kolumnie — także bez
+                etykiety. Wcześniej pusta kolumna nie miała tego wiersza, więc jej
+                słupek sięgał niżej niż w kolumnie z podpisem i wchodził na numerki. */}
+            <span style={{ fontSize: 8, lineHeight: '10px', height: 10, color: active ? 'var(--text)' : 'var(--text-muted)', letterSpacing: '.02em', flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'center' }} aria-hidden={i % labelStep !== 0}>{i % labelStep === 0 ? d.label : '\u00a0'}</span>
           </div>
         )
       })}

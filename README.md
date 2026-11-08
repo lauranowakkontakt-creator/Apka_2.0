@@ -42,6 +42,8 @@ serwerem.
 |---|---|
 | `npm run lokalnie` | **emulatory + apka** — tak pracujemy na co dzień |
 | `npm run emulatory` | same emulatory (np. do `npm run preview`) |
+| `npm run demo` | **tryb demo** — apka z losowymi danymi, bez Firebase i bez Javy (patrz niżej) |
+| `npm run build:demo` | build trybu demo do `dist-demo/` (statyczne pliki, działają pod dowolnym adresem) |
 | `npm run dev` | sam serwer Vite (bez emulatorów apka się nie zaloguje) |
 | `npm run lint` | ESLint — łapie użycie nieistniejących nazw |
 | `npm test` | testy jednostkowe (`node --test`, bez dodatkowych bibliotek) |
@@ -49,6 +51,30 @@ serwerem.
 | `npm run check` | **lint + testy + build.** To jest bramka przed pushem |
 | `npm run preview` | podgląd zbudowanej wersji lokalnie |
 | `npm run deploy` | `check` + publikacja na GitHub Pages — **zablokowane**, dopóki Apka 2.0 nie ma własnego projektu Firebase |
+
+## Tryb demo (losowe dane do przeklikania)
+
+```bash
+npm run demo       # http://localhost:5173/
+```
+
+Cała apka działa jak zwykle, ale zamiast Firebase dostaje atrapę bazy
+w pamięci przeglądarki ([`src/demo/`](src/demo/)), wypełnioną losowymi danymi
+we wszystkich modułach — razem z przypadkami brzegowymi (bardzo długie nazwy,
+kwota 0,01 i 12 599,99 zł, wydatek bez konta, w USD albo z usuniętą kategorią,
+przeterminowane zadania, przerwa w nawykach). Kod aplikacji się nie zmienia:
+w `vite --mode demo` aliasy podmieniają tylko importy `firebase/*`.
+
+- Zmiany zapisują się w `localStorage`, więc przetrwają odświeżenie strony.
+- Przycisk **DEMO** w prawym dolnym rogu: *Wylosuj nowe dane*, *Pusta baza*
+  (żeby sprawdzić puste stany) i lista złapanych błędów (`console.error`,
+  wyjątki, odrzucone Promise) z przyciskiem kopiowania — na telefonie nie ma
+  konsoli.
+- Atrapa jest celowo surowa tam, gdzie prawdziwy Firestore też jest: `orderBy`
+  pomija dokumenty bez danego pola, `updateDoc` na nieistniejącym dokumencie
+  rzuca `not-found`, a zapis z wartością `undefined` kończy się błędem.
+  Jeśli coś wybucha w demo, najpewniej wybuchnie też na prawdziwej bazie.
+- Zwykły `npm run build` nie zawiera ani linijki kodu demo.
 
 ## Wdrożenie
 

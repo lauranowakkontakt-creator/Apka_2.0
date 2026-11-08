@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, query, where, orderBy, Timestamp, getDocs } from 'firebase/firestore'
+import { collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore'
 import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
 import useFallbackTimeout from '../utils/useFallbackTimeout'
@@ -14,7 +14,6 @@ import RegularPayments from './budget/RegularPayments'
 import BudgetMenu from './budget/BudgetMenu'
 import TransferForm from './budget/TransferForm'
 import SearchPanel from './budget/SearchPanel'
-import StatsPanel from './budget/StatsPanel'
 import CurrencyTiles from './budget/CurrencyTiles'
 import { sortTransactionsByDate } from '../utils/txSort'
 import TitheView from './budget/TitheView'
@@ -24,7 +23,7 @@ import Debtors from './budget/Debtors'
 import CategoriesView from './budget/CategoriesView'
 import ShoppingList from './budget/ShoppingList'
 import ImportView from './budget/ImportView'
-import { IconTransfer, IconBank, IconChart, IconShopping, IconPlus, IconChevronLeft, IconEye, IconEyeOff, CatIcon } from './Icons'
+import { IconTransfer, IconBank, IconChart, IconShopping, IconPlus, IconChevronLeft, IconChevronRight, IconEye, IconEyeOff, CatIcon } from './Icons'
 import { useNarrow } from './ChartPrimitives'
 import { DonutSzczegoly, Kafle, Ranking } from './Analityka'
 import { fmt, getCurrencyCode, CURRENCIES, splitAmount } from '../utils/currency'
@@ -32,17 +31,18 @@ import { isTransfer } from '../utils/categories'
 import { isInvestment, sumByCurrency } from '../utils/investmentMath'
 import { bladSubskrypcji } from '../utils/polaczenie'
 import { inPLN, investedNet } from '../utils/moneyFlow'
+import { portfele, wPortfelu } from '../utils/portfele'
 
 // Tytuły podstron pokazywane na pasku „wstecz" (nawigacja bez zakładek)
 const SUB_LABELS = {
   transactions: 'Transakcje',
   accounts:     'Konta',
-  analiza:      'Analiza i statystyki',
+  analiza:      'Analiza',
   regular:      'Regularne płatności',
   shopping:     'Lista zakupów',
 }
 
-export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
+export default function Dashboard({ user, setHeaderExtras }) {
   const [transactions, setTransactions] = useState([])
   const [accounts, setAccounts]         = useState([])
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -55,6 +55,11 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
     try { return localStorage.getItem('mw_privateMode') === 'true' } catch { return false }
   })
   const [modal, setModal] = useState(null)
+  // Portfel pokazany pod „Łącznym majątkiem": PLN, inna waluta albo Inwestycje.
+  const [walletId, setWalletId] = useState(() => {
+    try { return localStorage.getItem('mw_wallet') || 'PLN' } catch { return 'PLN' }
+  })
+  const [recent, setRecent] = useState([])
   const narrow = useNarrow(480)
 
   const monthStart = startOfMonth(currentMonth)
@@ -79,6 +84,15 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
     }, bladSubskrypcji('transactions', { przyBledzie: () => setLoading(false) }))
   }, [user.uid, currentMonth])
 
+  // Ostatnie transakcje do listy pod portfelem — niezależnie od miesiąca, żeby
+  // portfel z rzadko używaną walutą też coś pokazywał.
+  useEffect(() => {
+    const q = query(collection(db, 'users', user.uid, 'transactions'), orderBy('date', 'desc'), limit(200))
+    return onSnapshot(q, snap => setRecent(sortTransactionsByDate(snap.docs.map(d => ({
+      id: d.id, ...d.data(), date: (d.data().date?.toDate?.() ?? d.data().createdAt?.toDate?.() ?? new Date()),
+    })))), bladSubskrypcji('transactions/recent'))
+  }, [user.uid])
+
   const income   = transactions.filter(t => t.type === 'income' && !isTransfer(t)).reduce((s, t) => s + inPLN(t), 0)
   const expenses = transactions.filter(t => t.type === 'expense' && !isTransfer(t)).reduce((s, t) => s + inPLN(t), 0)
   const accById  = Object.fromEntries(accounts.map(a => [a.id, a]))
@@ -94,7 +108,6 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
   const includedRegular     = includedAccounts.filter(a => !isInvestment(a))
   const includedInvestments = includedAccounts.filter(isInvestment)
   const totalsByCurrency = sumByCurrency(includedRegular)
-  const totalPLN = totalsByCurrency['PLN'] || 0
   const investTotalsByCurrency = sumByCurrency(includedInvestments)
 
   const monthLabel = format(currentMonth, 'LLLL yyyy', { locale: pl })
@@ -109,7 +122,6 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
     }
     if (id === 'transfer')   return setModal('transfer')
     if (id === 'search')     return setModal('search')
-    if (id === 'stats')      return setModal('stats')
     if (id === 'tithe')      return setModal('tithe')
     if (id === 'goals')      return setModal('goals')
     if (id === 'reminders')  return setModal('reminders')
@@ -124,7 +136,7 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
   useEffect(() => {
     setHeaderExtras?.(
       <>
-        <BudgetMenu onAction={handleMenuAction} privateMode={privateMode} onCurrencyChange={onCurrencyChange} />
+        <BudgetMenu onAction={handleMenuAction} privateMode={privateMode} />
         <button className="hdr-btn accent" title="Dodaj transakcję" onClick={() => setShowForm(true)}><IconPlus size={17} /></button>
       </>
     )
@@ -200,11 +212,31 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
       {/* ====== OVERVIEW TAB — układ w stylu Revolut ====== */}
       {activeTab === 'overview' && (() => {
         const togglePrivate = () => setPrivateMode(m => { const n = !m; try { localStorage.setItem('mw_privateMode', n) } catch {} return n })
-        const heroHi = splitAmount(totalPLN)
-        const otherCur = Object.entries(totalsByCurrency).filter(([cur]) => cur !== 'PLN')
-        const balanceUp = balance >= 0
-        const investEntries = Object.entries(investTotalsByCurrency)
-        const investLabel = investEntries.map(([cur, amt]) => fmtAcc(amt, cur)).join(' · ')
+        const lista = portfele(includedAccounts)
+        const wIdx = Math.max(0, lista.findIndex(p => p.id === walletId))
+        const portfel = lista[wIdx]
+        const ustawPortfel = (i) => {
+          const p = lista[(i + lista.length) % lista.length]
+          setWalletId(p.id)
+          try { localStorage.setItem('mw_wallet', p.id) } catch { /* tryb prywatny */ }
+        }
+        const naInwestycjach = portfel.typ === 'inwestycje'
+        const symbol = (code) => CURRENCIES.find(c => c.code === code)?.symbol || code
+        // Kwota w hero: majątek w zł, suma portfela w jego walucie albo wartość inwestycji.
+        const invPLN = naInwestycjach ? (portfel.sumy.PLN ?? Object.values(portfel.sumy)[0] ?? 0) : 0
+        const invCur = naInwestycjach ? (portfel.sumy.PLN !== undefined ? 'PLN' : Object.keys(portfel.sumy)[0] || 'PLN') : 'PLN'
+        const heroKwota = naInwestycjach ? invPLN : portfel.suma
+        const heroWaluta = naInwestycjach ? invCur : portfel.waluta
+        const heroHi = splitAmount(heroKwota)
+        const heroLabel = naInwestycjach ? 'Inwestycje' : portfel.waluta === 'PLN' ? 'Łączny majątek' : `Portfel ${portfel.waluta}`
+        // Zmiana w tym miesiącu: dla zł bilans przychodów i wydatków, dla innej
+        // waluty wszystko, co weszło i wyszło z portfela (w jego walucie).
+        const zmianaObca = portfel.typ === 'waluta' && portfel.waluta !== 'PLN'
+          ? transactions.filter(t => wPortfelu(t, portfel, accById)).reduce((s, t) => s + (t.type === 'income' ? 1 : -1) * (Number(t.amount) || 0), 0)
+          : 0
+        const balanceUp = (portfel.waluta === 'PLN' ? balance : zmianaObca) >= 0
+        const ostatnie = recent.filter(t => wPortfelu(t, portfel, accById)).slice(0, 6)
+        let touchX = null
 
         return (
         <div className="rev-overview">
@@ -216,32 +248,57 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
           {/* Hero: łączny majątek */}
           <div className="rev-hero">
             <button className="rev-hero-label" onClick={togglePrivate} title={privateMode ? 'Pokaż kwoty' : 'Ukryj kwoty'}>
-              Łączny majątek {privateMode ? <IconEye size={14} /> : <IconEyeOff size={14} />}
+              {heroLabel} {privateMode ? <IconEye size={14} /> : <IconEyeOff size={14} />}
             </button>
+            <div
+              onTouchStart={(e) => { touchX = e.touches[0].clientX }}
+              onTouchEnd={(e) => {
+                if (touchX === null || lista.length < 2) return
+                const dx = e.changedTouches[0].clientX - touchX
+                touchX = null
+                if (Math.abs(dx) > 50) ustawPortfel(wIdx + (dx < 0 ? 1 : -1))
+              }}>
             {!privateMode ? (
               <>
                 <div className="rev-hero-amount">
                   <span className="rev-hero-int">{heroHi.int}</span>
-                  <span className="rev-hero-dec">,{heroHi.dec}&nbsp;{curSymbol}</span>
+                  <span className="rev-hero-dec">,{heroHi.dec}&nbsp;{symbol(heroWaluta)}</span>
                 </div>
-                <div className={`rev-hero-trend ${balanceUp ? 'up' : 'down'}`}>
-                  {balanceUp ? '↑' : '↓'} {fmt(Math.abs(balance))}
-                  <span className="sep">· ten miesiąc</span>
-                  {investedMonth > 0 && <span className="sep">· zainwestowane {fmt(investedMonth)}</span>}
-                </div>
-                {(otherCur.length > 0 || investEntries.length > 0) && (
-                  <div className="rev-hero-chips">
-                    {investEntries.length > 0 && (
-                      <span className="rev-hero-chip">Inwestycje · {investLabel}</span>
-                    )}
-                    {otherCur.map(([cur, amt]) => (
-                      <span key={cur} className="rev-hero-chip">{fmtAcc(amt, cur)}</span>
-                    ))}
+                {portfel.typ === 'waluta' && portfel.waluta === 'PLN' && (
+                  <div className={`rev-hero-trend ${balanceUp ? 'up' : 'down'}`}>
+                    {balanceUp ? '↑' : '↓'} {fmt(Math.abs(balance))}
+                    <span className="sep">· ten miesiąc</span>
+                    {investedMonth > 0 && <span className="sep">· zainwestowane {fmt(investedMonth)}</span>}
+                  </div>
+                )}
+                {zmianaObca !== 0 && (
+                  <div className={`rev-hero-trend ${balanceUp ? 'up' : 'down'}`}>
+                    {balanceUp ? '↑' : '↓'} {fmt(Math.abs(zmianaObca), portfel.waluta)}
+                    <span className="sep">· ten miesiąc</span>
+                  </div>
+                )}
+                {naInwestycjach && portfel.zysk !== null && (
+                  <div className={`rev-hero-trend ${portfel.zysk >= 0 ? 'up' : 'down'}`}>
+                    {portfel.zysk >= 0 ? '↑' : '↓'} {fmt(Math.abs(portfel.zysk))}
+                    <span className="sep">· {portfel.zysk >= 0 ? 'zysk' : 'strata'} względem wpłat</span>
                   </div>
                 )}
               </>
             ) : (
               <div className="rev-hero-hidden">••••</div>
+            )}
+            </div>
+            {lista.length > 1 && (
+              <div className="wallet-switch">
+                <button className="wallet-switch-btn" onClick={() => ustawPortfel(wIdx - 1)} disabled={wIdx === 0} title="Poprzedni portfel"><IconChevronLeft size={15} /></button>
+                <div className="wallet-dots">
+                  {lista.map((p, i) => (
+                    <button key={p.id} className={`wallet-dot${i === wIdx ? ' on' : ''}`} onClick={() => ustawPortfel(i)}
+                      title={p.typ === 'inwestycje' ? 'Inwestycje' : p.waluta} aria-label={p.typ === 'inwestycje' ? 'Inwestycje' : `Portfel ${p.waluta}`} />
+                  ))}
+                </div>
+                <button className="wallet-switch-btn" onClick={() => ustawPortfel(wIdx + 1)} disabled={wIdx === lista.length - 1} title="Następny portfel"><IconChevronRight size={15} /></button>
+              </div>
             )}
           </div>
 
@@ -280,16 +337,16 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
           {/* Ostatnie transakcje */}
           <div className="rev-section">
             <div className="rev-section-head">
-              <span className="rev-section-title">Ostatnie transakcje</span>
-              {transactions.length > 0 && (
+              <span className="rev-section-title">Ostatnie transakcje{portfel.waluta === 'PLN' ? '' : naInwestycjach ? ' · inwestycje' : ` · ${portfel.waluta}`}</span>
+              {ostatnie.length > 0 && (
                 <button className="rev-section-link" onClick={() => setActiveTab('transactions')}>Wszystkie →</button>
               )}
             </div>
             <div className="rev-card">
-              {transactions.length === 0 ? (
-                <div className="rev-empty">Brak transakcji w tym miesiącu</div>
+              {ostatnie.length === 0 ? (
+                <div className="rev-empty">Brak transakcji w tym portfelu</div>
               ) : (
-                transactions.slice(0, 6).map(t => {
+                ostatnie.map(t => {
                   const isExpense = t.type === 'expense'
                   return (
                     <div key={t.id} className="rev-row clickable" onClick={() => { setEditTransaction(t); setShowForm(true) }}>
@@ -424,13 +481,13 @@ export default function Dashboard({ user, onCurrencyChange, setHeaderExtras }) {
       {modal === 'debtors'     && <Debtors        user={user} onClose={() => setModal(null)} />}
       {modal === 'categories'  && <CategoriesView user={user} onClose={() => setModal(null)} />}
       {modal === 'import'      && <ImportView     user={user} onClose={() => setModal(null)} />}
-      {modal === 'stats'       && <StatsPanel     user={user} privateMode={privateMode} onClose={() => setModal(null)} />}
 
       {showForm && (
         <TransactionForm
           user={user}
           onClose={() => { setShowForm(false); setEditTransaction(null) }}
           editData={editTransaction}
+          defaultCurrency={walletId !== 'PLN' && walletId !== 'inwestycje' ? walletId : undefined}
         />
       )}
     </div>

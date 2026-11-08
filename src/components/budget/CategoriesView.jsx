@@ -5,7 +5,9 @@ import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, getSubcategoryColor } from '../../utils/categories'
 import { DEFAULT_COLOR } from '../../utils/palette'
-import { CatIcon, IconClose, IconTrash, IconTag, IconEdit, IconChevronDown, IconArrowUp, IconArrowDown } from '../Icons'
+import { CatIcon, IconClose, IconTrash, IconTag, IconEdit, IconChevronDown } from '../Icons'
+import { useDragReorder, DragHandle } from '../DragReorder'
+import { przenies } from '../../utils/dragReorder'
 import { IconPicker, ColorPicker } from '../Pickers'
 import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
@@ -54,13 +56,10 @@ export default function CategoriesView({ user, onClose }) {
     setCats(next); save(tab, next)
   }
 
-  const move = (id, dir) => {
-    const arr = [...cats]
-    const i = arr.findIndex(c => c.id === id)
-    if (i + dir < 0 || i + dir >= arr.length) return
-    ;[arr[i], arr[i + dir]] = [arr[i + dir], arr[i]]
+  const drag = useDragReorder(cats.length, (from, to) => {
+    const arr = przenies(cats, from, to)
     setCats(arr); save(tab, arr)
-  }
+  })
 
   const addCat = (cat) => {
     const next = [...cats, cat]
@@ -146,15 +145,16 @@ export default function CategoriesView({ user, onClose }) {
               const isExpanded = expanded.has(cat.id)
               const subcats = cat.subcategories || []
               return (
-                <div key={cat.id}>
+                <div key={cat.id} {...drag.wiersz(i)}>
                   {editCat?.id === cat.id ? (
                     <CategoryForm tab={tab} initial={cat} onSave={updateCat} onCancel={() => setEditCat(null)} />
                   ) : (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       background: 'var(--surface)', border: '1px solid var(--border)',
-                      borderRadius: isExpanded ? '10px 10px 0 0' : 10, padding: '8px 12px'
+                      borderRadius: isExpanded ? '10px 10px 0 0' : 10, padding: '8px 12px 8px 4px'
                     }}>
+                      <DragHandle {...drag.uchwyt(i)} />
                       <div style={{
                         width: 36, height: 36, borderRadius: 9,
                         background: cat.color + '33', border: `1.5px solid ${cat.color}`,
@@ -170,8 +170,6 @@ export default function CategoriesView({ user, onClose }) {
                         </span>
                       )}
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="t-btn" onClick={() => move(cat.id, -1)} disabled={i === 0} style={{ opacity: i === 0 ? 0.3 : 1 }}><IconArrowUp size={13} /></button>
-                        <button className="t-btn" onClick={() => move(cat.id, +1)} disabled={i === cats.length - 1} style={{ opacity: i === cats.length - 1 ? 0.3 : 1 }}><IconArrowDown size={13} /></button>
                         <button className="t-btn" onClick={() => { setEditCat(cat); setShowAdd(false) }}><IconEdit size={13} /></button>
                         <button className="t-btn delete" onClick={() => deleteCat(cat.id)}><IconTrash size={13} /></button>
                         <button

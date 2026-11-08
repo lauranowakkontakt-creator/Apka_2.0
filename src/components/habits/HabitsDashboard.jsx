@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
-import { collection, orderBy, query, where, doc, updateDoc, arrayUnion, arrayRemove, deleteField } from 'firebase/firestore'
+import { useState, useEffect, useMemo } from 'react'
+import { collection, orderBy, query, doc, updateDoc, arrayUnion, arrayRemove, deleteField } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
@@ -16,8 +16,7 @@ import HabitArchive from './HabitArchive'
 import RoutineManager from './RoutineManager'
 // Nastrój nie jest już osobną apką — mieszka w Nawykach, otwierany z kafelka.
 // Leniwie, żeby wejście w Nawyki nie ciągnęło kodu wykresów nastroju.
-const MoodDashboard = lazy(() => import('../mood/MoodDashboard'))
-import { CatIcon, IconFlame, IconStar, IconCheck, IconPause, IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconMood, IconFlag, IconEdit, IconClose } from '../Icons'
+import { CatIcon, IconFlame, IconStar, IconCheck, IconPause, IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconFlag, IconEdit, IconClose } from '../Icons'
 import { Ring, BarChartSVG } from '../ChartPrimitives'
 import DayPath from '../DayPath'
 import { AnalizaRoku, Rozwijana, Ranking } from '../Analityka'
@@ -62,24 +61,9 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
   const [weekAnchor, setWeekAnchor]   = useState(new Date())     // nawigacja tygodnia w statystykach
   const [monthAnchor, setMonthAnchor] = useState(new Date())     // nawigacja miesiąca w statystykach
   const [statYear, setStatYear]       = useState(new Date().getFullYear()) // nawigacja roku w statystykach
-  const [moodOpen, setMoodOpen]       = useState(false)  // czy pokazujemy Nastrój zamiast Nawyków
   const [extrasOpen, setExtrasOpen]   = useState(false)  // czy pokazujemy Wyzwania zamiast Nawyków
-  const [moodExtras, setMoodExtras]   = useState(null)   // akcje Nastroju wstrzyknięte do wspólnej belki
-  const [todayMood, setTodayMood]     = useState(null)
 
   const TODAY = format(new Date(), 'yyyy-MM-dd')
-
-  // Nastrój z dziś — tylko do kafelka. Jeden filtr równościowy, więc Firestore
-  // radzi sobie bez zakładania złożonego indeksu.
-  useEffect(() => {
-    const q = query(collection(db, 'users', user.uid, 'moodLogs'), where('date', '==', TODAY))
-    return onSnapshot(q, snap => {
-      const logs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-      setTodayMood(logs[0] || null)
-    }, bladSubskrypcji('moodLogs', { przyBledzie: () => setTodayMood(null) }))
-  }, [user.uid, TODAY])
-
 
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'habits'), orderBy('createdAt', 'asc'))
@@ -208,22 +192,6 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
     </button>
   )
 
-  // Twarz nastroju — jednocześnie przełącznik widoku i informacja, gdzie jesteś.
-  // Świeci → jesteś w Nastroju, klik wraca do Nawyków. Szara → jesteś w Nawykach,
-  // klik wchodzi w Nastrój. Kolor bierze się z dzisiejszego wpisu.
-  const moodBtn = (
-    <button
-      className={`hdr-mood${moodOpen ? ' active' : ''}`}
-      title={moodOpen ? 'Wróć do nawyków' : todayMood ? `Nastrój: ${todayMood.moodLabel || 'zapisany'}` : 'Zapisz nastrój'}
-      aria-label={moodOpen ? 'Wróć do nawyków' : 'Nastrój'}
-      aria-pressed={moodOpen}
-      style={todayMood?.moodColor ? { '--mood-color': todayMood.moodColor } : undefined}
-      onClick={() => { setExtrasOpen(false); setMoodOpen(o => !o) }}
-    >
-      <IconMood size={17} />
-    </button>
-  )
-
   // Flaga wyzwań — ten sam wzorzec co twarz nastroju: świeci, gdy jesteś w
   // Wyzwaniach, klik wraca do Nawyków. Dwa widoki nie mogą być otwarte naraz.
   const extrasBtn = (
@@ -232,27 +200,24 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
       title={extrasOpen ? 'Wróć do nawyków' : `Wyzwania (dodatkowe)${extraHabits.length ? ` — ${extraHabits.length}` : ''}`}
       aria-label={extrasOpen ? 'Wróć do nawyków' : 'Wyzwania'}
       aria-pressed={extrasOpen}
-      onClick={() => { setMoodOpen(false); setExtrasOpen(o => !o) }}
+      onClick={() => setExtrasOpen(o => !o)}
     >
       <IconFlag size={17} />
     </button>
   )
 
-  // Akcje modułu w górnej belce („Apka"). JEDNA belka na oba widoki: w Nastroju
-  // pokazujemy jego własne akcje (wstrzyknięte przez moduł do `moodExtras`),
-  // w Nawykach — menu i „+". Wcześniej Nastrój otwierał się w osobnym arkuszu
-  // z drugim paskiem, który belka Nawyków zasłaniała — nie dało się wyjść.
+  // Akcje modułu w górnej belce („Apka"): flaga Wyzwań, menu ⋮ i „+".
+  // W Wyzwaniach menu pokazuje tylko to, co tam działa (patrz HabitMenu).
   // UWAGA: hook musi być przed early-returnem (zasady hooków).
   useEffect(() => {
     setHeaderExtras?.(
-      moodOpen
-        ? <>{moodBtn}{extrasBtn}{moodExtras}</>
-        : <>{moodBtn}{extrasBtn}<HabitMenu onAction={handleMenu} canReorder={reorderable.length > 1} hasArchive={archivedHabits.length + endedHabits.length > 0}
-            canFresh={reorderable.length > 0} />{addBtn}</>
+      <>{extrasBtn}<HabitMenu onAction={handleMenu} extras={extrasOpen}
+          canReorder={(extrasOpen ? extraHabits.length : reorderable.length) > 1}
+          hasArchive={archivedHabits.length + endedHabits.length > 0}
+          canFresh={reorderable.length > 0} />{addBtn}</>
     )
     return () => setHeaderExtras?.(null)
-  }, [activeHabits.length, archivedHabits.length, endedHabits.length, extraHabits.length, reorderable.length,
-      todayMood, moodOpen, moodExtras, extrasOpen])
+  }, [activeHabits.length, archivedHabits.length, endedHabits.length, extraHabits.length, reorderable.length, extrasOpen])
 
   if (loading) return <div className="list-loading">Ładowanie...</div>
 
@@ -285,7 +250,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
       if (paused) { const p = getPauseColor(pauses, d) || 'var(--text-muted)'; border = `2px solid ${p}` }
     }
     else if (paused) { const p = getPauseColor(pauses, d) || 'var(--text-muted)'; bg = p + '33'; border = `1px solid ${p}66` }
-    const title = `${format(new Date(d + 'T12:00:00'), 'd MMM', { locale: pl })}${due ? ` • ${done}/${due}` : paused ? ` • ${pauseReasonMeta(pauseForDay(d, pauses)?.reason).label.toLowerCase()}${future ? ' (zaplanowane)' : ''}` : ' • wolne'}`
+    const title = `${format(new Date(d + 'T12:00:00'), 'd MMM', { locale: pl })}${due ? ` • ${done}/${due}` : paused ? ` • ${pauseReasonMeta(pauseForDay(d, pauses)).label.toLowerCase()}${future ? ' (zaplanowane)' : ''}` : ' • wolne'}`
     return { bg, border, color, ring: isToday, title }
   }
 
@@ -297,21 +262,21 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
     const deep = `color-mix(in oklab, ${color} 58%, #000)`
     let bg = 'transparent', border = '1px solid transparent', textColor = 'var(--text-muted)'
     if (future) {
-      if (status === 'paused') { const m = pauseReasonMeta(pauseForDay(d, pauses)?.reason); bg = m.color + '22'; border = `1px dashed ${m.color}88` }
+      if (status === 'paused') { const m = pauseReasonMeta(pauseForDay(d, pauses)); bg = m.color + '22'; border = `1px dashed ${m.color}88` }
       else border = '1px dashed var(--border)'
     }
     else if (isDone) {
       const kind = habitDayKind({ habit, dateStr: d, pauses, today: TODAY, isDone: true })
       if (kind === 'done-paused') {
         // Zrobione mimo wyjazdu/choroby — obwódka w kolorze powodu.
-        const m = pauseReasonMeta(pauseForDay(d, pauses)?.reason)
+        const m = pauseReasonMeta(pauseForDay(d, pauses))
         bg = color; border = `2px solid ${m.color}`; textColor = '#fff'
       } else {
         const bonus = kind === 'done-bonus'
         bg = bonus ? deep : color; border = `1px solid ${bonus ? deep : color}`; textColor = '#fff'
       }
     }
-    else if (status === 'paused') { const m = pauseReasonMeta(pauseForDay(d, pauses)?.reason); bg = m.color + '33'; border = `1px solid ${m.color}66` }
+    else if (status === 'paused') { const m = pauseReasonMeta(pauseForDay(d, pauses)); bg = m.color + '33'; border = `1px solid ${m.color}66` }
     else if (status === 'due') { border = '1px solid var(--border-strong)' }
     else { border = '1px solid var(--border)' }
     return { bg, border, color: textColor, ring: isToday, title: d }
@@ -327,18 +292,30 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
     </div>
   )
 
-  // Nastrój renderujemy W MIEJSCU treści Nawyków, nie jako nakładkę. Nakładka
-  // musiałaby przebić się przez kontekst nakładania kontenera treści, a to
-  // właśnie chowało jej pasek pod belką aplikacji.
-  if (moodOpen) {
-    return (
-      <div className="habits-dashboard">
-        <Suspense fallback={<div className="list-loading">Ładowanie...</div>}>
-          <MoodDashboard user={user} setHeaderExtras={setMoodExtras} />
-        </Suspense>
-      </div>
-    )
-  }
+  // Okna spod ⋮ — wspólne dla Nawyków i Wyzwań. Wcześniej Wyzwania ich nie
+  // renderowały, więc klik w menu na tamtym ekranie nic nie robił.
+  const modale = (
+    <>
+      {showPause && <PauseForm user={user} onClose={() => setShowPause(false)} />}
+      {showRoutineMgr && <RoutineManager user={user} onClose={() => setShowRoutineMgr(false)} />}
+      {showReorder && <HabitReorderModal user={user} habits={reorderable} startTab={extrasOpen ? 'optional' : 'required'} onClose={() => setShowReorder(false)} />}
+      {amountFor && (
+        <AmountSheet habit={amountFor.habit} dateStr={amountFor.date} onSet={setDayAmount}
+          onClose={() => setAmountFor(null)} />
+      )}
+      {showFresh && (
+        <HabitFreshStart user={user} habits={reorderable} pauses={pauses} onClose={() => setShowFresh(false)} />
+      )}
+      {showArchive && (
+        <HabitArchive user={user} habits={archivedHabits} endedHabits={endedHabits} pauses={pauses}
+          onEdit={(h) => { setShowArchive(false); setEditHabit(h); setShowForm(true) }}
+          onClose={() => setShowArchive(false)} />
+      )}
+      {showManager && (
+        <HabitManager user={user} habits={habits} categories={allCategories} onClose={() => setShowManager(false)} />
+      )}
+    </>
+  )
 
   // Wyzwania — tak samo w miejscu treści, bez drugiego paska.
   if (extrasOpen) {
@@ -354,7 +331,9 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
           onSetAmount={setDayAmount}
           onEdit={(h) => { setEditHabit(h); setShowForm(true) }}
           onAdd={() => { setEditHabit(null); setShowForm(true) }}
+          pauses={pauses}
         />
+        {modale}
         {showForm && (
           <HabitForm user={user} editData={editHabit}
             onClose={() => { setShowForm(false); setEditHabit(null) }} />
@@ -368,50 +347,41 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
       {/* ===== EKRAN GŁÓWNY (Dziś): hero (akcje są w górnej belce) ===== */}
       {view === 'today' && (
         <>
-          {/* Hero — Postęp dnia i Kalendarz jako osobne karty */}
-          <div className="g2-br" data-stagger style={{ gap: 12, marginBottom: 14, marginTop: 4, alignItems: 'start' }}>
+          {/* Hero — Postęp dnia i mały kalendarz obok siebie, także na telefonie */}
+          <div className="habit-hero" data-stagger>
             {/* Postęp dnia */}
-            <div className="card card-hover-glow" style={{
-              padding: 18, display: 'flex', alignItems: 'center', gap: 16,
+            <div className="card card-hover-glow habit-hero-progress" style={{
               borderTop: '2px solid color-mix(in oklab, var(--accent) 80%, transparent)',
               background: 'linear-gradient(140deg, var(--surface) 45%, color-mix(in oklab, var(--accent) 7%, var(--surface)) 100%)',
             }}>
-              <Ring
-                value={score.pct}
-                size={88} thickness={8} color="var(--warn)" label="dziś"
-              />
+              <Ring value={score.pct} size={64} thickness={6} color="var(--warn)" label="dziś" />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', marginBottom: 6 }}>{todayLabel}</div>
-                {kicker('Postęp dnia')}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '2px 0 8px', whiteSpace: 'nowrap' }}>
-                  <span className="serif" style={{ fontSize: 40 }}>{doneToday}</span>
-                  <span className="mono" style={{ fontSize: 17, color: 'var(--text-muted)' }}>/ {score.required}</span>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{todayLabel}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
+                  <span className="serif" style={{ fontSize: 30, lineHeight: 1.05 }}>{doneToday}</span>
+                  <span className="mono" style={{ fontSize: 14, color: 'var(--text-muted)' }}>/ {score.required}</span>
                 </div>
                 {maxStreak > 0 && (
-                  <div style={{ color: 'var(--warn)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-                    <IconFlame size={14}/> <span className="mono" style={{ fontSize: 12.5 }}>{maxStreak} dni serii</span>
+                  <div style={{ color: 'var(--warn)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', marginTop: 4 }}>
+                    <IconFlame size={13}/> <span className="mono" style={{ fontSize: 11.5 }}>{maxStreak} dni serii</span>
                   </div>
                 )}
                 {recordStreak > 0 && (
-                  <div className="mono" style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 5, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <IconStar size={12} style={{ color: 'var(--text-muted)' }} /> rekord: {recordStreak} dni
+                  <div className="mono" style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 3, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <IconStar size={11} style={{ color: 'var(--text-muted)' }} /> rekord: {recordStreak} dni
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Kalendarz miesiąca — z przewijaniem (jak w budżecie) */}
-            <div className="card card-hover-glow" style={{ padding: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                {kicker('Kalendarz')}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <button className="icon-btn" style={{ width: 26, height: 26 }} onClick={() => setDashMonth(subMonths(dashMonth, 1))} title="Poprzedni miesiąc"><IconChevronLeft size={14} /></button>
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', minWidth: 78, textAlign: 'center' }}>{format(dashMonth, 'LLLL yyyy', { locale: pl })}</span>
-                  <button className="icon-btn" style={{ width: 26, height: 26 }} onClick={() => setDashMonth(addMonths(dashMonth, 1))} title="Następny miesiąc"><IconChevronRight size={14} /></button>
-                </div>
+            {/* Mały kalendarz miesiąca — z przewijaniem */}
+            <div className="card card-hover-glow habit-hero-cal">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, marginBottom: 6 }}>
+                <button className="icon-btn" style={{ width: 22, height: 22 }} onClick={() => setDashMonth(subMonths(dashMonth, 1))} title="Poprzedni miesiąc"><IconChevronLeft size={12} /></button>
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', textAlign: 'center', whiteSpace: 'nowrap' }}>{format(dashMonth, 'LLL yyyy', { locale: pl })}</span>
+                <button className="icon-btn" style={{ width: 22, height: 22 }} onClick={() => setDashMonth(addMonths(dashMonth, 1))} title="Następny miesiąc"><IconChevronRight size={12} /></button>
               </div>
-              <MonthCalendar month={dashMonth} renderCell={aggCellFor(filtered)} cellH={20} font={8.5} maxWidth={266} />
-              {intensityLegend}
+              <MonthCalendar month={dashMonth} renderCell={aggCellFor(filtered)} cellH={15} gap={2} font={7.5} maxWidth={240} />
             </div>
           </div>
         </>
@@ -726,7 +696,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
         <div data-stagger style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Wybór okresu */}
           <SegTabs
-            items={[{ id: 'week', label: 'Tydzień' }, { id: 'month', label: 'Miesiąc' }, { id: 'year', label: 'Rok' }]}
+            items={[{ id: 'month', label: 'Miesiąc' }, { id: 'year', label: 'Rok' }]}
             active={statPeriod} onChange={setStatPeriod} style={{ maxWidth: 420 }}
           />
 
@@ -804,7 +774,8 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
                     <span style={{ width: 13, height: 13, borderRadius: 4, background: bg, border: border || '1px solid transparent', flexShrink: 0 }} />{label}
                   </span>
                 )
-                const usedPauses = [...new Set(pauses.map(p => p.reason))]
+                // Jeden wpis legendy na powód — własne powody niosą wygląd w pauzie.
+                const usedPauses = [...new Map(pauses.map(p => [p.reason, p])).values()]
                 return <>
                   {chip('var(--accent)', null, 'zrobione')}
                   {chip('color-mix(in oklab, var(--accent) 58%, #000)', null, 'dodatkowo')}
@@ -813,7 +784,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
                   {usedPauses.length > 0 && chip('var(--accent)',
                     `2px solid ${pauseReasonMeta(usedPauses[0]).color}`, 'zrobione mimo przerwy')}
                   {chip('transparent', '1px solid var(--border-strong)', 'pominięte')}
-                  {usedPauses.map(rid => { const m = pauseReasonMeta(rid); return <span key={rid}>{chip(m.color + '33', `1px solid ${m.color}66`, m.label.toLowerCase())}</span> })}
+                  {usedPauses.map(pz => { const m = pauseReasonMeta(pz); return <span key={pz.reason}>{chip(m.color + '33', `1px solid ${m.color}66`, m.label.toLowerCase())}</span> })}
                 </>
               })()}
             </div>
@@ -984,24 +955,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
         </div>
       ) })()}
 
-      {showPause && <PauseForm user={user} onClose={() => setShowPause(false)} />}
-      {showRoutineMgr && <RoutineManager user={user} onClose={() => setShowRoutineMgr(false)} />}
-      {showReorder && <HabitReorderModal user={user} habits={reorderable} onClose={() => setShowReorder(false)} />}
-      {amountFor && (
-        <AmountSheet habit={amountFor.habit} dateStr={amountFor.date} onSet={setDayAmount}
-          onClose={() => setAmountFor(null)} />
-      )}
-      {showFresh && (
-        <HabitFreshStart user={user} habits={reorderable} pauses={pauses} onClose={() => setShowFresh(false)} />
-      )}
-      {showArchive && (
-        <HabitArchive user={user} habits={archivedHabits} endedHabits={endedHabits} pauses={pauses}
-          onEdit={(h) => { setShowArchive(false); setEditHabit(h); setShowForm(true) }}
-          onClose={() => setShowArchive(false)} />
-      )}
-      {showManager && (
-        <HabitManager user={user} habits={habits} categories={allCategories} onClose={() => setShowManager(false)} />
-      )}
+      {modale}
       {showForm && (
         <HabitForm user={user} onClose={() => { setShowForm(false); setEditHabit(null) }} editData={editHabit} />
       )}

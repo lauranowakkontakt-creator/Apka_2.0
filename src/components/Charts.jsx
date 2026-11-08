@@ -3,22 +3,23 @@ import { collection, query, where, orderBy, Timestamp, getDoc, doc } from 'fireb
 import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
 import { CatIcon, IconChevronLeft, IconChevronRight, IconChart } from './Icons'
-import { useMounted, GroupedBars } from './ChartPrimitives'
-import { getBounds, shiftPivot, buildPeriodTimeline } from '../utils/budgetMath'
+import { useMounted } from './ChartPrimitives'
+import { getBounds, shiftPivot } from '../utils/budgetMath'
 import { byAccountOrder } from '../utils/accountOrder'
 import { fmt } from '../utils/currency'
 import { inPLN } from '../utils/moneyFlow'
 import { getSubcategoryColor, DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, isTransfer } from '../utils/categories'
 import { bladSubskrypcji } from '../utils/polaczenie'
+import StatsPanel from './budget/StatsPanel'
 
 const FALLBACK_COLORS = [
   '#C94B28','#6366f1','#f59e0b','#10b981','#3b82f6','#8b5cf6',
   '#ec4899','#14b8a6','#f97316','#84cc16','#06b6d4','#a78bfa',
 ]
 
+// Jeden ekran analizy Finansów: „Miesiąc" (bilans i kategorie wybranego
+// miesiąca) albo „Rok" (rok w liczbach, miesiąc po miesiącu, porównanie lat).
 const PERIODS = [
-  { id: 'day',   label: 'Dzień'   },
-  { id: 'week',  label: 'Tydzień' },
   { id: 'month', label: 'Miesiąc' },
   { id: 'year',  label: 'Rok'     },
 ]
@@ -31,7 +32,6 @@ export default function Charts({ user, privateMode = false }) {
   const [transactions, setTx]     = useState([])
   const [accounts, setAccounts]   = useState([])
   const [accountFilter, setAccountFilter] = useState('all')
-  const [showAllAcc, setShowAllAcc] = useState(false)
   const [customCats, setCustomCats] = useState(null)
 
   const bounds = getBounds(period, pivot)
@@ -106,38 +106,30 @@ export default function Charts({ user, privateMode = false }) {
         <button className="icon-btn" onClick={goFwd}><IconChevronRight size={16} /></button>
       </div>
 
-      {/* Account filter — najczęściej używane na początku, reszta pod „więcej" */}
-      {accounts.length > 0 && (() => {
-        const top = sortedAccounts.slice(0, 4)
-        const visible = showAllAcc
-          ? sortedAccounts
-          : (accountFilter !== 'all' && !top.some(a => a.id === accountFilter)
-              ? [...top, sortedAccounts.find(a => a.id === accountFilter)].filter(Boolean)
-              : top)
-        return (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button
-              className={`account-chip ${accountFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setAccountFilter('all')}>
-              Wszystkie
+      {/* Filtr kont — jeden przewijany palcem wiersz, niezależnie od liczby kont */}
+      {accounts.length > 0 && (
+        <div className="acc-filter-row" role="group" aria-label="Filtr kont">
+          <button
+            className={`account-chip ${accountFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setAccountFilter('all')}>
+            Wszystkie konta
+          </button>
+          {sortedAccounts.map(a => (
+            <button key={a.id}
+              className={`account-chip ${accountFilter === a.id ? 'active' : ''}`}
+              style={accountFilter === a.id ? { borderColor: a.color, background: a.color + '22' } : {}}
+              title={a.name}
+              onClick={() => setAccountFilter(a.id)}>
+              {a.name}
             </button>
-            {visible.map(a => (
-              <button key={a.id}
-                className={`account-chip ${accountFilter === a.id ? 'active' : ''}`}
-                style={accountFilter === a.id ? { borderColor: a.color, background: a.color + '22' } : {}}
-                onClick={() => setAccountFilter(a.id)}>
-                {a.name}
-              </button>
-            ))}
-            {sortedAccounts.length > 4 && (
-              <button className="account-chip" onClick={() => setShowAllAcc(v => !v)}>
-                {showAllAcc ? '− mniej' : `+${sortedAccounts.length - 4} więcej`}
-              </button>
-            )}
-          </div>
-        )
-      })()}
+          ))}
+        </div>
+      )}
 
+      {period === 'year' ? (
+        <StatsPanel user={user} privateMode={privateMode} rok={pivot.getFullYear()}
+          onRokChange={(y) => setPivot(new Date(y, 0, 1))} accountFilter={accountFilter} />
+      ) : (<>
       {/* Tab selector */}
       <div className="habit-view-tabs">
         {[['general','Ogólne'],['expense','Wydatki'],['income','Dochody']].map(([id, lbl]) => (
@@ -175,8 +167,7 @@ export default function Charts({ user, privateMode = false }) {
             <GeneralTab
               expenses={expenses} incomes={incomes}
               totalExp={totalExp} totalInc={totalInc} balance={balance}
-              period={period} pivot={pivot} allTx={filtered}
-              privateMode={privateMode}
+              pivot={pivot} privateMode={privateMode}
             />
           )}
           {tab === 'expense' && (
@@ -198,18 +189,22 @@ export default function Charts({ user, privateMode = false }) {
           )}
         </>
       )}
+      </>)}
     </div>
   )
 }
 
 /* ─── General Tab ─── */
-function GeneralTab({ expenses, incomes, totalExp, totalInc, balance, period, pivot, allTx, privateMode = false }) {
+function GeneralTab({ expenses, totalExp, totalInc, balance, pivot, privateMode = false }) {
   const savingsRate = totalInc > 0 ? Math.round((balance / totalInc) * 100) : null
   const on = useMounted(80)
 
   // Statystyki pomocnicze — do kafelków „na pierwszy rzut oka"
-  const txCount = expenses.length + incomes.length
-  const avgExp  = expenses.length ? totalExp / expenses.length : 0
+  // Średnio na dzień: w bieżącym miesiącu dzielimy przez dni, które już minęły.
+  const dzis = new Date()
+  const biezacy = pivot.getFullYear() === dzis.getFullYear() && pivot.getMonth() === dzis.getMonth()
+  const dni = biezacy ? dzis.getDate() : new Date(pivot.getFullYear(), pivot.getMonth() + 1, 0).getDate()
+  const avgDay = totalExp / Math.max(1, dni)
   const topCat  = useMemo(() => {
     const m = {}
     expenses.forEach(t => { const k = t.category || 'Inne'; m[k] = (m[k] || 0) + t.amount })
@@ -223,27 +218,6 @@ function GeneralTab({ expenses, incomes, totalExp, totalInc, balance, period, pi
       {sub && <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>{sub}</p>}
     </div>
   )
-
-  // Oś czasu dopasowana do okresu: rok → miesiące, miesiąc/tydzień → dni (dzień → brak wykresu)
-  const timeline = useMemo(() => buildPeriodTimeline(allTx, period, pivot), [allTx, period, pivot])
-  const hasTimeline = timeline.some(d => d.income > 0 || d.expense > 0)
-  const timelineTitle =
-    period === 'year'  ? 'Przychody i wydatki · wg miesięcy' :
-    period === 'week'  ? 'Przychody i wydatki · wg dni' :
-                         'Przychody i wydatki · wg tygodni'
-  const unitWord = period === 'year' ? 'miesiąc' : period === 'week' ? 'dzień' : 'tydzień'
-
-  // Zmiana przepływów: ostatni kubełek z aktywnością vs poprzedni z aktywnością
-  const flowDelta = (() => {
-    const active = timeline.filter(d => d.income > 0 || d.expense > 0)
-    if (active.length < 2) return null
-    const cur  = active[active.length - 1]
-    const prev = active[active.length - 2]
-    const curFlow  = cur.income + cur.expense
-    const prevFlow = prev.income + prev.expense
-    if (prevFlow === 0) return null
-    return Math.round(((curFlow - prevFlow) / prevFlow) * 1000) / 10
-  })()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -299,34 +273,10 @@ function GeneralTab({ expenses, incomes, totalExp, totalInc, balance, period, pi
 
       {/* Kafelki statystyk — szybki przegląd okresu */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-        {statTile('Transakcje', txCount, `${expenses.length} wyd. · ${incomes.length} przych.`)}
-        {statTile('Śr. wydatek', privateMode ? '••' : fmt(avgExp), 'na transakcję', 'var(--expense)')}
         {statTile('Największa kategoria', topCat ? topCat.name : '—', topCat && !privateMode ? fmt(topCat.val) : '', 'var(--text)')}
-        {statTile('Stopa oszczędności', savingsRate !== null ? `${savingsRate}%` : '—', savingsRate !== null ? (savingsRate >= 0 ? 'odłożone z przychodów' : 'na minusie') : 'brak przychodów', savingsRate !== null ? (savingsRate >= 0 ? 'var(--income)' : 'var(--expense)') : undefined)}
+        {statTile('Wydatki dziennie', privateMode ? '••' : fmt(avgDay), biezacy ? `średnio z ${dni} dni` : 'średnio w miesiącu', 'var(--expense)')}
       </div>
 
-      {/* Przychody i wydatki — jeden zgrupowany wykres słupkowy (para obok siebie / miesiąc) */}
-      {hasTimeline && (
-        <div className="card card-pad" style={{ overflow: 'hidden' }}>
-          <p style={{ margin: '0 0 8px', fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            {timelineTitle}
-          </p>
-          {flowDelta !== null && (
-            <p style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: flowDelta >= 0 ? 'var(--income)' : 'var(--expense)' }}>
-              {flowDelta >= 0 ? '↑' : '↓'} {Math.abs(flowDelta).toFixed(1).replace('.', ',')}% <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>vs poprzedni {unitWord}</span>
-            </p>
-          )}
-          <GroupedBars data={timeline} height={150} barMaxWidth={10} fmt={privateMode ? () => '••' : (n) => Math.round(n).toLocaleString('pl-PL')} />
-          <div style={{ display: 'flex', gap: 16, marginTop: 14 }}>
-            {[['var(--income)','Przychody'],['var(--expense)','Wydatki']].map(([color, lbl]) => (
-              <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{lbl}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

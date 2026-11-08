@@ -1,13 +1,13 @@
 import { RECUR_LABEL } from '../../utils/calendarRecurrence'
 import { PRIORITY } from '../../utils/todoLogic'
-import { CatIcon, IconCalendar, IconCheck, IconClock, IconEdit, IconFlag, IconRepeat, IconTrash } from '../Icons'
+import { CatIcon, IconCalendar, IconCheck, IconClock, IconEdit, IconFlag, IconRepeat, IconTrash, IconStar } from '../Icons'
 import PersonBubble from '../PersonBubble'
 import { format, isPast, isToday, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 
 // Pojedyncze zadanie na liście, razem z podzadaniami.
 
-export default function TodoItem({ todo, lists, peopleById = {}, onToggle, onToggleSubtask, onEdit, onDelete }) {
+export default function TodoItem({ todo, lists, peopleById = {}, onToggle, onToggleSubtask, onEdit, onDelete, onStar }) {
   const list     = lists.find(l => l.id === todo.listId)
   const priority = PRIORITY.find(p => p.id === todo.priority)
   const date     = todo.dueDate ? parseISO(todo.dueDate) : null
@@ -21,6 +21,7 @@ export default function TodoItem({ todo, lists, peopleById = {}, onToggle, onTog
   return (
     <div className="card hover" style={{
       padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 13,
+      ...(todo.starred && !todo.done ? { borderColor: 'color-mix(in oklab, var(--warn) 55%, var(--border))', background: 'color-mix(in oklab, var(--warn) 6%, var(--surface))' } : {}),
     }}>
       {/* Checkbox */}
       <button onClick={() => onToggle(todo)} style={{
@@ -105,6 +106,13 @@ export default function TodoItem({ todo, lists, peopleById = {}, onToggle, onTog
       </div>
 
       <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+        {onStar && !todo.done && (
+          <button className="t-btn" onClick={() => onStar(todo)} aria-pressed={!!todo.starred}
+            title={todo.starred ? 'Usuń z wybranych' : 'Dodaj do wybranych — chcę to zrobić'}
+            style={{ color: todo.starred ? 'var(--warn)' : undefined }}>
+            <IconStar size={13} style={todo.starred ? { fill: 'currentColor' } : undefined} />
+          </button>
+        )}
         <button className="t-btn" onClick={onEdit}><IconEdit size={13} /></button>
         <button className="t-btn delete" onClick={() => onDelete(todo.id)}><IconTrash size={13} /></button>
       </div>

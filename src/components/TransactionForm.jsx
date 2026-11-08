@@ -14,7 +14,7 @@ import { bladSubskrypcji } from '../utils/polaczenie'
 export const EXPENSE_CATEGORIES = DEFAULT_EXPENSE_CATEGORIES
 export const INCOME_CATEGORIES  = DEFAULT_INCOME_CATEGORIES
 
-export default function TransactionForm({ user, onClose, editData, defaultType, defaultAccountId }) {
+export default function TransactionForm({ user, onClose, editData, defaultType, defaultAccountId, defaultCurrency }) {
   const [type, setType]             = useState(editData?.type || defaultType || 'expense')
   const [amount, setAmount]         = useState(editData?.amount?.toString() || '')
   const [category, setCategory]     = useState(editData?.categoryId || '')
@@ -23,7 +23,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
   const [description, setDescription] = useState(editData?.description || '')
   const [date, setDate]             = useState(editData?.date ? format(editData.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
   const [accountId, setAccountId]   = useState(editData?.accountId || defaultAccountId || '')
-  const [currency, setCurrency]     = useState(editData?.currency || getCurrencyCode())
+  const [currency, setCurrency]     = useState(editData?.currency || defaultCurrency || getCurrencyCode())
   const [accounts, setAccounts]     = useState([])
   const [accountUsage, setAccountUsage] = useState({ income: {}, expense: {} })
   const [showAllAccounts, setShowAllAccounts] = useState(false)
@@ -85,10 +85,13 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
   const sortedAccounts = [...accounts].sort((a, b) =>
     (usageScore(b.id) - usageScore(a.id)) || byAccountOrder(a, b))
 
-  // Domyślnie wybierz najczęściej/ostatnio używane konto (brak opcji „bez konta")
+  // Domyślnie wybierz najczęściej/ostatnio używane konto (brak opcji „bez konta").
+  // Gdy formularz otwarto z portfela innej waluty (np. EUR), bierzemy najczęstsze
+  // konto w tej walucie — inaczej wybór konta złotówkowego przestawiłby walutę.
   useEffect(() => {
     if (!accountId && !editData && accounts.length) {
-      setAccountId(sortedAccounts[0].id)
+      const wWalucie = defaultCurrency ? sortedAccounts.filter(a => (a.currency || 'PLN') === defaultCurrency) : []
+      setAccountId((wWalucie[0] || sortedAccounts[0]).id)
     }
   }, [accounts, accountUsage]) // eslint-disable-line
 

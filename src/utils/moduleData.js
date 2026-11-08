@@ -10,9 +10,9 @@ export const MODULE_DATA = {
   },
   habits: {
     label: 'Nawyki',
-    what: 'nawyki, rutyny, kategorie nawyków, przerwy i wpisy nastroju',
-    collections: ['habits', 'habitRoutines', 'habitCategories', 'habitPauses', 'moodLogs'],
-    docs: [],
+    what: 'nawyki, rutyny, kategorie nawyków, przerwy i własne powody przerw',
+    collections: ['habits', 'habitRoutines', 'habitCategories', 'habitPauses'],
+    docs: [['settings', 'habitPauses']],
   },
   todo: { label: 'To-do', what: 'zadania i listy', collections: ['todos', 'todoLists'], docs: [] },
   calendar: {
@@ -24,4 +24,5 @@ export const MODULE_DATA = {
   people: { label: 'Osoby', what: 'osoby (znikną też z kalendarza, modlitwy i snów)', collections: ['calendarPeople'], docs: [] },
   dream: { label: 'Sen', what: 'sny, kategorie i symbole snów', collections: ['dreams', 'dreamCategories', 'dreamSymbols'], docs: [] },
   gratitude: { label: 'Wdzięcznik', what: 'wpisy wdzięczności', collections: ['gratitude'], docs: [] },
+  mood: { label: 'Nastrój', what: 'wpisy nastroju', collections: ['moodLogs'], docs: [] },
 }

@@ -1,17 +1,17 @@
 import { useState } from 'react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/config'
-import { IconClose, IconChevronLeft, IconArrowUp, IconArrowDown, IconEye, IconEyeOff, IconReorder } from './Icons'
+import { IconClose, IconChevronLeft, IconEye, IconEyeOff, IconReorder } from './Icons'
+import { useDragReorder, DragHandle } from './DragReorder'
 import { IconPicker } from './Pickers'
 import { saveModuleIcon, getModuleIcons } from '../utils/iconPrefs'
-import { moveModule, toggleHidden, isHidden, FIXED_FIRST, NAV_SLOTS } from '../utils/moduleLayout'
-import { CURRENCIES, getCurrencyCode, setCurrencyCode } from '../utils/currency'
+import { moveModuleTo, toggleHidden, isHidden, FIXED_FIRST, NAV_SLOTS } from '../utils/moduleLayout'
 import { exportAllJSON, exportTransactionsCSV } from '../utils/dataExport'
 import { toast } from './Toast'
 import Diagnostyka from './Diagnostyka'
 import ClearModuleData from './ClearModuleData'
 
-export default function SettingsDrawer({ open, onClose, activeModule, modules, onModuleChange, onIconChange, onCurrencyChange, user, layout, onLayoutChange }) {
+export default function SettingsDrawer({ open, onClose, activeModule, modules, onModuleChange, onIconChange, user, layout, onLayoutChange }) {
   const handleLogout = () => { signOut(auth); onClose() }
   const displayName = user.displayName || 'Laura'
   const initials = displayName[0]?.toUpperCase() || 'L'
@@ -95,7 +95,7 @@ export default function SettingsDrawer({ open, onClose, activeModule, modules, o
           <div className="drawer-section">
             <p className="drawer-section-title">Ustawienia — {activeModule.label}</p>
             <div className="drawer-settings-list">
-              {activeModule.id === 'budget' && <BudgetSettings onCurrencyChange={onCurrencyChange} />}
+              {activeModule.id === 'budget' && <BudgetSettings />}
               {activeModule.id === 'habits' && <HabitsSettings />}
             </div>
           </div>
@@ -175,37 +175,11 @@ function IconPickerPanel({ module, onPick, onCancel }) {
   )
 }
 
-function BudgetSettings({ onCurrencyChange }) {
-  const [current, setCurrent] = useState(getCurrencyCode)
-
-  const handleSelect = (code) => {
-    setCurrent(code)
-    setCurrencyCode(code)
-    onCurrencyChange?.(code)
-  }
-
-  return (
-    <>
-      <div className="drawer-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-        <span className="drawer-item-label">Waluta wyświetlania</span>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          {CURRENCIES.map(c => (
-            <button key={c.code} onClick={() => handleSelect(c.code)} style={{
-              padding: '4px 10px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
-              background: current === c.code ? 'var(--accent)' : 'var(--surface2)',
-              color: current === c.code ? '#fff' : 'var(--text-muted)',
-              border: `1px solid ${current === c.code ? 'var(--accent)' : 'var(--border)'}`,
-              fontWeight: current === c.code ? 700 : 400,
-              transition: 'all .15s',
-            }}>
-              {c.code} <span style={{ opacity: 0.7 }}>{c.symbol}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <DrawerItem label="Początek miesiąca" value="1. dzień" />
-    </>
-  )
+function BudgetSettings() {
+  // Główna waluta to zawsze złotówki — wszystkie sumy i statystyki liczą się
+  // w zł. Inne waluty to osobne portfele, przełączane strzałkami na ekranie
+  // Finansów, więc tu nie ma już przełącznika „waluty wyświetlania".
+  return <DrawerItem label="Początek miesiąca" value="1. dzień" />
 }
 
 function HabitsSettings() {
@@ -236,7 +210,8 @@ function ModuleLayoutPanel({ modules, layout, onChange }) {
   const byId = new Map(modules.map(m => [m.id, m]))
   const movable = order.filter(id => id !== FIXED_FIRST)
 
-  const move = (id, dir) => onChange({ ...layout, order: moveModule(layout.order, id, dir) })
+  const drag = useDragReorder(movable.length, (from, to) =>
+    onChange({ ...layout, order: moveModuleTo(layout.order, movable[from], movable[to]) }))
   const hide = (id) => onChange(toggleHidden(layout, id))
 
   // Ile pozycji z góry trafia na dolny pasek (Pulpit zajmuje jeden slot).
@@ -259,7 +234,8 @@ function ModuleLayoutPanel({ modules, layout, onChange }) {
           const onBar = navIds.includes(id)
           const idx = movable.indexOf(id)
           return (
-            <div key={id} className={`mod-layout-row${hidden ? ' hidden' : ''}`}>
+            <div key={id} className={`mod-layout-row${hidden ? ' hidden' : ''}`} {...(idx >= 0 ? drag.wiersz(idx) : {})}>
+              <DragHandle disabled={pinned} {...(idx >= 0 ? drag.uchwyt(idx) : {})} />
               <span className="mod-layout-num">{i + 1}</span>
               <span className="mod-layout-icon"><m.Icon size={17} /></span>
               <span className="mod-layout-label">
@@ -267,14 +243,6 @@ function ModuleLayoutPanel({ modules, layout, onChange }) {
                 {pinned && <span className="mod-layout-badge">zawsze</span>}
                 {!pinned && onBar && <span className="mod-layout-badge">na pasku</span>}
               </span>
-              <button type="button" className="icon-btn mod-layout-btn" title="W górę"
-                disabled={pinned || idx <= 0} onClick={() => move(id, -1)}>
-                <IconArrowUp size={13} />
-              </button>
-              <button type="button" className="icon-btn mod-layout-btn" title="W dół"
-                disabled={pinned || idx === -1 || idx >= movable.length - 1} onClick={() => move(id, 1)}>
-                <IconArrowDown size={13} />
-              </button>
               <button type="button" className={`icon-btn mod-layout-btn${hidden ? '' : ' on'}`}
                 title={pinned ? 'Pulpitu nie da się ukryć' : hidden ? 'Pokaż' : 'Ukryj'}
                 disabled={pinned} onClick={() => hide(id)}>

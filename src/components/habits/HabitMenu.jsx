@@ -3,7 +3,7 @@ import { IconPause, IconReorder, IconMoreVert, IconChart, IconClock, IconEdit, I
 
 // Menu „trzy kropki" dla Nawyków — spójne wizualnie z BudgetMenu (te same klasy CSS).
 // Kryje opcje Pauza i Kolejność, żeby nagłówek był czysty (tylko + i ⋮).
-export default function HabitMenu({ onAction, canReorder = true, hasArchive = false, canFresh = false }) {
+export default function HabitMenu({ onAction, canReorder = true, hasArchive = false, canFresh = false, extras = false }) {
   const [open, setOpen] = useState(false)
   const ref = useRef()
 
@@ -13,7 +13,14 @@ export default function HabitMenu({ onAction, canReorder = true, hasArchive = fa
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const items = [
+  // Na ekranie Wyzwań zostaje tylko to, co tam ma sens: rutyny, „Zacznij od
+  // nowa" i analiza dotyczą nawyków (Wyzwania mają własną zakładkę Statystyki).
+  const items = extras ? [
+    { id: 'manage',  Icon: IconEdit,    label: 'Edytuj nawyki i wyzwania' },
+    { id: 'pause',   Icon: IconPause,   label: 'Pauza (wyjazd / choroba)' },
+    ...(canReorder ? [{ id: 'reorder', Icon: IconReorder, label: 'Kolejność wyzwań' }] : []),
+    ...(hasArchive ? [{ id: 'archive', Icon: IconArchive, label: 'Ukończone i archiwum' }] : []),
+  ] : [
     // Edycja nawyków mieszka tutaj — obejmuje też te jeszcze nierozpoczęte,
     // których lista dnia w ogóle nie pokazuje.
     { id: 'manage',   Icon: IconEdit,    label: 'Edytuj nawyki' },
