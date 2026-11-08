@@ -55,3 +55,12 @@ test('domyślne kategorie mają unikalne id i poprawne kolory', () => {
     }
   }
 })
+
+import { kolorPodkategorii, getSubcategoryColor as autoKolor } from '../src/utils/categories.js'
+
+test('kolorPodkategorii — własny kolor wygrywa, bez niego odcień kategorii', () => {
+  assert.equal(kolorPodkategorii({ color: '#123456' }, '#C97A55', 0), '#123456')
+  assert.equal(kolorPodkategorii({}, '#C97A55', 2), autoKolor('#C97A55', 2))
+  assert.equal(kolorPodkategorii({ color: null }, '#C97A55', 1), autoKolor('#C97A55', 1))
+  assert.equal(kolorPodkategorii(undefined, '#C97A55', 0), autoKolor('#C97A55', 0))
+})

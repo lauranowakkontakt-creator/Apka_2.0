@@ -56,6 +56,14 @@ export default function Charts({ user, privateMode = false }) {
     return map
   }, [customCats])
 
+  // Własne kolory podkategorii i pod-podkategorii (ustawiane w „Zarządzaj kategoriami").
+  const subColorMap = useMemo(() => {
+    const map = {}
+    const zbierz = (subs = []) => subs.forEach(sc => { if (sc?.id && sc.color) map[sc.id] = sc.color; zbierz(sc?.subcategories) })
+    ;[...(customCats?.expense || []), ...(customCats?.income || [])].forEach(c => zbierz(c.subcategories))
+    return map
+  }, [customCats])
+
   useEffect(() => {
     const q = query(
       collection(db, 'users', user.uid, 'transactions'),
@@ -173,7 +181,7 @@ export default function Charts({ user, privateMode = false }) {
           {tab === 'expense' && (
             <CategoryTab
               transactions={expenses} total={totalExp}
-              chartType={chartType} label="Wydatki" catColorMap={catColorMap}
+              chartType={chartType} label="Wydatki" catColorMap={catColorMap} subColorMap={subColorMap}
               accentColor="var(--expense)"
               privateMode={privateMode}
             />
@@ -181,7 +189,7 @@ export default function Charts({ user, privateMode = false }) {
           {tab === 'income' && (
             <CategoryTab
               transactions={incomes} total={totalInc}
-              chartType={chartType} label="Dochody" catColorMap={catColorMap}
+              chartType={chartType} label="Dochody" catColorMap={catColorMap} subColorMap={subColorMap}
               accentColor="var(--income)"
               privateMode={privateMode}
               key="income"
@@ -282,7 +290,7 @@ function GeneralTab({ expenses, totalExp, totalInc, balance, pivot, privateMode 
 }
 
 /* ─── Category Tab ─── */
-function CategoryTab({ transactions, total, chartType, label, catColorMap = {}, accentColor, privateMode = false }) {
+function CategoryTab({ transactions, total, chartType, label, catColorMap = {}, subColorMap = {}, accentColor, privateMode = false }) {
   const [drillDown, setDrillDown] = useState(null)
 
   const hasSubcatSet = new Set()
@@ -328,7 +336,7 @@ function CategoryTab({ transactions, total, chartType, label, catColorMap = {}, 
     })
     const subData   = Object.values(bySub).sort((a, b) => b.value - a.value)
     const subTotal  = catTxs.reduce((s, t) => s + t.amount, 0)
-    const subColors = subData.map((_, i) => getSubcategoryColor(drillDown.parentColor, i))
+    const subColors = subData.map((d, i) => subColorMap[d.categoryId] || getSubcategoryColor(drillDown.parentColor, i))
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

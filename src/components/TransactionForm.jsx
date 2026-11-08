@@ -4,7 +4,7 @@ import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
 import { format } from 'date-fns'
 import { getCurrencyCode, parseAmount, CURRENCIES } from '../utils/currency'
-import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, getSubcategoryColor, isTransfer } from '../utils/categories'
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, kolorPodkategorii, isTransfer } from '../utils/categories'
 import useFallbackTimeout from '../utils/useFallbackTimeout'
 import { byAccountOrder } from '../utils/accountOrder'
 import { CatIcon, IconClose, IconCheck } from './Icons'
@@ -284,7 +284,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
                 <label>Podkategoria <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcjonalna)</span></label>
                 <div className="category-icons-grid">
                   {subcats.map((sub, si) => {
-                    const subColor = getSubcategoryColor(selectedCat.color, si)
+                    const subColor = kolorPodkategorii(sub, selectedCat.color, si)
                     const active = subcategoryId === sub.id
                     return (
                       <button key={sub.id} type="button"

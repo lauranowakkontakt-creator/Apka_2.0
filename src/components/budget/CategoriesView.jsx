@@ -3,7 +3,7 @@ import { doc, setDoc } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
-import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, getSubcategoryColor } from '../../utils/categories'
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, kolorPodkategorii } from '../../utils/categories'
 import { DEFAULT_COLOR } from '../../utils/palette'
 import { CatIcon, IconClose, IconTrash, IconTag, IconEdit, IconChevronDown } from '../Icons'
 import { useDragReorder, DragHandle } from '../DragReorder'
@@ -195,7 +195,7 @@ export default function CategoriesView({ user, onClose }) {
                       display: 'flex', flexDirection: 'column', gap: 5
                     }}>
                       {subcats.map((sub, si) => {
-                        const subColor = getSubcategoryColor(cat.color, si)
+                        const subColor = kolorPodkategorii(sub, cat.color, si)
                         const isEditingThis = editSubcat?.catId === cat.id && editSubcat?.subcat.id === sub.id
                         return (
                           <div key={sub.id}>
@@ -238,13 +238,13 @@ export default function CategoriesView({ user, onClose }) {
                             )}
                             {expandedSub.has(sub.id) && !isEditingThis && (
                               <div style={{ margin: '4px 0 2px 14px', paddingLeft: 8, borderLeft: `2px solid ${subColor}66`, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                {(sub.subcategories || []).map(ss => (
+                                {(sub.subcategories || []).map((ss, ssi) => (
                                   editSS?.subId === sub.id && editSS.item.id === ss.id ? (
                                     <SubcategoryForm key={ss.id} initial={ss} level={3} parentColor={subColor}
                                       onSave={u => updateSS(cat.id, sub.id, u)} onCancel={() => setEditSS(null)} />
                                   ) : (
-                                    <div key={ss.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', borderRadius: 7, padding: '5px 8px', border: `1px solid ${subColor}33` }}>
-                                      <CatIcon categoryId="" emoji={ss.icon} size={12} />
+                                    <div key={ss.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', borderRadius: 7, padding: '5px 8px', border: `1px solid ${subColor}33`, borderLeft: `3px solid ${kolorPodkategorii(ss, subColor, ssi)}` }}>
+                                      <span style={{ color: kolorPodkategorii(ss, subColor, ssi), display: 'inline-flex' }}><CatIcon categoryId="" emoji={ss.icon} size={12} /></span>
                                       <span style={{ flex: 1, fontSize: 12, color: 'var(--text)' }}>{ss.label}</span>
                                       <button className="t-btn" onClick={() => { setEditSS({ catId: cat.id, subId: sub.id, item: ss }); setAddingSS(null) }}><IconEdit size={11} /></button>
                                       <button className="t-btn delete" onClick={() => deleteSS(cat.id, sub.id, ss.id)}><IconTrash size={11} /></button>
@@ -351,14 +351,19 @@ function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor, level 
   const [label, setLabel]           = useState(initial?.label ?? '')
   const [icon, setIcon]             = useState(initial?.icon ?? 'IcWallet')
   const [error, setError]           = useState('')
-  const color = parentColor || DEFAULT_COLOR
+  // Własny kolor jest opcjonalny — pusty znaczy „automatyczny odcień kategorii".
+  const [wlasnyKolor, setWlasnyKolor] = useState(initial?.color || '')
+  const color = wlasnyKolor || parentColor || DEFAULT_COLOR
 
   const handleSave = () => {
     if (!label.trim()) { setError('Wpisz nazwę'); return }
     const id = isNew
       ? `${level === 3 ? 'ss' : 'sub'}_${label.trim().toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`
       : initial.id
-    onSave({ id, label: label.trim(), icon })
+    const dane = { id, label: label.trim(), icon, color: wlasnyKolor || null }
+    // Pod-podkategorie podkategorii zostają przy edycji nietknięte.
+    if (initial?.subcategories) dane.subcategories = initial.subcategories
+    onSave(dane)
   }
 
   return (
@@ -369,6 +374,19 @@ function SubcategoryForm({ initial, onSave, onCancel, isNew, parentColor, level 
       <input type="text" className="form-input" value={label} onChange={e => setLabel(e.target.value)}
         placeholder="np. Paliwo, Parking..." maxLength={30} style={{ fontSize: 13 }} />
       <IconPicker value={icon} onChange={setIcon} color={color} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Kolor</span>
+          <button type="button" onClick={() => setWlasnyKolor('')} aria-pressed={!wlasnyKolor}
+            style={{ fontSize: 11, padding: '3px 9px', borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
+              border: `1px solid ${!wlasnyKolor ? 'var(--accent)' : 'var(--border)'}`,
+              background: !wlasnyKolor ? 'var(--accent-soft)' : 'transparent',
+              color: !wlasnyKolor ? 'var(--accent)' : 'var(--text-muted)' }}>
+            Automatyczny (jak kategoria)
+          </button>
+        </div>
+        <ColorPicker value={wlasnyKolor} onChange={setWlasnyKolor} />
+      </div>
       {error && <p className="form-error" style={{ margin: 0, fontSize: 12 }}>{error}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn-save" onClick={handleSave} style={{ flex: 1, padding: 10, fontSize: 13 }}>{isNew ? 'Dodaj' : 'Zapisz'}</button>
