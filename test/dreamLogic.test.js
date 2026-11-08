@@ -298,3 +298,11 @@ test('tokenizeDreamText linkuje odmienione imię z id osoby', () => {
   assert.equal(p.t, 'Kasię')
   assert.equal(p.id, 'ka')
 })
+
+test('krótkie formy nie łapią obcych słów (Karo ≠ kartę, Zach ≠ zachować)', () => {
+  assert.equal(_fm('kartę w', 'Karo'), null)
+  assert.equal(_fm('zachować', 'Zach'), null)
+  assert.deepEqual(_fm('zuzą w', 'Zuza'), { len: 4, exact: false })
+  assert.deepEqual(_fm('maną', 'Mana'), { len: 4, exact: false })
+  assert.deepEqual(_fm('kubie', 'Kuba'), { len: 5, exact: false })
+})
