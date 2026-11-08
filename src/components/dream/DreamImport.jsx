@@ -4,6 +4,7 @@ import {
   parseDreamFile, planDreamImport, planRelink, suggestNewPeople, suggestSymbols, withAliases,
 } from '../../utils/dreamImport'
 import { SYMBOL_COLORS } from '../../utils/dreams'
+import { applyAutoTags, autoSymbolHint } from '../../utils/dreamAutoTags'
 import { PERSON_COLORS } from '../../utils/personColors'
 import { log } from '../../utils/logger'
 import { wPaczkach } from '../../utils/zapisWPaczkach'
@@ -37,6 +38,7 @@ export default function DreamImport({ user, onDone }) {
   const [file, setFile] = useState(null)         // { name, parsed }
   const [error, setError] = useState('')
   const [tag, setTag] = useState(true)
+  const [autoOn, setAutoOn] = useState(true)   // uzupełniaj brakujące oznaczenia (symbole, emocje, kategoria)
   const [peopleOff, setPeopleOff] = useState(() => new Set())
   const [choices, setChoices] = useState({})     // słowo (mała litera) → id osoby
   const [newPeople, setNewPeople] = useState({}) // rdzeń nazwy → { on, name }
@@ -124,9 +126,22 @@ export default function DreamImport({ user, onDone }) {
   }, [base, fromFile, peopleOff, chosenNewPeople, choices])
   const symbolsUse = useMemo(() => base ? [...base.symbols, ...fromFile.newSymbols, ...chosenNewSymbols] : [], [base, fromFile, chosenNewSymbols])
 
+  // Sny bez własnych tagów dostają symbole, emocje i kategorię; Twoje tagi zostają nietknięte.
+  const prepared = useMemo(() => {
+    if (!file) return { dreams: [], usedSymbols: [], filled: 0 }
+    return autoOn ? applyAutoTags(file.parsed.dreams) : { dreams: file.parsed.dreams, usedSymbols: [], filled: 0 }
+  }, [file, autoOn])
+  const autoNewSymbols = useMemo(() => {
+    if (!base) return []
+    const have = new Set([...base.symbols, ...fromFile.newSymbols, ...chosenNewSymbols].map(x => (x.name || '').toLowerCase()))
+    return prepared.usedSymbols.filter(n => !have.has(n.toLowerCase()))
+      .map((n, i) => ({ id: `imp-sym-${slug(n)}`, name: n, meaning: autoSymbolHint(n), color: SYMBOL_COLORS[i % SYMBOL_COLORS.length], isNew: true, auto: true }))
+  }, [base, fromFile, chosenNewSymbols, prepared])
+  const symbolsAll = useMemo(() => [...symbolsUse, ...autoNewSymbols], [symbolsUse, autoNewSymbols])
+
   const importPlan = useMemo(() => mode === 'import' && base && file
-    ? planDreamImport({ dreams: file.parsed.dreams, existing: base.dreams, people: peopleUse, symbols: symbolsUse, categories: [...(base.categories || []).map(x => ({ id: x.id, label: x.label || x.name })), ...fromFile.newCategories], options: { tag } })
-    : null, [mode, base, file, peopleUse, symbolsUse, fromFile, tag])
+    ? planDreamImport({ dreams: prepared.dreams, existing: base.dreams, people: peopleUse, symbols: symbolsAll, categories: [...(base.categories || []).map(x => ({ id: x.id, label: x.label || x.name })), ...fromFile.newCategories], options: { tag } })
+    : null, [mode, base, file, prepared, peopleUse, symbolsAll, fromFile, tag])
   const relinkPlan = useMemo(() => mode === 'relink' && base
     ? planRelink({ dreams: base.dreams, people: peopleUse, symbols: base.symbols, options: { tag } })
     : null, [mode, base, peopleUse, tag])
@@ -149,7 +164,7 @@ export default function DreamImport({ user, onDone }) {
     }
     // Nowe osoby i symbole z podpowiedzi zapisujemy tylko wtedy, gdy faktycznie coś do nich trafiło.
     for (const p of chosenNewPeople) if (perPerson[p.id]) writes.push({ path: [...b, 'calendarPeople', p.id], data: { name: p.name, note: '', info: '', icon: 'IcUsers', color: p.color, aliases: p.aliases, createdAt: now, updatedAt: now } })
-    for (const s of chosenNewSymbols) if (importPlan?.perSymbol[s.id]) writes.push({ path: [...b, 'dreamSymbols', s.id], data: { name: s.name, color: s.color, createdAt: now } })
+    for (const s of [...chosenNewSymbols, ...autoNewSymbols]) if (importPlan?.perSymbol[s.id]) writes.push({ path: [...b, 'dreamSymbols', s.id], data: { name: s.name, color: s.color, ...(s.meaning ? { meaning: s.meaning } : {}), createdAt: now } })
     // Odmiana wskazana w pytaniach o niejednoznaczne słowa → zapamiętana jako ksywka osoby.
     const aliasById = {}
     for (const [form, id] of Object.entries(choices)) if (id && base.people.some(p => p.id === id)) (aliasById[id] ||= []).push(form)
@@ -259,6 +274,13 @@ export default function DreamImport({ user, onDone }) {
       <Check checked={tag} onChange={setTag} sub="Przy imionach w tekście pojawi się @, dzięki czemu będą podświetlone i klikalne. Samo słowo zostaje bez zmian.">
         Oznacz osoby w tekście
       </Check>
+
+      {importPlan && (
+        <Check checked={autoOn} onChange={setAutoOn}
+          sub={`Sny, w których nic nie otagowałaś, dostaną symbole (ważne motywy, role, miejsca, pojazdy, zwierzęta), emocje i kategorię. Twoje własne tagi zostają bez zmian.${prepared.filled ? ` Dotyczy ${prepared.filled} snów.` : ''}`}>
+          Uzupełnij brakujące oznaczenia
+        </Check>
+      )}
 
       {peopleRows.length > 0 && (
         <>

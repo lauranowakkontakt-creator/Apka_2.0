@@ -166,6 +166,7 @@ export function linkText(text, people, symbols, { tag = true, skip = [], force =
       }
     }
     for (const s of symbols) {
+      if (s.auto) continue   // symbole automatyczne przypisujemy wprost z reguł, nie po słowach w tekście
       const nm = (s.name || '').trim().toLowerCase()
       if (nm && symbolMatchLen(rest, nm) > 0) { symbolIds.add(s.id); break }
     }
@@ -272,9 +273,10 @@ export function textSimilarity(a, b) {
   if (!A.size || !B.size) return 0
   let common = 0
   for (const w of A) if (B.has(w)) common++
-  return common / Math.min(A.size, B.size)
+  // Dzielimy przez średnią długość, żeby krótki sen zawarty w długim nie był uznany za ten sam.
+  return common / ((A.size + B.size) / 2)
 }
-export function isSameDream(d, other, threshold = 0.5) {
+export function isSameDream(d, other, threshold = 0.4) {
   if (other.date !== d.date) return false
   if ((other.title || '').trim().toLowerCase() === (d.title || '').trim().toLowerCase()) return true
   const mine = [d.text, d.extra?.originalText]
@@ -303,7 +305,6 @@ export function planDreamImport({ dreams, existing = [], people = [], symbols = 
     const id = dreamId(d)
     if (ids.has(id) || keys.has(dupKey(d)) || existingByDate.get(d.date)?.some(o => isSameDream(d, o))) { dup++; continue }
     ids.add(id); keys.add(dupKey(d))
-    ;(existingByDate.get(d.date) || existingByDate.set(d.date, []).get(d.date)).push({ date: d.date, title: d.title, text: d.text, originalText: d.extra?.originalText })
     const r = link ? linkText(d.text, peopleUse, symbols, { tag, ...(d.link || {}) }) : { text: d.text, mentionIds: [], symbolIds: [], ambiguous: [] }
     // Symbole wskazane w pliku wprost (np. „Woda", gdy w tekście jest „w wodzie") — suma z wykrytymi w tekście.
     if (link && d.symbolNames?.length) {
