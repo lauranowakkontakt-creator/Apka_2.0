@@ -262,6 +262,15 @@ export default function DreamImport({ user, onDone }) {
             <div className="imp-plan-sub">{fromFile.newSymbols.map(x => x.name).join(', ')}</div>
           </>
         )}
+        {importPlan && autoOn && (() => {
+          const used = autoNewSymbols.filter(x => importPlan.perSymbol[x.id]).sort((a, b) => importPlan.perSymbol[b.id] - importPlan.perSymbol[a.id])
+          return used.length > 0 && (
+            <>
+              <div className="imp-plan-row"><span>Symbole dobrane automatycznie</span><b>{used.length}</b></div>
+              <div className="imp-plan-sub">{used.slice(0, 40).map(x => `${x.name} (${importPlan.perSymbol[x.id]})`).join(', ')}{used.length > 40 ? '…' : ''}</div>
+            </>
+          )
+        })()}
         {importPlan && fromFile.newCategories.length > 0 && (
           <>
             <div className="imp-plan-row"><span>Nowe kategorie snów z pliku</span><b>{fromFile.newCategories.length}</b></div>
