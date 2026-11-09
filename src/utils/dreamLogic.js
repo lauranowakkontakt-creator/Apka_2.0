@@ -222,7 +222,9 @@ export function tokenizeDreamText(text, people = [], symbols = []) {
 
   // Symbole przypięte do snu — najdłuższa nazwa pierwsza (żeby „stary dom" wygrał
   // nad „dom"). Dopasowujemy zarówno po #, jak i w zwykłym tekście (także WIELE słów).
-  const symList = symbols.flatMap(s => symbolForms(s).map(f => ({ s, low: f.toLowerCase() })))
+  // Symbol ma formy z `aliases` oraz ewentualne `words` — słowa, które wywołały symbol automatyczny
+  // (np. „Rywalizacja" ← „wygrać").
+  const symList = symbols.flatMap(s => [...symbolForms(s), ...(Array.isArray(s.words) ? s.words : [])].map(f => ({ s, low: f.toLowerCase() })))
     .sort((a, b) => b.low.length - a.low.length)
 
   const segs = []

@@ -109,3 +109,20 @@ test('atak to zaatakowanie, ale atak paniki i fala uderzeniowa nie', () => {
   assert.ok(!autoSymbols('Nadeszła fala uderzeniowa.', '').includes('Bicie i uderzenie'))
   assert.ok(autoSymbols('Uderzył mnie w twarz.', '').includes('Bicie i uderzenie'))
 })
+
+import { autoSymbolWords } from '../src/utils/dreamAutoTags.js'
+import { tokenizeDreamText } from '../src/utils/dreamLogic.js'
+test('słowa, które dały symbol: wygrać → Rywalizacja, dwóch → Liczba 2, liderem → Lider', () => {
+  const t = 'Dwóch liderów, pod liderem. Miał wygrać, a ja ratowałam. Było 7 osób.'
+  const w = autoSymbolWords(t, ['Rywalizacja', 'Liczba 2', 'Lider', 'Ochrona', 'Liczba 7', 'Mój własny'])
+  assert.ok(w['rywalizacja'].includes('wygrać'))
+  assert.ok(w['liczba 2'].includes('dwóch'))
+  assert.ok(w['lider'].includes('liderem'))
+  assert.ok(w['ochrona'].includes('ratowałam'))
+  assert.deepEqual(w['liczba 7'], ['7'])
+  assert.equal(w['mój własny'], undefined)
+})
+test('tokenizer podkreśla dodatkowe formy symbolu (words)', () => {
+  const segs = tokenizeDreamText('Miał wygrać zawody', [], [{ id: 's', name: 'Rywalizacja', words: ['wygrać'], color: '#f00' }])
+  assert.ok(segs.some(s => s.kind === 'symbol' && s.t === 'wygrać' && s.id === 's'))
+})
