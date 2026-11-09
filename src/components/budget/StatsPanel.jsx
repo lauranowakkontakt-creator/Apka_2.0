@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { collection, query, orderBy } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
-import { fmt } from '../../utils/currency'
+import { fmt, getCurrencyCode } from '../../utils/currency'
 import { IconChart } from '../Icons'
 import { GroupedBars } from '../ChartPrimitives'
 import SegTabs from '../SegTabs'
@@ -97,12 +97,12 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
   const allInvested = investedIn(null)
   const yearInvested = investedIn(activeYear)
   // Czy bilans się zgadza: bilans − zainwestowane ≈ to, co jest teraz na zwykłych kontach w zł
-  const onAccounts = accounts.filter(a => (!filtr || a.id === accountFilter) && a.type !== 'investment' && (a.currency || 'PLN') === 'PLN').reduce((s, a) => s + (Number(a.balance) || 0), 0)
+  const onAccounts = accounts.filter(a => (!filtr || a.id === accountFilter) && a.type !== 'investment' && (a.currency || 'PLN') === getCurrencyCode()).reduce((s, a) => s + (Number(a.balance) || 0), 0)
   const shouldBe = allBalance - allInvested
   const gap = onAccounts - shouldBe
   // Wartość inwestycji to szacunek z sald wpisanych na kontach inwestycyjnych —
   // kurs zmienia się codziennie, więc nie liczymy jej do bilansu ani przychodów.
-  const investValue = accounts.filter(a => a.type === 'investment' && (a.currency || 'PLN') === 'PLN').reduce((s, a) => s + (Number(a.balance) || 0), 0)
+  const investValue = accounts.filter(a => a.type === 'investment' && (a.currency || 'PLN') === getCurrencyCode()).reduce((s, a) => s + (Number(a.balance) || 0), 0)
   const investDiff = investValue - allInvested
   // Rozbicie: ile wpłynęło na inwestycje, a ile z nich wróciło (sprzedaż, wypłata)
   const invPaidIn = investedNet(invFlows.filter(t => t.type === 'expense'), accById)

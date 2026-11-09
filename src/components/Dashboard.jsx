@@ -57,7 +57,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
   const [modal, setModal] = useState(null)
   // Portfel pokazany pod „Łącznym majątkiem": PLN, inna waluta albo Inwestycje.
   const [walletId, setWalletId] = useState(() => {
-    try { return localStorage.getItem('mw_wallet') || 'PLN' } catch { return 'PLN' }
+    try { return localStorage.getItem('mw_wallet') || getCurrencyCode() } catch { return getCurrencyCode() }
   })
   const [recent, setRecent] = useState([])
   // Portfel, z którego weszliśmy w „Wszystkie →" — lista transakcji pokazuje wtedy
@@ -230,18 +230,18 @@ export default function Dashboard({ user, setHeaderExtras }) {
         const naInwestycjach = portfel.typ === 'inwestycje'
         const symbol = (code) => CURRENCIES.find(c => c.code === code)?.symbol || code
         // Kwota w hero: majątek w zł, suma portfela w jego walucie albo wartość inwestycji.
-        const invPLN = naInwestycjach ? (portfel.sumy.PLN ?? Object.values(portfel.sumy)[0] ?? 0) : 0
-        const invCur = naInwestycjach ? (portfel.sumy.PLN !== undefined ? 'PLN' : Object.keys(portfel.sumy)[0] || 'PLN') : 'PLN'
+        const invPLN = naInwestycjach ? (portfel.sumy[curCode] ?? Object.values(portfel.sumy)[0] ?? 0) : 0
+        const invCur = naInwestycjach ? (portfel.sumy[curCode] !== undefined ? curCode : Object.keys(portfel.sumy)[0] || curCode) : curCode
         const heroKwota = naInwestycjach ? invPLN : portfel.suma
         const heroWaluta = naInwestycjach ? invCur : portfel.waluta
         const heroHi = splitAmount(heroKwota)
-        const heroLabel = naInwestycjach ? 'Inwestycje' : portfel.waluta === 'PLN' ? 'Łączny majątek' : `Portfel ${portfel.waluta}`
+        const heroLabel = naInwestycjach ? 'Inwestycje' : portfel.waluta === curCode ? 'Łączny majątek' : `Portfel ${portfel.waluta}`
         // Zmiana w tym miesiącu: dla zł bilans przychodów i wydatków, dla innej
         // waluty wszystko, co weszło i wyszło z portfela (w jego walucie).
-        const zmianaObca = portfel.typ === 'waluta' && portfel.waluta !== 'PLN'
+        const zmianaObca = portfel.typ === 'waluta' && portfel.waluta !== curCode
           ? transactions.filter(t => wPortfelu(t, portfel, accById)).reduce((s, t) => s + (t.type === 'income' ? 1 : -1) * (Number(t.amount) || 0), 0)
           : 0
-        const balanceUp = (portfel.waluta === 'PLN' ? balance : zmianaObca) >= 0
+        const balanceUp = (portfel.waluta === curCode ? balance : zmianaObca) >= 0
         const ostatnie = recent.filter(t => wPortfelu(t, portfel, accById)).slice(0, 6)
         let touchX = null
 
@@ -271,7 +271,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
                   <span className="rev-hero-int">{heroHi.int}</span>
                   <span className="rev-hero-dec">,{heroHi.dec}&nbsp;{symbol(heroWaluta)}</span>
                 </div>
-                {portfel.typ === 'waluta' && portfel.waluta === 'PLN' && (
+                {portfel.typ === 'waluta' && portfel.waluta === curCode && (
                   <div className={`rev-hero-trend ${balanceUp ? 'up' : 'down'}`}>
                     {balanceUp ? '↑' : '↓'} {fmt(Math.abs(balance))}
                     <span className="sep">· ten miesiąc</span>
@@ -344,7 +344,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
           {/* Ostatnie transakcje */}
           <div className="rev-section">
             <div className="rev-section-head">
-              <span className="rev-section-title">Ostatnie transakcje{portfel.waluta === 'PLN' ? '' : naInwestycjach ? ' · inwestycje' : ` · ${portfel.waluta}`}</span>
+              <span className="rev-section-title">Ostatnie transakcje{portfel.waluta === curCode ? '' : naInwestycjach ? ' · inwestycje' : ` · ${portfel.waluta}`}</span>
               {ostatnie.length > 0 && (
                 <button className="rev-section-link" onClick={() => { setTxWalletId(portfel.id); setActiveTab('transactions') }}>Wszystkie →</button>
               )}
@@ -421,8 +421,8 @@ export default function Dashboard({ user, setHeaderExtras }) {
                   <div className="balance-hero-label">Saldo kont</div>
                   {(() => {
                     const entries = Object.entries(totalsByCurrency)
-                    const isOnlyPLN = entries.length === 0 || (entries.length === 1 && entries[0][0] === 'PLN')
-                    const plnVal = totalsByCurrency['PLN'] || 0
+                    const isOnlyPLN = entries.length === 0 || (entries.length === 1 && entries[0][0] === curCode)
+                    const plnVal = totalsByCurrency[curCode] || 0
                     if (isOnlyPLN) {
                       return (
                         <div className="balance-hero-amount">
@@ -512,7 +512,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
           user={user}
           onClose={() => { setShowForm(false); setEditTransaction(null) }}
           editData={editTransaction}
-          defaultCurrency={walletId !== 'PLN' && walletId !== 'inwestycje' ? walletId : undefined}
+          defaultCurrency={walletId !== curCode && walletId !== 'inwestycje' ? walletId : undefined}
         />
       )}
     </div>

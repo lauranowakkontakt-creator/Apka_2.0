@@ -22,6 +22,7 @@ import PasekPolaczenia from './components/PasekPolaczenia'
 import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun, IconMood } from './components/Icons'
 import { getModuleIcons, resolveIcon } from './utils/iconPrefs'
 import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from './utils/moduleLayout'
+import { getCurrencyCode } from './utils/currency'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
@@ -122,6 +123,14 @@ export default function App() {
 
   // Auto-księgowanie regularnych płatności w tle — działa zawsze, nie tylko w zakładce „Regularne"
   useRegularPaymentsProcessor(user?.uid)
+
+  // Zmiana waluty głównej/kursów: przeładowanie modułów (key), żeby przeliczyły sumy.
+  const [currencyCode, setCurrencyCodeState] = useState(getCurrencyCode)
+  const [currencyRev, setCurrencyRev] = useState(0)
+  const handleCurrencyChange = useCallback((code) => {
+    setCurrencyCodeState(code)
+    setCurrencyRev(r => r + 1)
+  }, [])
 
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 8000)
@@ -263,8 +272,8 @@ export default function App() {
             <PasekPolaczenia />
             <ErrorBoundary moduleId={activeModule}>
             <Suspense fallback={<div className="loading-screen" style={{ minHeight: '40vh' }}><div className="spinner" /></div>}>
-            {activeModule === 'home'     && <Pulpit user={user} onNavigate={goTo} visibleIds={shown.map(m => m.id)} />}
-            {activeModule === 'budget'   && <Dashboard user={user} setHeaderExtras={setHeaderExtras} />}
+            {activeModule === 'home'     && <Pulpit key={`${currencyCode}-${currencyRev}`} user={user} onNavigate={goTo} visibleIds={shown.map(m => m.id)} />}
+            {activeModule === 'budget'   && <Dashboard key={`${currencyCode}-${currencyRev}`} user={user} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'habits'   && <HabitsDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'todo'     && <TodoDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'calendar' && <CalendarDashboard user={user} setHeaderExtras={setHeaderExtras} />}
@@ -328,6 +337,7 @@ export default function App() {
         onModuleChange={(id) => { setActiveModule(id); setDrawerOpen(false) }}
         user={user}
         onIconChange={handleModuleIconChange}
+        onCurrencyChange={handleCurrencyChange}
         layout={layout}
         onLayoutChange={handleLayoutChange}
       />

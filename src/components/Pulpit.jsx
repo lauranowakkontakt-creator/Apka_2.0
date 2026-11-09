@@ -84,10 +84,11 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
     const included = accounts.filter(a => !excluded.includes(a.id))
     // Inwestycje liczymy osobno — nie wchodzą do głównej sumy salda kont.
     const byCur = sumByCurrency(included.filter(a => !isInvestment(a)))
-    const totalPLN = byCur['PLN'] || 0
-    const others = Object.entries(byCur).filter(([c]) => c !== 'PLN')
+    const glowna = getCurrencyCode()
+    const totalPLN = byCur[glowna] || 0
+    const others = Object.entries(byCur).filter(([c]) => c !== glowna)
     const investByCur = sumByCurrency(included.filter(isInvestment))
-    const investPLN = investByCur['PLN'] || 0
+    const investPLN = investByCur[glowna] || 0
     const hasInvest = included.some(isInvestment)
     return { totalPLN, others, count: accounts.length, investPLN, hasInvest }
   }, [accounts, user.uid])

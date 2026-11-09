@@ -7,7 +7,7 @@ const tr = (o) => ({ categoryId: 'transfer', ...o })
 
 test('inPLN — waluta z amountPLN, reszta bez zmian', () => {
   assert.equal(inPLN({ amount: 5.59, currency: 'USD', amountPLN: 25 }), 25)
-  assert.equal(inPLN({ amount: 5.59, currency: 'USD' }), 5.59)
+  assert.equal(Math.round(inPLN({ amount: 5.59, currency: 'USD' }) * 100) / 100, 22.36) // bez amountPLN — po kursie z ustawień
   assert.equal(inPLN({ amount: 12, currency: 'PLN', amountPLN: 99 }), 12)
   assert.equal(inPLN({ amount: 7 }), 7)
 })

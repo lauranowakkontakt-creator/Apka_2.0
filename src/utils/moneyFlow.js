@@ -9,10 +9,17 @@
 //    z bilansu zostało po inwestycjach.
 
 import { isTransfer } from './categories.js'
+import { convert, getCurrencyCode } from './currency.js'
 
+// Nazwa historyczna: zwraca kwotę w WALUCIE GŁÓWNEJ (domyślnie zł). Najpierw
+// bierze kwotę przeliczoną w arkuszu (`amountPLN`), inaczej przelicza po
+// kursach z ustawień.
 export function inPLN(t) {
-  if (t?.currency && t.currency !== 'PLN' && Number.isFinite(t.amountPLN)) return t.amountPLN
-  return Number(t?.amount) || 0
+  const base = getCurrencyCode()
+  const cur = t?.currency || 'PLN'
+  if (cur === base) return Number(t?.amount) || 0
+  if (cur !== 'PLN' && Number.isFinite(t?.amountPLN)) return convert(t.amountPLN, 'PLN', base)
+  return convert(t?.amount, cur, base)
 }
 
 // Noga przelewu związana z inwestycjami: oznaczona przy imporcie albo

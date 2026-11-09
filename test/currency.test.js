@@ -20,10 +20,21 @@ test('CURRENCIES — unikalne kody, komplet pól, PLN dostępny', () => {
   for (const c of CURRENCIES) assert.ok(c.code && c.symbol && c.name)
 })
 
-test('getCurrencyCode — waluta główna to zawsze PLN, także ze starym wpisem w pamięci', () => {
-  // Kiedyś dało się „przełączyć" walutę i złotówkowe kwoty pokazywały się jako euro.
-  localStorage.setItem('app_currency', 'EUR')
+test('getCurrencyCode — domyślnie PLN, wybrana waluta z listy jest zapamiętana', () => {
   assert.equal(getCurrencyCode(), 'PLN')
+  localStorage.setItem('app_currency', 'EUR')
+  assert.equal(getCurrencyCode(), 'EUR')
+  localStorage.setItem('app_currency', 'XXX')
+  assert.equal(getCurrencyCode(), 'PLN')
+})
+
+test('convert — przelicza przez złote, własny kurs ma pierwszeństwo', async () => {
+  const { convert, setRate } = await import('../src/utils/currency.js')
+  assert.equal(convert(100, 'PLN', 'PLN'), 100)
+  assert.equal(convert(10, 'EUR', 'PLN'), 43)
+  setRate('EUR', 5)
+  assert.equal(convert(10, 'EUR', 'PLN'), 50)
+  assert.equal(convert(50, 'PLN', 'EUR'), 10)
 })
 
 test('fmt — bez kodu formatuje w złotówkach (pl-PL)', () => {

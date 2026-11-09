@@ -7,14 +7,53 @@ export const CURRENCIES = [
   { code: 'CZK', symbol: 'Kč', name: 'Korona czeska' },
 ]
 
-// Waluta główna. Wszystkie sumy, salda i statystyki liczą się w złotówkach
-// (obce kwoty przeliczone po kursie), więc waluta główna jest stała.
-// Dawniej dało się ją „przełączyć" w menu, ale zmieniało to tylko symbol:
-// złotówkowe kwoty pokazywały się nagle jako euro. Inne waluty to teraz
-// osobne portfele na ekranie Finansów (strzałki ← → pod kwotą).
+// Waluta główna — wybierana w ustawieniach Finansów (domyślnie PLN). W niej
+// liczą się sumy, statystyki i „łączny majątek"; kwoty w innych walutach są
+// przeliczane po kursach, które da się poprawić w ustawieniach. Inne waluty
+// mają też własne portfele (strzałki ← → pod kwotą na ekranie Finansów).
 export const BASE_CURRENCY = 'PLN'
 export function getCurrencyCode() {
+  try {
+    const c = localStorage.getItem('app_currency')
+    if (CURRENCIES.some(x => x.code === c)) return c
+  } catch { /* tryb prywatny */ }
   return BASE_CURRENCY
+}
+
+export function setCurrencyCode(code) {
+  if (!CURRENCIES.some(x => x.code === code)) return
+  try { localStorage.setItem('app_currency', code) } catch { /* tryb prywatny */ }
+}
+
+// Kursy: ile złotych kosztuje 1 jednostka waluty. Orientacyjne wartości
+// startowe — własne kursy użytkownika (ustawienia Finansów) mają pierwszeństwo.
+export const DEFAULT_RATES = { PLN: 1, EUR: 4.3, USD: 4.0, GBP: 5.0, CHF: 4.6, CZK: 0.18 }
+
+export function getRates() {
+  let own = {}
+  try { own = JSON.parse(localStorage.getItem('app_fx_rates') || '{}') || {} } catch { /* uszkodzone */ }
+  const out = { ...DEFAULT_RATES }
+  for (const [c, v] of Object.entries(own)) if (c in out && c !== 'PLN' && Number(v) > 0) out[c] = Number(v)
+  return out
+}
+
+export function setRate(code, value) {
+  if (!(code in DEFAULT_RATES) || code === 'PLN') return
+  const v = Number(value)
+  if (!(v > 0) || !Number.isFinite(v)) return
+  let own = {}
+  try { own = JSON.parse(localStorage.getItem('app_fx_rates') || '{}') || {} } catch { /* uszkodzone */ }
+  own[code] = v
+  try { localStorage.setItem('app_fx_rates', JSON.stringify(own)) } catch { /* tryb prywatny */ }
+}
+
+/** Przelicza kwotę między walutami przez złote. Nieznana waluta = bez zmian. */
+export function convert(amount, from = 'PLN', to = getCurrencyCode()) {
+  const n = Number(amount) || 0
+  if (!from || from === to) return n
+  const r = getRates()
+  if (!r[from] || !r[to]) return n
+  return n * r[from] / r[to]
 }
 
 // Największa sensowna kwota. Powyżej tego progu arytmetyka na groszach
