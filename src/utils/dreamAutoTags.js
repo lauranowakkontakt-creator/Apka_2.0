@@ -280,6 +280,34 @@ export function numbersInText(text) {
 }
 const MAX_LICZBY = 5
 
+// Słowa z tekstu, które dały dany symbol automatyczny (np. Rywalizacja ← „wygrać", Lider ← „liderem").
+// Służy do podkreślania symboli w treści snu. `names` — nazwy symboli przypiętych do snu.
+// Zwraca { 'nazwa małymi': ['formy małymi', …] }; symbole spoza listy automatycznych są pomijane.
+const wholeWord = (text, m) => {
+  const tail = (text.slice(m.index + m[0].length).match(/^[\p{L}\p{N}]*/u) || [''])[0]
+  return (m[0] + tail).toLowerCase()
+}
+export function autoSymbolWords(text, names = []) {
+  const out = {}
+  if (!text) return out
+  for (const name of names) {
+    const low = String(name).toLowerCase()
+    const forms = new Set()
+    const num = /^liczba (\d+)$/.exec(low)
+    if (num) {
+      const n = Number(num[1])
+      for (const m of text.matchAll(/(?<![\p{L}\p{N}:.,/-])\d{1,4}(?![\p{L}\p{N}:.,/-])/gu)) if (Number(m[0]) === n) forms.add(m[0])
+      const w = NUM_WORDS.find(([k]) => k === n)
+      if (w) for (const m of text.matchAll(w[1])) forms.add(wholeWord(text, m))
+    } else {
+      const d = DEFS.find(x => x.name.toLowerCase() === low)
+      if (d) for (const m of text.matchAll(d.re)) forms.add(wholeWord(text, m))
+    }
+    if (forms.size) out[low] = [...forms]
+  }
+  return out
+}
+
 export function autoSymbols(text, title = '') {
   const found = []
   for (const d of DEFS) {
@@ -352,7 +380,7 @@ export function applyAutoTags(dreams) {
   const used = new Set()
   let filled = 0
   const out = dreams.map(d => {
-    const t = autoTags({ title: d.title, text: d.extra?.originalText || d.text })
+    const t = autoTags({ title: d.title, text: d.text })
     const extra = { ...(d.extra || {}) }
     let symbolNames = d.symbolNames || []
     if (!symbolNames.length && t.symbols.length) { symbolNames = t.symbols; t.symbols.forEach(n => used.add(n)) }

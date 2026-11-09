@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { tokenizeDreamText } from '../../utils/dreams'
+import { autoSymbolWords } from '../../utils/dreamAutoTags'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 
@@ -35,8 +37,14 @@ export const SymbolChip = ({ symbol, onClick }) => (
    Podświetlanie opiera się na znacznikach @/# i jawnym powiązaniu (id), a nie na
    zgadywaniu po nazwie — patrz tokenizeDreamText. */
 export function DreamText({ text, highlightPeople = [], highlightSymbols = [], onOpenSymbol }) {
+  // Symbole dobrane automatycznie podkreślamy po słowach, które je wywołały (np. wygrać → Rywalizacja).
+  const symbolsZeSlowami = useMemo(() => {
+    if (!text || !highlightSymbols.length) return highlightSymbols
+    const slowa = autoSymbolWords(text, highlightSymbols.map(s => s.name).filter(Boolean))
+    return highlightSymbols.map(s => (slowa[(s.name || '').toLowerCase()] ? { ...s, words: slowa[(s.name || '').toLowerCase()] } : s))
+  }, [text, highlightSymbols])
   if (!text) return null
-  const segs = tokenizeDreamText(text, highlightPeople, highlightSymbols)
+  const segs = tokenizeDreamText(text, highlightPeople, symbolsZeSlowami)
   return (
     <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
       {segs.map((s, i) => {
