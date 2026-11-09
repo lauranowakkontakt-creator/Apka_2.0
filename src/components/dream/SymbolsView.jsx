@@ -1,6 +1,6 @@
 import { SymbolChip } from './wspolne'
 import { db } from '../../firebase/config'
-import { scrubSymbolFromDreams } from '../../utils/dreams'
+import { scrubSymbolFromDreams, mergeSymbols, symbolForms, parseAliasInput, symbolMatchesQuery } from '../../utils/dreams'
 import { confirmDialog } from '../ConfirmModal'
 import { IconChevronLeft, IconChevronRight, IconTag, IconTrash } from '../Icons'
 import { toast } from '../Toast'
@@ -41,9 +41,45 @@ function SymbolMeaning({ user, symbol }) {
   )
 }
 
+// Inne formy tego samego symbolu (drzewo, drzewa, drzewem…) — po przecinku.
+// Wpisane # w treści snu którąkolwiek z nich przypina ten jeden symbol.
+function SymbolAliases({ user, symbol }) {
+  const initial = (symbol.aliases || []).join(', ')
+  const [text, setText] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  const dirty = parseAliasInput(text).join('|') !== (symbol.aliases || []).join('|')
+  const save = async () => {
+    setSaving(true)
+    try {
+      const own = (symbol.name || '').trim().toLowerCase()
+      const list = [...new Set(parseAliasInput(text))].filter(a => a.toLowerCase() !== own)
+      await updateDoc(doc(db, 'users', user.uid, 'dreamSymbols', symbol.id), { aliases: list })
+      toast.success('Zapisano formy symbolu')
+    } catch (err) {
+      toast.error('Nie udało się zapisać: ' + (err?.message || 'błąd'))
+    }
+    setSaving(false)
+  }
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.16em', textTransform: 'uppercase' }}>Inne formy (po przecinku)</div>
+      <input className="form-input" value={text} onChange={e => setText(e.target.value)}
+        placeholder="np. drzewa, drzewem, drzewo owocowe" />
+      {dirty && (
+        <button type="button" className="btn-save" disabled={saving} onClick={save} style={{ margin: 0 }}>
+          {saving ? 'Zapisywanie...' : 'Zapisz formy'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function SymbolsView({ user, symbols, dreams, counts, categories, peopleById, symbolsById, selectedSymbolId, onSelectSymbol, onOpenDream, onCreateSymbol }) {
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
+  const [search, setSearch] = useState('')
+  const [merging, setMerging] = useState(false)
+  const [picked, setPicked] = useState([]) // id symboli zaznaczonych do połączenia
 
   const selected = symbols.find(s => s.id === selectedSymbolId)
 
@@ -52,10 +88,35 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
     [symbols, counts]
   )
 
+  const visible = useMemo(() => sorted.filter(s => symbolMatchesQuery(s, search)), [sorted, search])
+
+  const togglePick = (id) => setPicked(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
+  const stopMerging = () => { setMerging(false); setPicked([]) }
+
+  // Głównym symbolem zostaje ten z największą liczbą snów (przy remisie pierwszy z listy).
+  const doMerge = async () => {
+    const chosen = sorted.filter(s => picked.includes(s.id))
+    if (chosen.length < 2) return
+    const [primary, ...others] = chosen
+    const ok = await confirmDialog({
+      title: `Połączyć ${chosen.length} symbole w „${primary.name}"?`,
+      message: `Formy: ${chosen.map(s => '#' + s.name).join(', ')}. Sny zostaną przypięte do „${primary.name}", a pozostałe symbole znikną ze spisu (ich nazwy staną się formami głównego).`,
+      confirmLabel: 'Połącz', danger: false,
+    })
+    if (!ok) return
+    try {
+      await mergeSymbols(user.uid, primary, others)
+      toast.success('Symbole połączone')
+      stopMerging()
+    } catch (err) {
+      toast.error('Nie udało się połączyć: ' + (err?.message || 'błąd'))
+    }
+  }
+
   const add = async () => {
     const n = name.trim()
     if (!n) return
-    if (!symbols.some(s => s.name.toLowerCase() === n.toLowerCase())) await onCreateSymbol(n)
+    if (!symbols.some(s => symbolForms(s).some(f => f.toLowerCase() === n.toLowerCase()))) await onCreateSymbol(n)
     setName(''); setAdding(false)
   }
 
@@ -88,6 +149,7 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>w {its.length} {its.length === 1 ? 'śnie' : 'snach'}</span>
           <button className="t-btn delete" title="Usuń symbol" onClick={() => remove(selected)} style={{ marginLeft: 'auto' }}><IconTrash size={14} /></button>
         </div>
+        <SymbolAliases key={'a' + selected.id + (selected.aliases || []).join('|')} user={user} symbol={selected} />
         <SymbolMeaning key={selected.id} user={user} symbol={selected} />
         {its.length === 0 ? (
           <div className="list-empty"><p>Brak snów z tym symbolem</p></div>
@@ -113,15 +175,36 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
         <button className="btn-add-account" onClick={() => setAdding(true)}>+ Dodaj symbol</button>
       )}
 
+      {symbols.length > 1 && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input className="form-input" type="search" value={search} placeholder="Szukaj symbolu…"
+            onChange={e => setSearch(e.target.value)} style={{ flex: 1, minWidth: 0 }} />
+          <button type="button" className="btn-add-account" style={{ width: 'auto', margin: 0, padding: '0 14px' }}
+            onClick={() => merging ? stopMerging() : setMerging(true)}>{merging ? 'Anuluj' : 'Połącz'}</button>
+        </div>
+      )}
+      {merging && (
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+          Zaznacz symbole, które znaczą to samo (np. drzewo, drzewa, drzewem). Pierwszy z listy zostaje głównym, reszta staje się jego formami.
+        </p>
+      )}
+      {merging && picked.length >= 2 && (
+        <button type="button" className="btn-save" style={{ margin: 0 }} onClick={doMerge}>Połącz zaznaczone ({picked.length})</button>
+      )}
+
       {symbols.length === 0 ? (
         <div className="list-empty">
           <p>Brak symboli</p>
           <p className="list-empty-hint">Dodaj symbol tutaj lub wpisz # w treści snu (np. #drzewo)</p>
         </div>
-      ) : sorted.map(s => {
+      ) : visible.length === 0 ? (
+        <div className="list-empty"><p>Nie znaleziono symbolu „{search}"</p></div>
+      ) : visible.map(s => {
         const c = counts[s.id] || 0
+        const isPicked = picked.includes(s.id)
         return (
-          <div key={s.id} onClick={() => onSelectSymbol(s.id)} style={{
+          <div key={s.id} onClick={() => merging ? togglePick(s.id) : onSelectSymbol(s.id)} style={{
+            outline: isPicked ? '2px solid var(--accent)' : 'none',
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderLeft: `3px solid ${s.color || '#5BB6D9'}`,
             borderRadius: 12, padding: '11px 14px', cursor: 'pointer',
@@ -136,6 +219,7 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
                 <span style={{ opacity: 0.5 }}>#</span>{s.name}
+                {(s.aliases || []).length > 0 && <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-muted)' }}> · {(s.aliases || []).join(', ')}</span>}
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
                 {c === 0 ? 'jeszcze w żadnym śnie' : `w ${c} ${c === 1 ? 'śnie' : c < 5 ? 'snach' : 'snach'}`}
@@ -145,8 +229,14 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
               )}
             </div>
             <span style={{ fontSize: 15, fontWeight: 700, color: s.color || '#5BB6D9', flexShrink: 0 }}>{c}</span>
-            <button className="t-btn delete" title="Usuń" onClick={e => { e.stopPropagation(); remove(s) }}><IconTrash size={13} /></button>
-            <IconChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            {merging ? (
+              <input type="checkbox" checked={isPicked} readOnly style={{ width: 18, height: 18, flexShrink: 0 }} />
+            ) : (
+              <>
+                <button className="t-btn delete" title="Usuń" onClick={e => { e.stopPropagation(); remove(s) }}><IconTrash size={13} /></button>
+                <IconChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              </>
+            )}
           </div>
         )
       })}

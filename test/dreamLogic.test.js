@@ -316,3 +316,17 @@ test('pastorową trafia w Olę (pastorowa), a nie w pastora; „mamy" to nie mam
   assert.equal(_bpm('mamy jej', L), null)
   assert.deepEqual(_bpm('mamie w', L).ids, ['b'])
 })
+
+test('symbole z połączonymi formami — #forma przypina ten sam symbol, wyszukiwanie i parsowanie', async () => {
+  const { symbolForms, parseAliasInput, symbolMatchesQuery, parseSymbols, tokenizeDreamText } = await import('../src/utils/dreamLogic.js')
+  const drzewo = { id: 'd1', name: 'drzewo', aliases: ['drzewa', 'Drzewem', 'drzewo'] }
+  const woda = { id: 'w1', name: 'woda' }
+  assert.deepEqual(symbolForms(drzewo), ['drzewo', 'drzewa', 'Drzewem'])
+  assert.deepEqual(parseAliasInput('#drzewa, drzewem ; # stare drzewo,'), ['drzewa', 'drzewem', 'stare drzewo'])
+  assert.ok(symbolMatchesQuery(drzewo, 'drzew'))
+  assert.ok(symbolMatchesQuery(drzewo, 'DRZEWEM'))
+  assert.ok(!symbolMatchesQuery(woda, 'drzew'))
+  assert.deepEqual(parseSymbols('Stałam pod #drzewem i #woda', [drzewo, woda]).sort(), ['d1', 'w1'])
+  const segs = tokenizeDreamText('Widziałam #drzewa nad rzeką', [], [drzewo])
+  assert.ok(segs.some(s => s.kind === 'symbol' && s.id === 'd1' && s.t === 'drzewa'))
+})

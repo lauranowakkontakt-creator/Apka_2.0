@@ -1,6 +1,6 @@
 import PersonBubble from '../PersonBubble'
 import { db } from '../../firebase/config'
-import { DREAM_EMOTIONS, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
+import { DREAM_EMOTIONS, symbolMatchesQuery, symbolForms, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
 import { IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
@@ -91,12 +91,11 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
 
   const symbolMatches = useMemo(() => {
     if (trigger?.type !== 'symbol') return []
-    const q = trigger.query.toLowerCase()
-    return allSymbols.filter(s => s.name?.toLowerCase().includes(q)).slice(0, 6)
+    return allSymbols.filter(s => symbolMatchesQuery(s, trigger.query)).slice(0, 6)
   }, [trigger, allSymbols])
 
   const canCreateSymbol = trigger?.type === 'symbol' && trigger.query.trim() &&
-    !allSymbols.some(s => s.name.toLowerCase() === trigger.query.trim().toLowerCase())
+    !allSymbols.some(s => symbolForms(s).some(f => f.toLowerCase() === trigger.query.trim().toLowerCase()))
 
   const insertToken = (prefix, name) => {
     const ta = textRef.current

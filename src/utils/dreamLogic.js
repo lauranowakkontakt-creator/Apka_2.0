@@ -156,16 +156,40 @@ export function parseMentions(text, people) {
   return [...found]
 }
 
-// Wyłuskaj z treści snu symbole oznaczone przez #nazwa (najdłuższe dopasowanie pierwsze).
+// Wszystkie formy zapisu symbolu: nazwa główna + połączone formy (`aliases`),
+// np. „drzewo" + „drzewa", „drzewem". Bez pustych i bez powtórzeń.
+export function symbolForms(s) {
+  const seen = new Set()
+  return [s?.name, ...(Array.isArray(s?.aliases) ? s.aliases : [])]
+    .map(x => (x || '').trim()).filter(x => {
+      const k = x.toLowerCase()
+      if (!x || seen.has(k)) return false
+      seen.add(k); return true
+    })
+}
+
+// Rozbija wpis „#drzewa, drzewem" na listę form (po przecinku, # opcjonalne).
+export function parseAliasInput(text) {
+  return String(text || '').split(/[,;\n]/).map(x => x.trim().replace(/^#+\s*/, '').trim()).filter(Boolean)
+}
+
+// Czy symbol pasuje do wpisanej frazy (nazwa albo któraś połączona forma).
+export function symbolMatchesQuery(s, query) {
+  const q = (query || '').trim().toLowerCase()
+  if (!q) return true
+  return symbolForms(s).some(f => f.toLowerCase().includes(q))
+}
+
+// Wyłuskaj z treści snu symbole oznaczone przez #nazwa lub #forma (najdłuższe dopasowanie pierwsze).
 export function parseSymbols(text, symbols) {
   if (!text) return []
   const found = new Set()
-  const sorted = [...symbols].sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0))
-  for (const s of sorted) {
-    if (!s.name) continue
-    const esc = s.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const re = new RegExp('#' + esc + '(?![\\p{L}\\p{N}])', 'u')
-    if (re.test(text)) found.add(s.id)
+  const forms = symbols.flatMap(s => symbolForms(s).map(f => ({ id: s.id, f })))
+    .sort((a, b) => b.f.length - a.f.length)
+  for (const { id, f } of forms) {
+    const esc = f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp('#' + esc + '(?![\\p{L}\\p{N}])', 'iu')
+    if (re.test(text)) found.add(id)
   }
   return [...found]
 }
@@ -198,8 +222,7 @@ export function tokenizeDreamText(text, people = [], symbols = []) {
 
   // Symbole przypięte do snu — najdłuższa nazwa pierwsza (żeby „stary dom" wygrał
   // nad „dom"). Dopasowujemy zarówno po #, jak i w zwykłym tekście (także WIELE słów).
-  const symList = symbols.filter(s => s.name?.trim())
-    .map(s => ({ s, low: s.name.trim().toLowerCase() }))
+  const symList = symbols.flatMap(s => symbolForms(s).map(f => ({ s, low: f.toLowerCase() })))
     .sort((a, b) => b.low.length - a.low.length)
 
   const segs = []
