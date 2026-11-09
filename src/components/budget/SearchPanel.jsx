@@ -10,7 +10,7 @@ import { CatIcon, IconClose, IconSearch } from '../Icons'
 import { sortTransactionsByDate } from '../../utils/txSort'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
-export default function SearchPanel({ user, onClose }) {
+export default function SearchPanel({ user, onClose, onEdit }) {
   const [all, setAll]           = useState([])
   const [search, setSearch]     = useState('')
   const [filterType, setType]   = useState('all')
@@ -55,7 +55,9 @@ export default function SearchPanel({ user, onClose }) {
         <div className="search-results">
           {results.length === 0 && <p className="list-empty">Brak wyników</p>}
           {results.map(t => (
-            <div key={t.id} className={`transaction-item ${t.type}`}>
+            <div key={t.id} className={`transaction-item ${t.type}`} role={onEdit ? 'button' : undefined} tabIndex={onEdit ? 0 : undefined}
+              onClick={() => onEdit?.(t)} onKeyDown={e => { if (onEdit && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onEdit(t) } }}
+              style={onEdit ? { cursor: 'pointer' } : undefined}>
               <div className="t-icon"><CatIcon categoryId={t.categoryId} subcategoryId={t.subcategoryId} emoji={t.categoryIcon} size={20} /></div>
               <div className="t-details">
                 <span className="t-category">{[t.category, t.subcategoryLabel, t.subsubcategoryLabel].filter(Boolean).join(' › ')}</span>

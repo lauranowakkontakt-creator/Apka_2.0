@@ -502,7 +502,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
       )}
 
       {modal === 'transfer'    && <TransferForm   user={user} onClose={() => setModal(null)} />}
-      {modal === 'search'      && <SearchPanel    user={user} onClose={() => setModal(null)} />}
+      {modal === 'search'      && <SearchPanel    user={user} onClose={() => setModal(null)} onEdit={(t) => { setModal(null); setEditTransaction(t); setShowForm(true) }} />}
       {modal === 'tithe'       && <TitheView      user={user} onClose={() => setModal(null)} />}
       {modal === 'goals'       && <SavingsGoals   user={user} onClose={() => setModal(null)} />}
       {modal === 'reminders'   && <Reminders      user={user} onClose={() => setModal(null)} />}
