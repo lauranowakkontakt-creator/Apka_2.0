@@ -25,7 +25,7 @@ function MiesiaceLat({ years, money }) {
 // Analiza roku — część ekranu „Analiza" w Finansach (Charts.jsx, tryb „Rok").
 // Rok wybiera się strzałkami nad tym widokiem, konto — filtrem kont; tu jest
 // rok w liczbach i rozwijane sekcje (treść liczy się dopiero po rozwinięciu).
-export default function StatsPanel({ user, privateMode = false, rok, onRokChange, accountFilter = 'all' }) {
+export default function StatsPanel({ user, privateMode = false, rok, onRokChange, accountFilter = 'all', tryb = 'rok', onOtworzRok }) {
   const [allRaw, setAll]      = useState([])
   const [loading, setLoading] = useState(true)
   const [accounts, setAccounts] = useState([])
@@ -224,9 +224,149 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
   const MIARY = [{ id: 'expense', label: 'Wydatki' }, { id: 'income', label: 'Przychody' }, { id: 'balance', label: 'Oszczędzone' }]
   const kolorMiary = miara === 'income' ? 'var(--income)' : miara === 'expense' ? 'var(--expense)' : 'var(--info)'
 
+  // ── Widok „Lata": statystyki z całej historii ──
+  const wydatkiWszystkie = useMemo(() => tx.filter(t => t.type === 'expense'), [tx])
+  const kategorieWszystkie = useMemo(() => {
+    const ids = {}
+    const build = (type) => {
+      const m = {}
+      tx.forEach(t => { if (t.type === type) { const k = t.category || 'Inne'; m[k] = (m[k] || 0) + t.amount; if (t.categoryId && !ids[k]) ids[k] = t.categoryId } })
+      return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([nazwa, wartosc], i) => ({ nazwa, wartosc, kolor: kolorKat(ids[nazwa], nazwa, i) }))
+    }
+    return { expense: build('expense'), income: build('income') }
+  }, [tx, kolorKat])
+  const weekdayWszystkie = useMemo(() => wgDniaTygodnia(wydatkiWszystkie.map(t => ({ klucz: kluczDnia(t.date), wartosc: t.amount }))), [wydatkiWszystkie])
+  const topWszystkie = useMemo(() => [...wydatkiWszystkie].sort((a, b) => b.amount - a.amount).slice(0, 8), [wydatkiWszystkie])
+  const szczegolyLata = (type) => (poz) => {
+    const wKat = (t) => t.type === type && (t.category || 'Inne') === poz.nazwa
+    const poLatach = {}
+    tx.forEach(t => { if (wKat(t)) { const y = t.date.getFullYear(); poLatach[y] = (poLatach[y] || 0) + t.amount } })
+    const rows = Object.entries(poLatach).sort((a, b) => b[0] - a[0]).map(([nazwa, wartosc], i) => ({ nazwa, wartosc, kolor: poz.kolor }))
+    const suma = rows.reduce((a, x) => a + x.wartosc, 0)
+    const razem = tx.filter(t => t.type === type).reduce((a, t) => a + t.amount, 0) || 1
+    return (
+      <>
+        <Kafle min={120} items={[
+          { label: 'Suma', value: money(suma), color: poz.kolor },
+          { label: 'Udział', value: `${Math.round((suma / razem) * 100)}%`, sub: type === 'expense' ? 'wszystkich wydatków' : 'wszystkich przychodów' },
+          rows.length > 0 && { label: 'Średnio / rok', value: money(suma / rows.length) },
+        ]} />
+        {rows.length > 1 && (<div><p className="an-det-h">Rok po roku</p><Ranking pozycje={rows} fmt={money} limit={12} /></div>)}
+      </>
+    )
+  }
+
+  const widokLata = loading ? (
+    <div className="list-loading">Ładowanie...</div>
+  ) : years.length === 0 ? (
+    <div className="charts-empty">
+      <p style={{ marginBottom: 8, opacity: 0.4 }}><IconChart size={32} /></p>
+      <p>Brak transakcji</p>
+    </div>
+  ) : (
+    <>
+      <Kafle items={[
+        { label: 'Przychody · razem', value: `+${money(allTime.income)}`, color: 'var(--income)' },
+        { label: 'Wydatki · razem', value: `−${money(allTime.expense)}`, color: 'var(--expense)' },
+        { label: 'Bilans', value: `${allBalance >= 0 ? '+' : '−'}${money(Math.abs(allBalance))}`, color: allBalance >= 0 ? 'var(--income)' : 'var(--expense)' },
+        { label: 'Oszczędzasz', value: allTime.income > 0 ? `${Math.round((allBalance / allTime.income) * 100)}%` : '—', sub: 'przychodów' },
+        { label: 'Lat w historii', value: String(years.length), sub: `${years[years.length - 1].year} – ${years[0].year}` },
+        { label: 'Transakcji', value: String(years.reduce((a, y) => a + y.count, 0)) },
+      ]} />
+
+      <Rozwijana id="lata-kat-wyd" tytul="Na co idą pieniądze · wszystkie lata" domyslnie
+        podsumowanie={kategorieWszystkie.expense[0] ? `${kategorieWszystkie.expense[0].nazwa} ${moneyK(kategorieWszystkie.expense[0].wartosc)}` : null}>
+        <DonutSzczegoly pozycje={kategorieWszystkie.expense} fmt={money} srodek="Wydatki" szczegoly={szczegolyLata('expense')} pusty="Brak wydatków" />
+      </Rozwijana>
+
+      <Rozwijana id="lata-kat-prz" tytul="Skąd przychody · wszystkie lata"
+        podsumowanie={kategorieWszystkie.income[0] ? `${kategorieWszystkie.income[0].nazwa} ${moneyK(kategorieWszystkie.income[0].wartosc)}` : null}>
+        <DonutSzczegoly pozycje={kategorieWszystkie.income} fmt={money} srodek="Przychody" szczegoly={szczegolyLata('income')} pusty="Brak przychodów" />
+      </Rozwijana>
+
+              {years.length > 0 && (
+                <Rozwijana id="fin-lata" tytul="Przez wszystkie lata" domyslnie podsumowanie={`${years.length} ${years.length === 1 ? 'rok' : 'lat'}`}>
+                  <Kafle min={130} items={[
+                    { label: 'Średnio / rok · przychody', value: `+${money(allTime.income / years.length)}`, color: 'var(--income)' },
+                    { label: 'Średnio / rok · wydatki', value: `−${money(allTime.expense / years.length)}`, color: 'var(--expense)' },
+                    najlepszyRok && { label: 'Najlepszy bilans', value: String(najlepszyRok.year), sub: `${najlepszyRok.income - najlepszyRok.expense >= 0 ? '+' : '−'}${money(Math.abs(najlepszyRok.income - najlepszyRok.expense))}`, color: 'var(--income)' },
+                    najdrozszyRok && { label: 'Najwięcej wydane', value: String(najdrozszyRok.year), sub: money(najdrozszyRok.expense), color: 'var(--expense)' },
+                  ]} />
+                  {years.length > 1 && <MiesiaceLat years={[...years].reverse()} money={money} />}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {years.map(y => {
+                      const bal = y.income - y.expense
+                      return (
+                        <button key={y.year} onClick={() => { onRokChange?.(y.year); setSelMonth(null); onOtworzRok?.() }} className="an-lata-row" style={{
+                          background: y.year === activeYear ? 'var(--surface2)' : 'transparent',
+                          borderColor: y.year === activeYear ? 'var(--accent)' : 'var(--border)',
+                        }}>
+                          <span style={{ fontSize: 14, fontWeight: 700, width: 44, flexShrink: 0 }}>{y.year}</span>
+                          <span style={{ flex: 1, fontSize: 12, color: 'var(--income)' }}>+{moneyK(y.income)}</span>
+                          <span style={{ flex: 1, fontSize: 12, color: 'var(--expense)' }}>−{moneyK(y.expense)}</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: bal >= 0 ? 'var(--income)' : 'var(--expense)', flexShrink: 0 }}>
+                            {bal >= 0 ? '+' : '−'}{moneyK(Math.abs(bal))}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Rozwijana>
+              )}
+
+              {years.length > 0 && (
+                <Rozwijana id="fin-kat-lata" tytul="Kategorie rok po roku" podsumowanie={kategorieLat[miaraLat].wiersze[0]?.nazwa}>
+                  <SegTabs items={[{ id: 'expense', label: 'Wydatki' }, { id: 'income', label: 'Przychody' }]} active={miaraLat} onChange={setMiaraLat} />
+                  <TabelaLat dane={kategorieLat[miaraLat]} fmt={moneyK} limit={10} pusty="Brak danych" />
+                  <p className="an-note">Kwoty w złotych, wszystkie lata z historii.</p>
+                </Rozwijana>
+              )}
+
+              {/* Cała historia */}
+              <Rozwijana id="fin-historia" tytul="Cała historia" podsumowanie={`${allBalance >= 0 ? '+' : '−'}${moneyK(Math.abs(allBalance))}`}>
+                <Kafle min={120} items={[
+                  { label: 'Przychody', value: `+${money(allTime.income)}`, color: 'var(--income)' },
+                  { label: 'Wydatki', value: `−${money(allTime.expense)}`, color: 'var(--expense)' },
+                  { label: 'Bilans', value: `${allBalance >= 0 ? '+' : '−'}${money(Math.abs(allBalance))}`, color: allBalance >= 0 ? 'var(--income)' : 'var(--expense)' },
+                  accounts.length > 0 && { label: 'Na kontach (zł)', value: money(onAccounts) },
+                  allInvested !== 0 && { label: 'Zainwestowane', value: money(allInvested), color: 'var(--accent)' },
+                  allInvested !== 0 && investValue > 0 && { label: 'Inwestycje teraz ≈', value: `≈ ${money(investValue)}`, color: 'var(--text-sub)' },
+                ]} />
+                {accounts.length > 0 && !filtr && (
+                  <p className="an-note">
+                    {allInvested !== 0
+                      ? <>Bilans ≈ to, co masz na kontach, plus to, co wpłaciłaś na inwestycje{Math.abs(gap) >= 1 ? <> (różnica {gap >= 0 ? '+' : '−'}{money(Math.abs(gap))} — saldo z początku historii, gotówka wydana bez zapisu, waluty)</> : ''}.
+                        {' '}Zainwestowane = wpłaty {money(invPaidIn)}{invBack > 0 ? <> − to, co wróciło {money(invBack)}</> : ''}.
+                        {' '}Wartość inwestycji jest szacunkowa — z sald wpisanych na kontach inwestycyjnych{investValue > 0 ? <> ({investDiff >= 0 ? '≈ +' : '≈ −'}{money(Math.abs(investDiff))} względem wpłat)</> : ''}. Nie liczy się do bilansu; zysk stanie się przychodem dopiero, gdy go wypłacisz.</>
+                      : <>Bilans ≈ to, co masz na kontach{Math.abs(gap) >= 1 ? <> (różnica {gap >= 0 ? '+' : '−'}{money(Math.abs(gap))} — saldo z początku historii, gotówka wydana bez zapisu, waluty)</> : ''}.</>}
+                  </p>
+                )}
+              </Rozwijana>
+
+      <Rozwijana id="lata-dni" tytul="Wydatki wg dni tygodnia · wszystkie lata"
+        podsumowanie={weekdayWszystkie.some(v => v > 0) ? `najwięcej: ${DNI_TYG_KROTKO[weekdayWszystkie.indexOf(Math.max(...weekdayWszystkie))]}` : null}>
+        <DniTygodnia wartosci={weekdayWszystkie} kolor="var(--expense)" fmt={moneyK} />
+      </Rozwijana>
+
+      <Rozwijana id="lata-top" tytul="Największe wydatki w historii" podsumowanie={topWszystkie[0] ? moneyK(topWszystkie[0].amount) : null}>
+        <div className="an-rank">
+          {topWszystkie.map(t => (
+            <div key={t.id} className="an-rank-top" style={{ marginBottom: 0 }}>
+              <span className="an-rank-name" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+                <span>{t.description || t.category}</span>
+                <small style={{ fontSize: 11, color: 'var(--text-sub)' }}>{t.category} · {t.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })}</small>
+              </span>
+              <span className="an-rank-val" style={{ color: 'var(--expense)' }}>−{money(t.amount)}</span>
+            </div>
+          ))}
+        </div>
+      </Rozwijana>
+    </>
+  )
+
   return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {loading ? (
+          {tryb === 'lata' ? widokLata : loading ? (
             <div className="list-loading">Ładowanie...</div>
           ) : !hasYearData ? (
             <div className="charts-empty">
@@ -316,64 +456,6 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
             </>
           )}
 
-              {years.length > 0 && (
-                <Rozwijana id="fin-lata" tytul="Przez wszystkie lata" domyslnie podsumowanie={`${years.length} ${years.length === 1 ? 'rok' : 'lat'}`}>
-                  <Kafle min={130} items={[
-                    { label: 'Średnio / rok · przychody', value: `+${money(allTime.income / years.length)}`, color: 'var(--income)' },
-                    { label: 'Średnio / rok · wydatki', value: `−${money(allTime.expense / years.length)}`, color: 'var(--expense)' },
-                    najlepszyRok && { label: 'Najlepszy bilans', value: String(najlepszyRok.year), sub: `${najlepszyRok.income - najlepszyRok.expense >= 0 ? '+' : '−'}${money(Math.abs(najlepszyRok.income - najlepszyRok.expense))}`, color: 'var(--income)' },
-                    najdrozszyRok && { label: 'Najwięcej wydane', value: String(najdrozszyRok.year), sub: money(najdrozszyRok.expense), color: 'var(--expense)' },
-                  ]} />
-                  {years.length > 1 && <MiesiaceLat years={[...years].reverse()} money={money} />}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {years.map(y => {
-                      const bal = y.income - y.expense
-                      return (
-                        <button key={y.year} onClick={() => { onRokChange?.(y.year); setSelMonth(null) }} className="an-lata-row" style={{
-                          background: y.year === activeYear ? 'var(--surface2)' : 'transparent',
-                          borderColor: y.year === activeYear ? 'var(--accent)' : 'var(--border)',
-                        }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, width: 44, flexShrink: 0 }}>{y.year}</span>
-                          <span style={{ flex: 1, fontSize: 12, color: 'var(--income)' }}>+{moneyK(y.income)}</span>
-                          <span style={{ flex: 1, fontSize: 12, color: 'var(--expense)' }}>−{moneyK(y.expense)}</span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: bal >= 0 ? 'var(--income)' : 'var(--expense)', flexShrink: 0 }}>
-                            {bal >= 0 ? '+' : '−'}{moneyK(Math.abs(bal))}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </Rozwijana>
-              )}
-
-              {years.length > 0 && (
-                <Rozwijana id="fin-kat-lata" tytul="Kategorie rok po roku" podsumowanie={kategorieLat[miaraLat].wiersze[0]?.nazwa}>
-                  <SegTabs items={[{ id: 'expense', label: 'Wydatki' }, { id: 'income', label: 'Przychody' }]} active={miaraLat} onChange={setMiaraLat} />
-                  <TabelaLat dane={kategorieLat[miaraLat]} fmt={moneyK} limit={10} pusty="Brak danych" />
-                  <p className="an-note">Kwoty w złotych, wszystkie lata z historii.</p>
-                </Rozwijana>
-              )}
-
-              {/* Cała historia */}
-              <Rozwijana id="fin-historia" tytul="Cała historia" podsumowanie={`${allBalance >= 0 ? '+' : '−'}${moneyK(Math.abs(allBalance))}`}>
-                <Kafle min={120} items={[
-                  { label: 'Przychody', value: `+${money(allTime.income)}`, color: 'var(--income)' },
-                  { label: 'Wydatki', value: `−${money(allTime.expense)}`, color: 'var(--expense)' },
-                  { label: 'Bilans', value: `${allBalance >= 0 ? '+' : '−'}${money(Math.abs(allBalance))}`, color: allBalance >= 0 ? 'var(--income)' : 'var(--expense)' },
-                  accounts.length > 0 && { label: 'Na kontach (zł)', value: money(onAccounts) },
-                  allInvested !== 0 && { label: 'Zainwestowane', value: money(allInvested), color: 'var(--accent)' },
-                  allInvested !== 0 && investValue > 0 && { label: 'Inwestycje teraz ≈', value: `≈ ${money(investValue)}`, color: 'var(--text-sub)' },
-                ]} />
-                {accounts.length > 0 && !filtr && (
-                  <p className="an-note">
-                    {allInvested !== 0
-                      ? <>Bilans ≈ to, co masz na kontach, plus to, co wpłaciłaś na inwestycje{Math.abs(gap) >= 1 ? <> (różnica {gap >= 0 ? '+' : '−'}{money(Math.abs(gap))} — saldo z początku historii, gotówka wydana bez zapisu, waluty)</> : ''}.
-                        {' '}Zainwestowane = wpłaty {money(invPaidIn)}{invBack > 0 ? <> − to, co wróciło {money(invBack)}</> : ''}.
-                        {' '}Wartość inwestycji jest szacunkowa — z sald wpisanych na kontach inwestycyjnych{investValue > 0 ? <> ({investDiff >= 0 ? '≈ +' : '≈ −'}{money(Math.abs(investDiff))} względem wpłat)</> : ''}. Nie liczy się do bilansu; zysk stanie się przychodem dopiero, gdy go wypłacisz.</>
-                      : <>Bilans ≈ to, co masz na kontach{Math.abs(gap) >= 1 ? <> (różnica {gap >= 0 ? '+' : '−'}{money(Math.abs(gap))} — saldo z początku historii, gotówka wydana bez zapisu, waluty)</> : ''}.</>}
-                  </p>
-                )}
-              </Rozwijana>
         </div>
   )
 }

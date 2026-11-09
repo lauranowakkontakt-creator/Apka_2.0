@@ -18,10 +18,12 @@ const FALLBACK_COLORS = [
 ]
 
 // Jeden ekran analizy Finansów: „Miesiąc" (bilans i kategorie wybranego
-// miesiąca) albo „Rok" (rok w liczbach, miesiąc po miesiącu, porównanie lat).
+// miesiąca), „Rok" (rok w liczbach, miesiąc po miesiącu, porównanie z rokiem
+// wcześniej) albo „Lata" (statystyki z całej historii).
 const PERIODS = [
   { id: 'month', label: 'Miesiąc' },
   { id: 'year',  label: 'Rok'     },
+  { id: 'all',   label: 'Lata'    },
 ]
 
 export default function Charts({ user, privateMode = false }) {
@@ -105,14 +107,14 @@ export default function Charts({ user, privateMode = false }) {
         ))}
       </div>
 
-      {/* Period navigation */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Period navigation (bez strzałek w widoku „Lata") */}
+      {period !== 'all' && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <button className="icon-btn" onClick={goBack}><IconChevronLeft size={16} /></button>
         <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>
           {bounds.label}
         </span>
         <button className="icon-btn" onClick={goFwd}><IconChevronRight size={16} /></button>
-      </div>
+      </div>}
 
       {/* Filtr kont — jeden przewijany palcem wiersz, niezależnie od liczby kont */}
       {accounts.length > 0 && (
@@ -134,9 +136,9 @@ export default function Charts({ user, privateMode = false }) {
         </div>
       )}
 
-      {period === 'year' ? (
-        <StatsPanel user={user} privateMode={privateMode} rok={pivot.getFullYear()}
-          onRokChange={(y) => setPivot(new Date(y, 0, 1))} accountFilter={accountFilter} />
+      {period === 'year' || period === 'all' ? (
+        <StatsPanel user={user} privateMode={privateMode} rok={pivot.getFullYear()} tryb={period === 'all' ? 'lata' : 'rok'}
+          onRokChange={(y) => setPivot(new Date(y, 0, 1))} onOtworzRok={() => setPeriod('year')} accountFilter={accountFilter} />
       ) : (<>
       {/* Tab selector */}
       <div className="habit-view-tabs">
