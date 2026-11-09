@@ -866,6 +866,9 @@ select.form-input, select.form-input option { background: var(--bg); color: var(
 .drawer-close { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 18px; cursor: pointer; padding: 10px; border-radius: 10px; transition: background 0.15s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .drawer-close:hover { background: var(--surface2); }
 .drawer-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.drawer-fold > summary::-webkit-details-marker { display: none; }
+.drawer-fold > summary svg { transition: transform .15s; }
+.drawer-fold[open] > summary svg { transform: rotate(90deg); }
 .drawer-section-title { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 12px; }
 .drawer-apps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .drawer-app-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); cursor: pointer; transition: all 0.15s; position: relative; }

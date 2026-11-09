@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../firebase/config'
-import { IconClose, IconChevronLeft, IconEye, IconEyeOff, IconReorder } from './Icons'
+import { IconClose, IconChevronLeft, IconChevronRight, IconEye, IconEyeOff, IconReorder } from './Icons'
 import { useDragReorder, DragHandle } from './DragReorder'
 import { IconPicker } from './Pickers'
 import { saveModuleIcon, getModuleIcons } from '../utils/iconPrefs'
@@ -39,36 +39,9 @@ export default function SettingsDrawer({ open, onClose, activeModule, modules, o
           </button>
         </div>
 
-        {/* Moduły */}
-        <div className="drawer-section">
-          <p className="drawer-section-title">Moduły</p>
-          <div className="drawer-apps-grid">
-            {modules.filter(m => !m.hidden).map(m => (
-              <button
-                key={m.id}
-                className={`drawer-app-btn ${activeModule?.id === m.id ? 'active' : ''} ${m.soon ? 'soon' : ''}`}
-                onClick={() => !m.soon && onModuleChange(m.id)}
-              >
-                <span className="drawer-app-icon"><m.Icon size={22} /></span>
-                <span className="drawer-app-label">{m.label}</span>
-                {m.soon && <span className="drawer-soon">wkrótce</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Układ aplikacji — kolejność i ukrywanie */}
-        {layout && onLayoutChange && (
+        {/* Aplikacje: kolejność, ukrywanie i ikony w jednym miejscu */}
+        {pickerModule ? (
           <div className="drawer-section">
-            <p className="drawer-section-title">Twoje aplikacje</p>
-            <ModuleLayoutPanel modules={modules} layout={layout} onChange={onLayoutChange} />
-          </div>
-        )}
-
-        {/* Ikony aplikacji */}
-        <div className="drawer-section">
-          <p className="drawer-section-title">Ikony aplikacji</p>
-          {pickerModule ? (
             <IconPickerPanel
               module={pickerModule}
               onPick={(key) => {
@@ -78,21 +51,16 @@ export default function SettingsDrawer({ open, onClose, activeModule, modules, o
               }}
               onCancel={() => setPickerModule(null)}
             />
-          ) : (
-            <div className="drawer-icon-list">
-              {modules.filter(m => !m.hidden && !m.soon).map(m => (
-                <button key={m.id} className="drawer-icon-row" onClick={() => setPickerModule(m)}>
-                  <span className="drawer-icon-preview"><m.Icon size={20} /></span>
-                  <span className="drawer-icon-label">{m.label}</span>
-                  <span className="drawer-icon-change">Zmień →</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        ) : layout && onLayoutChange && (
+          <div className="drawer-section">
+            <p className="drawer-section-title">Twoje aplikacje</p>
+            <ModuleLayoutPanel modules={modules} layout={layout} onChange={onLayoutChange} onPickIcon={setPickerModule} />
+          </div>
+        )}
 
         {/* Ustawienia bieżącego modułu */}
-        {activeModule && !activeModule.soon && (
+        {activeModule && !activeModule.soon && ['budget', 'habits'].includes(activeModule.id) && (
           <div className="drawer-section">
             <p className="drawer-section-title">Ustawienia — {activeModule.label}</p>
             <div className="drawer-settings-list">
@@ -103,22 +71,19 @@ export default function SettingsDrawer({ open, onClose, activeModule, modules, o
         )}
 
         {/* Kopia danych */}
-        <div className="drawer-section">
-          <p className="drawer-section-title">Kopia danych</p>
+        <Zwijana title="Kopia danych">
           <DataBackup uid={user.uid} />
-        </div>
+        </Zwijana>
 
-        {/* Czyszczenie danych modułu */}
-        <div className="drawer-section">
-          <p className="drawer-section-title">Wyczyść dane modułu</p>
+        {/* Czyszczenie danych modułu — schowane, żeby nie kusiło */}
+        <Zwijana title="Wyczyść dane modułu">
           <ClearModuleData uid={user.uid} />
-        </div>
+        </Zwijana>
 
         {/* Diagnostyka */}
-        <div className="drawer-section">
-          <p className="drawer-section-title">Gdy coś nie działa</p>
+        <Zwijana title="Gdy coś nie działa">
           <Diagnostyka />
-        </div>
+        </Zwijana>
 
         {/* Footer */}
         <div className="drawer-footer">
@@ -127,6 +92,18 @@ export default function SettingsDrawer({ open, onClose, activeModule, modules, o
         </div>
       </aside>
     </>
+  )
+}
+
+// Sekcja zwinięta domyślnie — rzadko używane rzeczy nie zajmują miejsca.
+function Zwijana({ title, children }) {
+  return (
+    <details className="drawer-section drawer-fold">
+      <summary className="drawer-section-title" style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: 0 }}>
+        {title} <IconChevronRight size={13} />
+      </summary>
+      <div style={{ marginTop: 10 }}>{children}</div>
+    </details>
   )
 }
 
@@ -253,7 +230,7 @@ function DrawerItem({ label, value, action }) {
 /* Kolejność i widoczność aplikacji. Pierwsze widoczne moduły lądują na dolnym
    pasku telefonu, reszta zostaje w „Więcej". Pulpit jest przypięty na górze —
    to launcher, więc ani go nie przesuwamy, ani nie ukrywamy. */
-function ModuleLayoutPanel({ modules, layout, onChange }) {
+function ModuleLayoutPanel({ modules, layout, onChange, onPickIcon }) {
   const order = layout.order.filter(id => modules.some(m => m.id === id))
   const byId = new Map(modules.map(m => [m.id, m]))
   const movable = order.filter(id => id !== FIXED_FIRST)
@@ -270,7 +247,7 @@ function ModuleLayoutPanel({ modules, layout, onChange }) {
       <p className="drawer-hint">
         <IconReorder size={12} /> Kolejność decyduje, co masz pod ręką — pierwsze {NAV_SLOTS} widoczne
         aplikacje siedzą na dolnym pasku. Okiem chowasz te, których nie używasz: znikają z paska,
-        z „Więcej" i z Pulpitu.
+        z „Więcej" i z Pulpitu. Dotknij ikony, żeby ją zmienić.
       </p>
 
       <div className="mod-layout-list">
@@ -285,7 +262,10 @@ function ModuleLayoutPanel({ modules, layout, onChange }) {
             <div key={id} className={`mod-layout-row${hidden ? ' hidden' : ''}`} {...(idx >= 0 ? drag.wiersz(idx) : {})}>
               <DragHandle disabled={pinned} {...(idx >= 0 ? drag.uchwyt(idx) : {})} />
               <span className="mod-layout-num">{i + 1}</span>
-              <span className="mod-layout-icon"><m.Icon size={17} /></span>
+              <button type="button" className="mod-layout-icon" title="Zmień ikonę" disabled={m.soon}
+                onClick={() => onPickIcon?.(m)} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', cursor: m.soon ? 'default' : 'pointer' }}>
+                <m.Icon size={17} />
+              </button>
               <span className="mod-layout-label">
                 {m.label}
                 {pinned && <span className="mod-layout-badge">zawsze</span>}
