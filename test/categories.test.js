@@ -64,3 +64,15 @@ test('kolorPodkategorii — własny kolor wygrywa, bez niego odcień kategorii',
   assert.equal(kolorPodkategorii({ color: null }, '#C97A55', 1), autoKolor('#C97A55', 1))
   assert.equal(kolorPodkategorii(undefined, '#C97A55', 0), autoKolor('#C97A55', 0))
 })
+
+test('uzgodnijNazwy — nazwy w transakcjach nadążają za zmianą w ustawieniach', async () => {
+  const { etykietyKategorii, zmianyNazw } = await import('../src/utils/uzgodnijNazwy.js')
+  const et = etykietyKategorii({ expense: [{ id: 'c1', label: 'Nowa nazwa', subcategories: [{ id: 's1', label: 'Sub nowa', subcategories: [{ id: 'x1', label: 'Pod nowa' }] }] }] })
+  const lista = [
+    { id: 'a', categoryId: 'c1', category: 'Stara', subcategoryId: 's1', subcategoryLabel: 'Sub stara', subsubcategoryId: 'x1', subsubcategoryLabel: 'Pod stara' },
+    { id: 'b', categoryId: 'c1', category: 'Nowa nazwa' },
+    { id: 'c', categoryId: 'nieznana', category: 'Cokolwiek' },
+    { id: 'd', category: 'Bez id' },
+  ]
+  assert.deepEqual(zmianyNazw(lista, et), [{ id: 'a', data: { category: 'Nowa nazwa', subcategoryLabel: 'Sub nowa', subsubcategoryLabel: 'Pod nowa' } }])
+})
