@@ -1,5 +1,6 @@
 // Geometric SVG icon system — stroke-based, 24x24 viewBox
 import { useId } from 'react'
+import { useIkonyKategorii, ikonaKategorii } from '../utils/categoryIcons'
 
 // Znak marki „Apka" — pomarańczowa siatka-kula (wariant A z projektu ikony)
 export const IconAppMark = ({ size = 28, rounded = true, style }) => {
@@ -1242,7 +1243,8 @@ export const CATEGORY_ICON_MAP = {
 // ikony (np. to emotka ze starszych danych), pokazujemy neutralną ikonę SVG —
 // nigdy surowej emotki/tekstu.
 export function CatIcon({ categoryId, emoji, size = 18, style }) {
-  const Comp = CATEGORY_ICON_MAP[categoryId] || ICON_KEY_MAP[emoji]
+  useIkonyKategorii() // odśwież, gdy w ustawieniach zmieni się ikona kategorii
+  const Comp = ICON_KEY_MAP[ikonaKategorii(categoryId)] || CATEGORY_ICON_MAP[categoryId] || ICON_KEY_MAP[emoji]
   if (Comp) return <Comp size={size} style={style} />
   if (emoji) return <IconTag size={size} style={style} />
   return <span style={{ fontSize: size, lineHeight: 1, opacity: 0.4, ...style }}>·</span>

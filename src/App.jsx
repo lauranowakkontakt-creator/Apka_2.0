@@ -23,6 +23,7 @@ import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, I
 import { getModuleIcons, resolveIcon } from './utils/iconPrefs'
 import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from './utils/moduleLayout'
 import { getCurrencyCode } from './utils/currency'
+import { useSynchronizujIkonyKategorii } from './utils/useSynchronizujIkony'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
@@ -123,6 +124,7 @@ export default function App() {
 
   // Auto-księgowanie regularnych płatności w tle — działa zawsze, nie tylko w zakładce „Regularne"
   useRegularPaymentsProcessor(user?.uid)
+  useSynchronizujIkonyKategorii(user?.uid)
 
   // Zmiana waluty głównej/kursów: przeładowanie modułów (key), żeby przeliczyły sumy.
   const [currencyCode, setCurrencyCodeState] = useState(getCurrencyCode)
