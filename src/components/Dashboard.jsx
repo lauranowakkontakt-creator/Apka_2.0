@@ -60,6 +60,9 @@ export default function Dashboard({ user, setHeaderExtras }) {
     try { return localStorage.getItem('mw_wallet') || 'PLN' } catch { return 'PLN' }
   })
   const [recent, setRecent] = useState([])
+  // Portfel, z którego weszliśmy w „Wszystkie →" — lista transakcji pokazuje wtedy
+  // tylko jego transakcje (null = zwykły widok miesiąca, wszystkie waluty).
+  const [txWalletId, setTxWalletId] = useState(null)
   const narrow = useNarrow(480)
 
   const monthStart = startOfMonth(currentMonth)
@@ -109,6 +112,10 @@ export default function Dashboard({ user, setHeaderExtras }) {
   const includedInvestments = includedAccounts.filter(isInvestment)
   const totalsByCurrency = sumByCurrency(includedRegular)
   const investTotalsByCurrency = sumByCurrency(includedInvestments)
+
+  // Filtr „Wszystkie →" z portfela: ostatnie transakcje tylko z jego waluty/inwestycji
+  const txPortfel = txWalletId ? portfele(includedAccounts).find(p => p.id === txWalletId) : null
+  const txWalletList = txPortfel ? recent.filter(t => wPortfelu(t, txPortfel, accById)) : []
 
   const monthLabel = format(currentMonth, 'LLLL yyyy', { locale: pl })
   const isCurrentMonth = isSameMonth(currentMonth, new Date())
@@ -308,7 +315,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
               <span className="rev-action-circle"><IconShopping size={22} /></span>
               <span className="rev-action-label">Zakupy</span>
             </button>
-            <button className="rev-action" onClick={() => setActiveTab('transactions')}>
+            <button className="rev-action" onClick={() => { setTxWalletId(null); setActiveTab('transactions') }}>
               <span className="rev-action-circle"><IconTransfer size={22} /></span>
               <span className="rev-action-label">Transakcje</span>
             </button>
@@ -339,7 +346,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
             <div className="rev-section-head">
               <span className="rev-section-title">Ostatnie transakcje{portfel.waluta === 'PLN' ? '' : naInwestycjach ? ' · inwestycje' : ` · ${portfel.waluta}`}</span>
               {ostatnie.length > 0 && (
-                <button className="rev-section-link" onClick={() => setActiveTab('transactions')}>Wszystkie →</button>
+                <button className="rev-section-link" onClick={() => { setTxWalletId(portfel.id); setActiveTab('transactions') }}>Wszystkie →</button>
               )}
             </div>
             <div className="rev-card">
@@ -374,7 +381,25 @@ export default function Dashboard({ user, setHeaderExtras }) {
 
       {activeTab === 'analiza' && <Charts user={user} privateMode={privateMode} />}
 
-      {activeTab === 'transactions' && (
+      {activeTab === 'transactions' && txPortfel && (
+        <>
+          <p className="an-note" style={{ margin: '0 0 10px' }}>
+            Transakcje portfela: {txPortfel.typ === 'inwestycje' ? 'Inwestycje' : txPortfel.waluta} · ostatnie {txWalletList.length}
+          </p>
+          <TransactionList
+            transactions={txWalletList}
+            accounts={accounts}
+            loading={loading}
+            emptyText="Brak transakcji w tym portfelu"
+            emptyHint={null}
+            onEdit={(t) => { setEditTransaction(t); setShowForm(true) }}
+            user={user}
+            privateMode={privateMode}
+          />
+        </>
+      )}
+
+      {activeTab === 'transactions' && !txPortfel && (
         <>
           {/* Nawigator miesiąca — przewijanie do poprzednich miesięcy */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 14 }}>
