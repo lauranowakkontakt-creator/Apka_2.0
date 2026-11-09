@@ -31,6 +31,7 @@ import { isTransfer } from '../utils/categories'
 import { isInvestment, sumByCurrency } from '../utils/investmentMath'
 import { bladSubskrypcji } from '../utils/polaczenie'
 import { inPLN, investedNet } from '../utils/moneyFlow'
+import { useCategoryColors } from '../utils/useCategoryColors'
 import { portfele, wPortfelu } from '../utils/portfele'
 
 // Tytuły podstron pokazywane na pasku „wstecz" (nawigacja bez zakładek)
@@ -59,6 +60,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
   const [walletId, setWalletId] = useState(() => {
     try { return localStorage.getItem('mw_wallet') || getCurrencyCode() } catch { return getCurrencyCode() }
   })
+  const kolorKat = useCategoryColors(user.uid)
   const [recent, setRecent] = useState([])
   // Portfel, z którego weszliśmy w „Wszystkie →" — lista transakcji pokazuje wtedy
   // tylko jego transakcje (null = zwykły widok miesiąca, wszystkie waluty).
@@ -169,10 +171,11 @@ export default function Dashboard({ user, setHeaderExtras }) {
     const cat = t.category || 'Inne'
     categoryMap[cat] = (categoryMap[cat] || 0) + inPLN(t)
   })
-  const donutColors = ['#E0673E','#7C8AF0','#5FBF98','#E0B15A','#5BB6D9','#9B7CF0','#EC4899','#14B8A6']
+  const catIdByName = {}
+  transactions.forEach(t => { if (t.categoryId && t.category && !catIdByName[t.category]) catIdByName[t.category] = t.categoryId })
   const donutData = Object.entries(categoryMap)
     .sort((a, b) => b[1] - a[1])
-    .map(([name, value], i) => ({ nazwa: name, wartosc: value, kolor: donutColors[i % donutColors.length] }))
+    .map(([name, value], i) => ({ nazwa: name, wartosc: value, kolor: kolorKat(catIdByName[name], name, i) }))
   const money = (n) => privateMode ? '••' : fmt(n)
 
   // Szczegóły kategorii po dotknięciu wycinka: podkategorie i transakcje z miesiąca

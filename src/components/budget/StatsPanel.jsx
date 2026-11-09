@@ -10,6 +10,7 @@ import { Rozwijana, Kafle, MiesiaceRoku, Ranking, DniTygodnia, DonutSzczegoly, T
 import { rozbijWgLat, zmiana, miesiaceMinione, wgDniaTygodnia, kluczDnia, MIESIACE_KROTKO, MIESIACE_PELNE, DNI_TYG_KROTKO } from '../../utils/analityka'
 import { isTransfer } from '../../utils/categories'
 import { bladSubskrypcji } from '../../utils/polaczenie'
+import { useCategoryColors } from '../../utils/useCategoryColors'
 import { inPLN, investedNet, isInvestmentFlow } from '../../utils/moneyFlow'
 
 const MONTH_NAMES = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
@@ -137,22 +138,24 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
   const prevAvgExp = prevRow && minione ? prevRow.expense / minione : null
 
   // Kategorie wybranego roku (lub miesiąca) z porównaniem do tego samego okresu rok wcześniej
+  const kolorKat = useCategoryColors(user.uid)
   const kategorie = useMemo(() => {
     const inScope = (t, y) => t.date.getFullYear() === y && (selMonth === null ? (y === activeYear || wOkresie(t.date)) : t.date.getMonth() === selMonth)
+    const ids = {} // nazwa kategorii → categoryId (do koloru)
     const zbierz = (y, type) => {
       const m = {}
-      tx.forEach(t => { if (t.type === type && inScope(t, y)) { const k = t.category || 'Inne'; m[k] = (m[k] || 0) + t.amount } })
+      tx.forEach(t => { if (t.type === type && inScope(t, y)) { const k = t.category || 'Inne'; m[k] = (m[k] || 0) + t.amount; if (t.categoryId && !ids[k]) ids[k] = t.categoryId } })
       return m
     }
     const build = (type) => {
       const now = zbierz(activeYear, type), prev = zbierz(activeYear - 1, type)
       return Object.entries(now).sort((a, b) => b[1] - a[1]).map(([nazwa, wartosc], i) => ({
-        nazwa, wartosc, kolor: RANK_COLORS[i % RANK_COLORS.length],
+        nazwa, wartosc, kolor: kolorKat(ids[nazwa], nazwa, i),
         delta: prev[nazwa] ? { pct: zmiana(wartosc, prev[nazwa]), odwrotnie: type === 'expense', wzgledem: activeYear - 1 } : null,
       }))
     }
     return { expense: build('expense'), income: build('income') }
-  }, [tx, activeYear, selMonth]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tx, activeYear, selMonth, kolorKat]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const yearTx = useMemo(() => tx.filter(t => t.date.getFullYear() === activeYear && (selMonth === null || t.date.getMonth() === selMonth)), [tx, activeYear, selMonth])
   const weekday = useMemo(() => wgDniaTygodnia(yearTx.filter(t => t.type === 'expense').map(t => ({ klucz: kluczDnia(t.date), wartosc: t.amount }))), [yearTx])
