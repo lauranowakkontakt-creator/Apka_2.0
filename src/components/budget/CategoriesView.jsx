@@ -12,7 +12,6 @@ import { IconPicker, ColorPicker } from '../Pickers'
 import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
-import { uzgodnijNazwy } from '../../utils/uzgodnijNazwyBaza'
 
 export default function CategoriesView({ user, onClose }) {
   const [tab, setTab]               = useState('expense')
@@ -40,33 +39,14 @@ export default function CategoriesView({ user, onClose }) {
     }, bladSubskrypcji('settings/categories'))
   }, [user.uid])
 
-  // Po zapisie: nazwy kategorii w historii transakcji muszą zgadzać się z ustawieniami.
-  const uzgodnij = async (settings) => {
-    try {
-      const n = await uzgodnijNazwy(user.uid, settings)
-      if (n > 0) toast.success(`Zaktualizowano nazwy w ${n} ${n === 1 ? 'wpisie' : 'wpisach'}`)
-    } catch (e) {
-      console.error('Uzgadnianie nazw kategorii:', e)
-      toast.error('Nie udało się zaktualizować nazw w transakcjach')
-    }
-  }
-
   const save = async (type, cats) => {
     const settings = {
       expense: type === 'expense' ? cats : expCats,
       income:  type === 'income'  ? cats : incCats,
     }
+    // Nazwy w transakcjach uzgadnia w tle useSynchronizujIkony (App) — po każdej zmianie ustawień.
     await setDoc(doc(db, 'users', user.uid, 'settings', 'categories'), settings, { merge: true })
-    uzgodnij(settings)
   }
-
-  // Raz na urządzenie: dociągnij nazwy zmienione, zanim zaczęło to działać automatycznie.
-  useEffect(() => {
-    if (loading) return
-    const klucz = `catNamesSynced_${user.uid}`
-    try { if (localStorage.getItem(klucz)) return; localStorage.setItem(klucz, '1') } catch { /* tryb prywatny */ }
-    uzgodnij({ expense: expCats, income: incCats })
-  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const cats    = tab === 'expense' ? expCats : incCats
   const setCats = tab === 'expense' ? setExpCats : setIncCats
