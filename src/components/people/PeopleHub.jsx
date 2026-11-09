@@ -295,7 +295,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
           <Empty>Brak zadań z tą osobą</Empty>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {activeTodos.map(t => <TodoRow key={t.id} todo={t} />)}
+            <Paged items={activeTodos}>{t => <TodoRow key={t.id} todo={t} />}</Paged>
             {doneTodos.length > 0 && (
               <details>
                 <summary style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, listStyle: 'none', padding: '4px 0' }}>
@@ -346,7 +346,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
           <Empty>Brak snów z tą osobą</Empty>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {personDreams.map(d => {
+            <Paged items={personDreams}>{d => {
               const cat = getCategory(d.category)
               return (
                 <div key={d.id} onClick={() => onOpenDream?.(d.id)} style={{
@@ -366,7 +366,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
                   <IconChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                 </div>
               )
-            })}
+            }}</Paged>
           </div>
         )}
       </Section>
@@ -481,6 +481,28 @@ function Row({ color, muted, children }) {
     </div>
   )
 }
+// Długa lista po 5 pozycji: „Pokaż więcej" dodaje kolejne 5, „Zwiń" wraca do 5.
+function Paged({ items, step = 5, children }) {
+  const [shown, setShown] = useState(step)
+  const list = items.slice(0, shown)
+  const btn = { background: 'none', border: 'none', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit' }
+  return (
+    <>
+      {list.map(children)}
+      {items.length > step && (
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+          {shown < items.length && (
+            <button type="button" style={btn} onClick={() => setShown(n => n + step)}>
+              Pokaż więcej ({Math.min(step, items.length - shown)} z {items.length - shown} pozostałych)
+            </button>
+          )}
+          {shown > step && <button type="button" style={{ ...btn, color: 'var(--text-muted)' }} onClick={() => setShown(step)}>Zwiń</button>}
+        </div>
+      )}
+    </>
+  )
+}
+
 function Empty({ children }) {
   return <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>{children}</div>
 }
