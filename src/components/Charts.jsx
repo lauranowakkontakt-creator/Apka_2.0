@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { collection, query, where, orderBy, Timestamp, getDoc, doc } from 'firebase/firestore'
+import { collection, query, where, orderBy, Timestamp, doc } from 'firebase/firestore'
 import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
-import { CatIcon, IconChevronLeft, IconChevronRight, IconChart } from './Icons'
+import { IconChevronLeft, IconChevronRight, IconChart } from './Icons'
 import { useMounted } from './ChartPrimitives'
 import { getBounds, shiftPivot } from '../utils/budgetMath'
 import { byAccountOrder } from '../utils/accountOrder'
@@ -11,6 +11,8 @@ import { inPLN } from '../utils/moneyFlow'
 import { getSubcategoryColor, DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, isTransfer } from '../utils/categories'
 import { bladSubskrypcji } from '../utils/polaczenie'
 import StatsPanel from './budget/StatsPanel'
+import { Sekcja, Kafle, Ranking, DonutSzczegoly, DniTygodnia } from './Analityka'
+import { wgDniaTygodnia, kluczDnia } from '../utils/analityka'
 
 const FALLBACK_COLORS = [
   '#C94B28','#6366f1','#f59e0b','#10b981','#3b82f6','#8b5cf6',
@@ -27,8 +29,6 @@ const PERIODS = [
 ]
 
 export default function Charts({ user, privateMode = false }) {
-  const [tab, setTab]             = useState('general')
-  const [chartType, setChartType] = useState('list')
   const [period, setPeriod]       = useState('month')
   const [pivot, setPivot]         = useState(new Date())
   const [transactions, setTx]     = useState([])
@@ -140,64 +140,17 @@ export default function Charts({ user, privateMode = false }) {
         <StatsPanel user={user} privateMode={privateMode} rok={pivot.getFullYear()} tryb={period === 'all' ? 'lata' : 'rok'}
           onRokChange={(y) => setPivot(new Date(y, 0, 1))} onOtworzRok={() => setPeriod('year')} accountFilter={accountFilter} />
       ) : (<>
-      {/* Tab selector */}
-      <div className="habit-view-tabs">
-        {[['general','Ogólne'],['expense','Wydatki'],['income','Dochody']].map(([id, lbl]) => (
-          <button key={id}
-            className={`habit-view-tab ${tab === id ? 'active' : ''}`}
-            onClick={() => setTab(id)}>
-            {lbl}
-          </button>
-        ))}
-      </div>
-
-      {/* Chart type toggle (for category tabs) */}
-      {tab !== 'general' && (
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[['list','Lista'],['pie','Kołowy']].map(([id, lbl]) => (
-            <button key={id}
-              className={`type-btn ${chartType === id ? 'active expense' : ''}`}
-              style={{ flex: 1, padding: '8px 0', fontSize: 13 }}
-              onClick={() => setChartType(id)}>
-              {lbl}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Content */}
       {filtered.length === 0 ? (
         <div className="charts-empty">
           <p style={{ marginBottom: 8, opacity: 0.4 }}><IconChart size={32} /></p>
           <p>Brak transakcji w tym okresie</p>
         </div>
       ) : (
-        <>
-          {tab === 'general' && (
-            <GeneralTab
-              expenses={expenses} incomes={incomes}
-              totalExp={totalExp} totalInc={totalInc} balance={balance}
-              pivot={pivot} privateMode={privateMode}
-            />
-          )}
-          {tab === 'expense' && (
-            <CategoryTab
-              transactions={expenses} total={totalExp}
-              chartType={chartType} label="Wydatki" catColorMap={catColorMap} subColorMap={subColorMap}
-              accentColor="var(--expense)"
-              privateMode={privateMode}
-            />
-          )}
-          {tab === 'income' && (
-            <CategoryTab
-              transactions={incomes} total={totalInc}
-              chartType={chartType} label="Dochody" catColorMap={catColorMap} subColorMap={subColorMap}
-              accentColor="var(--income)"
-              privateMode={privateMode}
-              key="income"
-            />
-          )}
-        </>
+        <MiesiacView
+          expenses={expenses} incomes={incomes}
+          totalExp={totalExp} totalInc={totalInc} balance={balance}
+          pivot={pivot} privateMode={privateMode} catColorMap={catColorMap} subColorMap={subColorMap}
+        />
       )}
       </>)}
     </div>
@@ -230,7 +183,7 @@ function GeneralTab({ expenses, totalExp, totalInc, balance, pivot, privateMode 
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="an-general">
 
       {/* Balance hero card */}
       <div className="card card-pad" style={{ overflow: 'hidden' }}>
@@ -282,7 +235,7 @@ function GeneralTab({ expenses, totalExp, totalInc, balance, pivot, privateMode 
       </div>
 
       {/* Kafelki statystyk — szybki przegląd okresu */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+      <div className="an-general-tiles">
         {statTile('Największa kategoria', topCat ? topCat.name : '—', topCat && !privateMode ? fmt(topCat.val) : '', 'var(--text)')}
         {statTile('Wydatki dziennie', privateMode ? '••' : fmt(avgDay), biezacy ? `średnio z ${dni} dni` : 'średnio w miesiącu', 'var(--expense)')}
       </div>
@@ -291,288 +244,84 @@ function GeneralTab({ expenses, totalExp, totalInc, balance, pivot, privateMode 
   )
 }
 
-/* ─── Category Tab ─── */
-function CategoryTab({ transactions, total, chartType, label, catColorMap = {}, subColorMap = {}, accentColor, privateMode = false }) {
-  const [drillDown, setDrillDown] = useState(null)
+/* ─── Widok „Miesiąc": bilans, dwa wykresy kołowe i krótkie analizy — wszystko
+   na jednym ekranie, w dwóch kolumnach na komputerze. ─── */
+function MiesiacView({ expenses, incomes, totalExp, totalInc, balance, pivot, privateMode, catColorMap, subColorMap }) {
+  const money = (n) => privateMode ? '••' : fmt(n)
+  const moneyK = (n) => privateMode ? '••' : Math.round(n).toLocaleString('pl-PL')
 
-  const hasSubcatSet = new Set()
-  transactions.forEach(t => { if (t.subcategoryId) hasSubcatSet.add(t.categoryId) })
-
-  const byCat = {}
-  transactions.forEach(t => {
-    const key = t.categoryId || t.category || 'Inne'
-    if (!byCat[key]) byCat[key] = { name: t.category || 'Inne', icon: t.categoryIcon || 'IconMore', categoryId: t.categoryId, value: 0 }
-    byCat[key].value += t.amount
-  })
-  const data = Object.values(byCat).sort((a, b) => b.value - a.value)
-  data.forEach((item, i) => {
-    item.chartColor = catColorMap[item.categoryId] || FALLBACK_COLORS[i % FALLBACK_COLORS.length]
-  })
-
-  // Pre-compute subcategory breakdown for hover display
-  const subcatMap = {}
-  transactions.forEach(t => {
-    if (!t.subcategoryId) return
-    const cid = t.categoryId || 'Inne'
-    if (!subcatMap[cid]) subcatMap[cid] = {}
-    if (!subcatMap[cid][t.subcategoryId]) subcatMap[cid][t.subcategoryId] = { name: t.subcategoryLabel || 'Ogólne', value: 0 }
-    subcatMap[cid][t.subcategoryId].value += t.amount
-  })
-  data.forEach(item => {
-    const sc = subcatMap[item.categoryId]
-    if (sc) item.subcats = Object.values(sc).sort((a, b) => b.value - a.value)
-  })
-
-  if (drillDown) {
-    // Poziom 2 (podkategorie kategorii) albo poziom 3 (pod-podkategorie jednej podkategorii)
-    const inSub  = !!drillDown.subId
-    const catTxs = transactions.filter(t => t.categoryId === drillDown.categoryId && (!inSub || (t.subcategoryId || '__none__') === drillDown.subId))
-    const bySub  = {}
-    const hasDeeper = new Set()
-    catTxs.forEach(t => {
-      const key  = inSub ? (t.subsubcategoryId || '__none__') : (t.subcategoryId || '__none__')
-      const name = inSub ? (t.subsubcategoryLabel || 'Ogólne') : (t.subcategoryLabel || 'Ogólne')
-      if (!bySub[key]) bySub[key] = { name, value: 0, categoryId: key }
-      bySub[key].value += t.amount
-      if (!inSub && t.subsubcategoryId) hasDeeper.add(key)
+  // Pozycje koła: kategorie od największej, kolor z ustawień kategorii.
+  const pozycje = (list) => {
+    const m = {}
+    list.forEach(t => {
+      const klucz = t.categoryId || t.category || 'Inne'
+      if (!m[klucz]) m[klucz] = { klucz, nazwa: t.category || 'Inne', categoryId: t.categoryId, wartosc: 0 }
+      m[klucz].wartosc += t.amount
     })
-    const subData   = Object.values(bySub).sort((a, b) => b.value - a.value)
-    const subTotal  = catTxs.reduce((s, t) => s + t.amount, 0)
-    const subColors = subData.map((d, i) => subColorMap[d.categoryId] || getSubcategoryColor(drillDown.parentColor, i))
+    return Object.values(m).sort((a, b) => b.wartosc - a.wartosc)
+      .map((p, i) => ({ ...p, kolor: catColorMap[p.categoryId] || FALLBACK_COLORS[i % FALLBACK_COLORS.length] }))
+  }
+  const poz = useMemo(() => ({ expense: pozycje(expenses), income: pozycje(incomes) }), [expenses, incomes, catColorMap]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Szczegóły po dotknięciu wycinka: udział, podkategorie, największe transakcje.
+  const szczegoly = (list, total) => (p) => {
+    const lista = list.filter(t => (t.categoryId || t.category || 'Inne') === p.klucz).sort((a, b) => b.amount - a.amount)
+    const sub = {}
+    lista.forEach(t => {
+      const k = t.subcategoryLabel || 'Bez podkategorii'
+      if (!sub[k]) sub[k] = { nazwa: k, wartosc: 0, id: t.subcategoryId }
+      sub[k].wartosc += t.amount
+    })
+    const subPoz = Object.values(sub).sort((a, b) => b.wartosc - a.wartosc)
+      .map((x, i) => ({ nazwa: x.nazwa, wartosc: x.wartosc, kolor: subColorMap[x.id] || getSubcategoryColor(p.kolor, i) }))
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button onClick={() => setDrillDown(inSub ? { ...drillDown, subId: null, subName: null } : null)} style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 12, padding: '10px 14px', cursor: 'pointer',
-          fontSize: 13, color: 'var(--text)',
-        }}>
-          <IconChevronLeft size={14} />
-          <CatIcon categoryId={drillDown.categoryId} emoji={drillDown.icon} size={16} />
-          <span style={{ fontWeight: 600 }}>{drillDown.name}{inSub ? ` › ${drillDown.subName}` : ''}</span>
-          <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>{fmt(subTotal)}</span>
-        </button>
-
-        {chartType === 'pie' ? (
-          <DonutChart data={subData} colors={subColors} total={subTotal} privateMode={privateMode} label={label} />
-        ) : (
-          <ProgressList data={subData} total={subTotal} colors={subColors} privateMode={privateMode}
-            hasSubcat={hasDeeper}
-            onItemClick={(item) => hasDeeper.has(item.categoryId) ? setDrillDown({ ...drillDown, subId: item.categoryId, subName: item.name }) : null} />
-        )}
-      </div>
+      <>
+        <Kafle min={110} items={[
+          { label: 'Udział', value: `${total ? Math.round((p.wartosc / total) * 100) : 0}%` },
+          { label: 'Transakcji', value: lista.length },
+          { label: 'Średnio', value: money(lista.length ? p.wartosc / lista.length : 0) },
+        ]} />
+        {subPoz.length > 1 && <Ranking pozycje={subPoz} fmt={money} limit={5} />}
+      </>
     )
   }
 
-  if (!data.length) return (
-    <div className="charts-empty">
-      <p style={{ marginBottom: 8, opacity: 0.4 }}><IconChart size={32} /></p>
-      <p>Brak {label.toLowerCase()}</p>
-    </div>
-  )
+  const weekday = useMemo(() => wgDniaTygodnia(expenses.map(t => ({ klucz: kluczDnia(t.date), wartosc: t.amount }))), [expenses])
+  const top = useMemo(() => [...expenses].sort((a, b) => b.amount - a.amount).slice(0, 6), [expenses])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {chartType === 'pie' ? (
-        <DonutChart data={data} colors={data.map(d => d.chartColor)} total={total} privateMode={privateMode} label={label} />
-      ) : (
-        <ProgressList
-          data={data} total={total}
-          colors={data.map(d => d.chartColor)}
-          onItemClick={(item) => hasSubcatSet.has(item.categoryId)
-            ? setDrillDown({ categoryId: item.categoryId, name: item.name, icon: item.icon, parentColor: item.chartColor })
-            : null
-          }
-          hasSubcat={hasSubcatSet}
-          renderIcon={(item) => (
-            <CatIcon categoryId={item.categoryId} emoji={item.icon} size={15} />
-          )}
-          privateMode={privateMode}
-        />
-      )}
-    </div>
-  )
-}
+    <div className="an-grid">
+      <div className="wide">
+        <GeneralTab expenses={expenses} totalExp={totalExp} totalInc={totalInc} balance={balance} pivot={pivot} privateMode={privateMode} />
+      </div>
 
-/* ─── Progress bar list ─── */
-function ProgressList({ data, total, colors, onItemClick, hasSubcat, renderIcon, privateMode = false }) {
-  const [hoveredIdx, setHoveredIdx] = useState(null)
-  const maxVal = data[0]?.value || 1
-  const on = useMounted(100)
+      <Sekcja tytul="Na co idą pieniądze">
+        <DonutSzczegoly legenda="chipy" pozycje={poz.expense} fmt={money} srodek="Wydatki" szczegoly={szczegoly(expenses, totalExp)} pusty="Brak wydatków w tym okresie" />
+      </Sekcja>
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {data.map((item, i) => {
-        const pct    = total > 0 ? (item.value / total * 100) : 0
-        const relPct = (item.value / maxVal) * 100
-        const color  = colors[i]
-        const clickable = hasSubcat?.has(item.categoryId)
-        const isHovered = hoveredIdx === i
+      <Sekcja tytul="Skąd przychody">
+        <DonutSzczegoly legenda="chipy" pozycje={poz.income} fmt={money} srodek="Przychody" szczegoly={szczegoly(incomes, totalInc)} pusty="Brak przychodów w tym okresie" />
+      </Sekcja>
 
-        return (
-          <div
-            key={item.name}
-            onClick={() => onItemClick?.(item)}
-            style={{
-              background: isHovered && clickable ? 'var(--surface2)' : 'var(--surface)',
-              border: `1px solid ${isHovered && clickable ? color : 'var(--border)'}`,
-              borderRadius: 14, padding: '12px 14px',
-              cursor: clickable ? 'pointer' : 'default',
-              transition: 'border-color 0.15s, background 0.15s',
-            }}
-            onMouseEnter={() => setHoveredIdx(i)}
-            onMouseLeave={() => setHoveredIdx(null)}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>
-                {renderIcon ? renderIcon(item) : <span style={{ fontSize: 14 }}>{item.name[0]}</span>}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, lineHeight: 1.2 }}>{item.name}</p>
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{privateMode ? '••' : fmt(item.value)}</p>
-                <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>{pct.toFixed(1)}%</p>
-              </div>
-              {clickable && <span style={{ fontSize: 14, color: 'var(--text-muted)', flexShrink: 0 }}>›</span>}
-            </div>
-            <div style={{ height: 4, background: 'var(--surface2)', borderRadius: 99, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%', width: on ? relPct + '%' : '0%', background: color, borderRadius: 99,
-                transition: `width .8s cubic-bezier(.4,0,.2,1) ${i * .05}s`,
-              }} />
-            </div>
+      <Sekcja tytul="Wydatki wg dni tygodnia">
+        <DniTygodnia wartosci={weekday} kolor="var(--expense)" fmt={moneyK} />
+      </Sekcja>
 
-            {/* Subcategory breakdown on hover */}
-            {isHovered && item.subcats?.length > 0 && (
-              <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {item.subcats.slice(0, 6).map(sc => {
-                  const scPct = item.value > 0 ? (sc.value / item.value * 100) : 0
-                  return (
-                    <div key={sc.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 5, height: 5, borderRadius: '50%', background: color, opacity: 0.5, flexShrink: 0 }} />
-                      <span style={{ flex: 1, fontSize: 12, color: 'var(--text-muted)' }}>{sc.name}</span>
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 36, textAlign: 'right' }}>{scPct.toFixed(0)}%</span>
-                      {!privateMode && <span style={{ fontSize: 12, color: 'var(--text)', fontWeight: 500, minWidth: 60, textAlign: 'right' }}>{fmt(sc.value)}</span>}
-                    </div>
-                  )
-                })}
-                {item.subcats.length > 6 && (
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 13 }}>+{item.subcats.length - 6} więcej →</span>
-                )}
+      <Sekcja tytul="Największe wydatki">
+        {top.length ? (
+          <div className="an-rank">
+            {top.map(t => (
+              <div key={t.id} className="an-rank-top" style={{ marginBottom: 0 }}>
+                <span className="an-rank-name" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+                  <span>{t.description || t.category}</span>
+                  <small style={{ fontSize: 11, color: 'var(--text-sub)' }}>{t.category} · {t.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}</small>
+                </span>
+                <span className="an-rank-val" style={{ color: 'var(--expense)' }}>−{money(t.amount)}</span>
               </div>
-            )}
+            ))}
           </div>
-        )
-      })}
-
-      {/* Total row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--surface2)', borderRadius: 12, marginTop: 2 }}>
-        <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>Łącznie</span>
-        <span style={{ fontSize: 17, fontWeight: 800 }}>{privateMode ? '••' : fmt(total)}</span>
-      </div>
-    </div>
-  )
-}
-
-/* ─── Donut chart z SVG (zastępuje recharts PieChart) ─── */
-function DonutChart({ data, colors, total, privateMode = false, label = '' }) {
-  const [active, setActive] = useState(null)
-  const on = useMounted(120)
-
-  const size = typeof window !== 'undefined' && window.innerWidth < 480 ? 160 : 200
-  const thickness = 28
-  const r = (size - thickness) / 2 - 2
-  const C = 2 * Math.PI * r
-  const gap = 0.015
-
-  let acc = 0
-  const segs = data.map((d, i) => {
-    const frac = d.value / total
-    const len = Math.max(0, frac * C - gap * C)
-    const seg = { ...d, i, offset: -(acc * C), len, dash: `${len} ${C - len}`, frac }
-    acc += frac
-    return seg
-  })
-
-  const displayItem = active != null ? data[active] : null
-  const topItem = data[0]
-  const topPct  = topItem && total > 0 ? (topItem.value / total * 100) : 0
-  const topWord = /doch|przych/i.test(label) ? 'Największy przychód' : 'Największy wydatek'
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, flexWrap: 'wrap' }}>
-      <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--surface3)" strokeWidth={thickness} opacity={.4}/>
-          {segs.map(s => (
-            <circle key={s.i} cx={size/2} cy={size/2} r={r} fill="none"
-              stroke={colors[s.i]}
-              strokeWidth={active === s.i ? thickness + 4 : thickness}
-              strokeLinecap="butt"
-              strokeDasharray={on ? s.dash : `0 ${C}`}
-              strokeDashoffset={s.offset}
-              opacity={active == null || active === s.i ? 1 : 0.4}
-              onMouseEnter={() => setActive(s.i)}
-              onMouseLeave={() => setActive(null)}
-              style={{ transition: `stroke-dasharray .9s cubic-bezier(.4,0,.2,1) ${s.i * .07}s, stroke-width .2s, opacity .2s`, cursor: 'pointer' }}
-            />
-          ))}
-        </svg>
-
-        {/* Center label */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none' }}>
-          {displayItem ? (
-            <>
-              <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{displayItem.name}</p>
-              <p style={{ margin: '2px 0 0', fontSize: 18, fontWeight: 800, color: colors[active] }}>{privateMode ? '••' : fmt(displayItem.value)}</p>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>{total > 0 ? (displayItem.value / total * 100).toFixed(1) : 0}%</p>
-            </>
-          ) : (
-            <>
-              <p style={{ margin: 0, fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Łącznie</p>
-              <p style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 800 }}>{privateMode ? '••' : fmt(total)}</p>
-            </>
-          )}
-        </div>
-      </div>
-
-        {/* Boczny opis największej pozycji */}
-        {topItem && (
-          <div style={{ minWidth: 130, flex: '1 1 130px', maxWidth: 220 }}>
-            <p style={{ margin: '0 0 4px', fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{topWord}</p>
-            <p style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 800, color: 'var(--text)', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: colors[0], flexShrink: 0 }} />
-              {topItem.name}
-            </p>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
-              <span style={{ color: 'var(--text)', fontWeight: 600 }}>{topPct.toFixed(0)}%</span> całości
-              {!privateMode && <> · {fmt(topItem.value)}</>}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Legend */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {data.map((item, i) => {
-          const pct = total > 0 ? (item.value / total * 100) : 0
-          return (
-            <div key={item.name}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px', borderRadius: 8, background: active === i ? 'var(--surface2)' : 'transparent', transition: 'background 0.15s', cursor: 'pointer' }}
-              onMouseEnter={() => setActive(i)}
-              onMouseLeave={() => setActive(null)}
-            >
-              <div style={{ width: 10, height: 10, borderRadius: 3, background: colors[i], flexShrink: 0 }} />
-              <span style={{ flex: 1, fontSize: 13 }}>{item.name}</span>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{privateMode ? '••' : fmt(item.value)}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', width: 40, textAlign: 'right' }}>{pct.toFixed(1)}%</span>
-            </div>
-          )
-        })}
-      </div>
+        ) : <div className="an-pusty">Brak wydatków</div>}
+      </Sekcja>
     </div>
   )
 }

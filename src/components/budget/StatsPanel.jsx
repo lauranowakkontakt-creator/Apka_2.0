@@ -6,16 +6,14 @@ import { fmt, getCurrencyCode } from '../../utils/currency'
 import { IconChart } from '../Icons'
 import { GroupedBars } from '../ChartPrimitives'
 import SegTabs from '../SegTabs'
-import { Rozwijana, Kafle, MiesiaceRoku, Ranking, DniTygodnia, DonutSzczegoly, TabelaLat } from '../Analityka'
-import { rozbijWgLat, zmiana, miesiaceMinione, wgDniaTygodnia, kluczDnia, MIESIACE_KROTKO, MIESIACE_PELNE, DNI_TYG_KROTKO } from '../../utils/analityka'
+import { Sekcja, Kafle, MiesiaceRoku, Ranking, DniTygodnia, DonutSzczegoly, TabelaLat } from '../Analityka'
+import { rozbijWgLat, miesiaceMinione, wgDniaTygodnia, kluczDnia, MIESIACE_KROTKO, MIESIACE_PELNE, DNI_TYG_KROTKO } from '../../utils/analityka'
 import { isTransfer } from '../../utils/categories'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 import { useCategoryColors } from '../../utils/useCategoryColors'
 import { inPLN, investedNet, isInvestmentFlow } from '../../utils/moneyFlow'
 
 const MONTH_NAMES = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
-// Kolory rankingu — różna jasność, żeby sąsiednie pozycje dało się odróżnić także bez barwy.
-const RANK_COLORS = ['#E0673E', '#7C8AF0', '#5FBF98', '#E0B15A', '#5BB6D9', '#C47BD9', '#D98B5F', '#8FB34F', '#E07A9B', '#9AA3B8']
 
 // Przychody i wydatki rok do roku — jeden wykres słupkowy par.
 function MiesiaceLat({ years, money }) {
@@ -112,35 +110,19 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
   const money = (n) => privateMode ? '••' : fmt(n)
   const moneyK = (n) => privateMode ? '••' : Math.round(n).toLocaleString('pl-PL')
   const hasYearData = monthly.some(m => m.income > 0 || m.expense > 0)
-  // Rok bieżący porównujemy z TYM SAMYM okresem rok wcześniej (1 stycznia – dzisiejsza
-  // data), a nie z całym poprzednim rokiem — inaczej w listopadzie każdy wynik wyglądałby na spadek.
   const dzis = new Date()
   const trwa = activeYear === dzis.getFullYear()
-  const wOkresie = (d) => !trwa || d.getMonth() < dzis.getMonth() || (d.getMonth() === dzis.getMonth() && d.getDate() <= dzis.getDate())
-  const prevRow = useMemo(() => {
-    const r = { income: 0, expense: 0, count: 0 }
-    let any = false
-    tx.forEach(t => { if (t.date.getFullYear() === activeYear - 1 && wOkresie(t.date)) { r[t.type] += t.amount; r.count++; any = true } })
-    return any ? r : null
-  }, [tx, activeYear]) // eslint-disable-line react-hooks/exhaustive-deps
-  const vsLabel = activeYear - 1
-  const prevMonthly = useMemo(() => {
-    const b = MONTH_NAMES.map(() => ({ income: 0, expense: 0 }))
-    tx.filter(t => t.date.getFullYear() === activeYear - 1).forEach(t => { b[t.date.getMonth()][t.type] += t.amount })
-    return b
-  }, [tx, activeYear])
   const minione = miesiaceMinione(activeYear)
   const [miara, setMiara] = useState('expense')
   const [selMonth, setSelMonth] = useState(null)
   // Inny rok (strzałki nad widokiem) — wybór miesiąca z poprzedniego roku nie ma sensu.
   useEffect(() => { setSelMonth(null) }, [rok])
   const wart = (rows, k) => rows.map(r => k === 'balance' ? Math.max(0, r.income - r.expense) : r[k])
-  const prevAvgExp = prevRow && minione ? prevRow.expense / minione : null
 
-  // Kategorie wybranego roku (lub miesiąca) z porównaniem do tego samego okresu rok wcześniej
+  // Kategorie wybranego roku (lub miesiąca)
   const kolorKat = useCategoryColors(user.uid)
   const kategorie = useMemo(() => {
-    const inScope = (t, y) => t.date.getFullYear() === y && (selMonth === null ? (y === activeYear || wOkresie(t.date)) : t.date.getMonth() === selMonth)
+    const inScope = (t, y) => t.date.getFullYear() === y && (selMonth === null || t.date.getMonth() === selMonth)
     const ids = {} // nazwa kategorii → categoryId (do koloru)
     const zbierz = (y, type) => {
       const m = {}
@@ -148,14 +130,13 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
       return m
     }
     const build = (type) => {
-      const now = zbierz(activeYear, type), prev = zbierz(activeYear - 1, type)
+      const now = zbierz(activeYear, type)
       return Object.entries(now).sort((a, b) => b[1] - a[1]).map(([nazwa, wartosc], i) => ({
         nazwa, wartosc, kolor: kolorKat(ids[nazwa], nazwa, i),
-        delta: prev[nazwa] ? { pct: zmiana(wartosc, prev[nazwa]), odwrotnie: type === 'expense', wzgledem: activeYear - 1 } : null,
       }))
     }
     return { expense: build('expense'), income: build('income') }
-  }, [tx, activeYear, selMonth, kolorKat]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tx, activeYear, selMonth, kolorKat])
 
   const yearTx = useMemo(() => tx.filter(t => t.date.getFullYear() === activeYear && (selMonth === null || t.date.getMonth() === selMonth)), [tx, activeYear, selMonth])
   const weekday = useMemo(() => wgDniaTygodnia(yearTx.filter(t => t.type === 'expense').map(t => ({ klucz: kluczDnia(t.date), wartosc: t.amount }))), [yearTx])
@@ -165,12 +146,11 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
   const szczegolyKat = (type) => (poz) => {
     const wKat = (t) => t.type === type && (t.category || 'Inne') === poz.nazwa
     const lista = yearTx.filter(wKat).sort((a, b) => b.amount - a.amount)
-    const mies = MONTH_NAMES.map(() => 0), miesPrev = MONTH_NAMES.map(() => 0)
+    const mies = MONTH_NAMES.map(() => 0)
     tx.forEach(t => {
       if (!wKat(t)) return
       const y = t.date.getFullYear()
       if (y === activeYear) mies[t.date.getMonth()] += t.amount
-      else if (y === activeYear - 1) miesPrev[t.date.getMonth()] += t.amount
     })
     const sub = {}
     lista.forEach(t => { const k = t.subcategoryLabel || 'Bez podkategorii'; sub[k] = (sub[k] || 0) + t.amount })
@@ -180,7 +160,7 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
     return (
       <>
         <Kafle min={120} items={[
-          { label: 'Suma', value: money(suma), color: poz.kolor, delta: poz.delta },
+          { label: 'Suma', value: money(suma), color: poz.kolor },
           { label: 'Udział', value: `${Math.round((suma / wszystkie) * 100)}%`, sub: type === 'expense' ? 'wszystkich wydatków' : 'wszystkich przychodów' },
           selMonth === null && { label: 'Średnio / mies.', value: money(minione ? suma / minione : suma) },
           lista.length > 0 && { label: 'Średnio', value: money(suma / lista.length), sub: 'na transakcję' },
@@ -188,7 +168,7 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
         {selMonth === null && (
           <div>
             <p className="an-det-h">Miesiąc po miesiącu</p>
-            <MiesiaceRoku rok={activeYear} wartosci={mies} poprzedni={miesPrev.some(v => v > 0) ? miesPrev : null}
+            <MiesiaceRoku rok={activeYear} wartosci={mies}
               kolor={poz.kolor} minione={minione} trwajacy={trwa ? minione - 1 : null} odwrotnie={type === 'expense'} fmt={money} />
           </div>
         )}
@@ -257,35 +237,35 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
   }
 
   const widokLata = loading ? (
-    <div className="list-loading">Ładowanie...</div>
+    <div className="list-loading wide">Ładowanie...</div>
   ) : years.length === 0 ? (
-    <div className="charts-empty">
+    <div className="charts-empty wide">
       <p style={{ marginBottom: 8, opacity: 0.4 }}><IconChart size={32} /></p>
       <p>Brak transakcji</p>
     </div>
   ) : (
     <>
-      <Kafle items={[
+      <div className="wide"><Kafle items={[
         { label: 'Przychody · razem', value: `+${money(allTime.income)}`, color: 'var(--income)' },
         { label: 'Wydatki · razem', value: `−${money(allTime.expense)}`, color: 'var(--expense)' },
         { label: 'Bilans', value: `${allBalance >= 0 ? '+' : '−'}${money(Math.abs(allBalance))}`, color: allBalance >= 0 ? 'var(--income)' : 'var(--expense)' },
         { label: 'Oszczędzasz', value: allTime.income > 0 ? `${Math.round((allBalance / allTime.income) * 100)}%` : '—', sub: 'przychodów' },
         { label: 'Lat w historii', value: String(years.length), sub: `${years[years.length - 1].year} – ${years[0].year}` },
         { label: 'Transakcji', value: String(years.reduce((a, y) => a + y.count, 0)) },
-      ]} />
+      ]} /></div>
 
-      <Rozwijana id="lata-kat-wyd" tytul="Na co idą pieniądze · wszystkie lata" domyslnie
+      <Sekcja id="lata-kat-wyd" tytul="Na co idą pieniądze · wszystkie lata" domyslnie
         podsumowanie={kategorieWszystkie.expense[0] ? `${kategorieWszystkie.expense[0].nazwa} ${moneyK(kategorieWszystkie.expense[0].wartosc)}` : null}>
-        <DonutSzczegoly pozycje={kategorieWszystkie.expense} fmt={money} srodek="Wydatki" szczegoly={szczegolyLata('expense')} pusty="Brak wydatków" />
-      </Rozwijana>
+        <DonutSzczegoly legenda="chipy" pozycje={kategorieWszystkie.expense} fmt={money} srodek="Wydatki" szczegoly={szczegolyLata('expense')} pusty="Brak wydatków" />
+      </Sekcja>
 
-      <Rozwijana id="lata-kat-prz" tytul="Skąd przychody · wszystkie lata"
+      <Sekcja id="lata-kat-prz" tytul="Skąd przychody · wszystkie lata"
         podsumowanie={kategorieWszystkie.income[0] ? `${kategorieWszystkie.income[0].nazwa} ${moneyK(kategorieWszystkie.income[0].wartosc)}` : null}>
-        <DonutSzczegoly pozycje={kategorieWszystkie.income} fmt={money} srodek="Przychody" szczegoly={szczegolyLata('income')} pusty="Brak przychodów" />
-      </Rozwijana>
+        <DonutSzczegoly legenda="chipy" pozycje={kategorieWszystkie.income} fmt={money} srodek="Przychody" szczegoly={szczegolyLata('income')} pusty="Brak przychodów" />
+      </Sekcja>
 
               {years.length > 0 && (
-                <Rozwijana id="fin-lata" tytul="Przez wszystkie lata" domyslnie podsumowanie={`${years.length} ${years.length === 1 ? 'rok' : 'lat'}`}>
+                <Sekcja szeroka id="fin-lata" tytul="Przez wszystkie lata" domyslnie podsumowanie={`${years.length} ${years.length === 1 ? 'rok' : 'lat'}`}>
                   <Kafle min={130} items={[
                     { label: 'Średnio / rok · przychody', value: `+${money(allTime.income / years.length)}`, color: 'var(--income)' },
                     { label: 'Średnio / rok · wydatki', value: `−${money(allTime.expense / years.length)}`, color: 'var(--expense)' },
@@ -311,19 +291,19 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
                       )
                     })}
                   </div>
-                </Rozwijana>
+                </Sekcja>
               )}
 
               {years.length > 0 && (
-                <Rozwijana id="fin-kat-lata" tytul="Kategorie rok po roku" podsumowanie={kategorieLat[miaraLat].wiersze[0]?.nazwa}>
+                <Sekcja szeroka id="fin-kat-lata" tytul="Kategorie rok po roku" podsumowanie={kategorieLat[miaraLat].wiersze[0]?.nazwa}>
                   <SegTabs items={[{ id: 'expense', label: 'Wydatki' }, { id: 'income', label: 'Przychody' }]} active={miaraLat} onChange={setMiaraLat} />
                   <TabelaLat dane={kategorieLat[miaraLat]} fmt={moneyK} limit={10} pusty="Brak danych" />
                   <p className="an-note">Kwoty w złotych, wszystkie lata z historii.</p>
-                </Rozwijana>
+                </Sekcja>
               )}
 
               {/* Cała historia */}
-              <Rozwijana id="fin-historia" tytul="Cała historia" podsumowanie={`${allBalance >= 0 ? '+' : '−'}${moneyK(Math.abs(allBalance))}`}>
+              <Sekcja szeroka id="fin-historia" tytul="Cała historia" podsumowanie={`${allBalance >= 0 ? '+' : '−'}${moneyK(Math.abs(allBalance))}`}>
                 <Kafle min={120} items={[
                   { label: 'Przychody', value: `+${money(allTime.income)}`, color: 'var(--income)' },
                   { label: 'Wydatki', value: `−${money(allTime.expense)}`, color: 'var(--expense)' },
@@ -341,14 +321,14 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
                       : <>Bilans ≈ to, co masz na kontach{Math.abs(gap) >= 1 ? <> (różnica {gap >= 0 ? '+' : '−'}{money(Math.abs(gap))} — saldo z początku historii, gotówka wydana bez zapisu, waluty)</> : ''}.</>}
                   </p>
                 )}
-              </Rozwijana>
+              </Sekcja>
 
-      <Rozwijana id="lata-dni" tytul="Wydatki wg dni tygodnia · wszystkie lata"
+      <Sekcja id="lata-dni" tytul="Wydatki wg dni tygodnia · wszystkie lata"
         podsumowanie={weekdayWszystkie.some(v => v > 0) ? `najwięcej: ${DNI_TYG_KROTKO[weekdayWszystkie.indexOf(Math.max(...weekdayWszystkie))]}` : null}>
         <DniTygodnia wartosci={weekdayWszystkie} kolor="var(--expense)" fmt={moneyK} />
-      </Rozwijana>
+      </Sekcja>
 
-      <Rozwijana id="lata-top" tytul="Największe wydatki w historii" podsumowanie={topWszystkie[0] ? moneyK(topWszystkie[0].amount) : null}>
+      <Sekcja id="lata-top" tytul="Największe wydatki w historii" podsumowanie={topWszystkie[0] ? moneyK(topWszystkie[0].amount) : null}>
         <div className="an-rank">
           {topWszystkie.map(t => (
             <div key={t.id} className="an-rank-top" style={{ marginBottom: 0 }}>
@@ -360,44 +340,42 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
             </div>
           ))}
         </div>
-      </Rozwijana>
+      </Sekcja>
     </>
   )
 
   return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="an-grid">
           {tryb === 'lata' ? widokLata : loading ? (
-            <div className="list-loading">Ładowanie...</div>
+            <div className="list-loading wide">Ładowanie...</div>
           ) : !hasYearData ? (
-            <div className="charts-empty">
+            <div className="charts-empty wide">
               <p style={{ marginBottom: 8, opacity: 0.4 }}><IconChart size={32} /></p>
               <p>Brak transakcji w {activeYear} roku</p>
             </div>
           ) : (
             <>
 
-              {/* Rok w liczbach — z porównaniem do poprzedniego roku */}
+              {/* Rok w liczbach */}
+              <div className="wide">
               <Kafle items={[
-                { label: 'Przychody', value: `+${money(yearRow.income)}`, color: 'var(--income)',
-                  delta: prevRow ? { pct: zmiana(yearRow.income, prevRow.income), wzgledem: vsLabel } : null },
-                { label: 'Wydatki', value: `−${money(yearRow.expense)}`, color: 'var(--expense)',
-                  delta: prevRow ? { pct: zmiana(yearRow.expense, prevRow.expense), odwrotnie: true, wzgledem: vsLabel } : null },
+                { label: 'Przychody', value: `+${money(yearRow.income)}`, color: 'var(--income)' },
+                { label: 'Wydatki', value: `−${money(yearRow.expense)}`, color: 'var(--expense)' },
                 { label: 'Bilans roku', value: `${yearBalance >= 0 ? '+' : '−'}${money(Math.abs(yearBalance))}`, color: yearBalance >= 0 ? 'var(--income)' : 'var(--expense)' },
                 { label: 'Oszczędzasz', value: savingsRate === null ? '—' : `${savingsRate}%`, color: savingsRate >= 0 ? 'var(--income)' : 'var(--expense)', sub: 'przychodów' },
-                { label: 'Śr. wydatki / mies.', value: money(minione ? yearRow.expense / minione : avgMonthExp),
-                  delta: prevAvgExp ? { pct: zmiana(minione ? yearRow.expense / minione : 0, prevAvgExp), odwrotnie: true } : null },
+                { label: 'Śr. wydatki / mies.', value: money(minione ? yearRow.expense / minione : avgMonthExp) },
                 { label: 'Najdroższy miesiąc', value: topExpMonth && topExpMonth.expense > 0 ? MIESIACE_PELNE[topExpMonth.i] : '—', sub: topExpMonth && topExpMonth.expense > 0 ? money(topExpMonth.expense) : null },
                 yearInvested !== 0 && { label: 'Zainwestowane', value: money(yearInvested), color: 'var(--accent)' },
               ]} />
+              </div>
 
-              {trwa && prevRow && <p className="an-note" style={{ marginTop: -4 }}>Strzałki porównują z tym samym okresem {activeYear - 1} roku (1 stycznia – {dzis.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })}).</p>}
-
-              <Rozwijana id="fin-miesiace" tytul="Miesiąc po miesiącu" domyslnie podsumowanie={hasYearData ? `${MIESIACE_KROTKO[minione - 1] || ''}: −${moneyK(monthly[Math.max(0, minione - 1)]?.expense || 0)}` : null}>
+              <Sekcja szeroka id="fin-miesiace" tytul="Miesiąc po miesiącu" domyslnie podsumowanie={hasYearData ? `${MIESIACE_KROTKO[minione - 1] || ''}: −${moneyK(monthly[Math.max(0, minione - 1)]?.expense || 0)}` : null}>
                 {hasYearData ? (
                   <>
                     <SegTabs items={MIARY} active={miara} onChange={setMiara} />
+                    <div className="an-split">
                     <MiesiaceRoku rok={activeYear} minione={minione} kolor={kolorMiary}
-                      wartosci={wart(monthly, miara)} poprzedni={years.some(y => y.year === activeYear - 1) ? wart(prevMonthly, miara) : null}
+                      wartosci={wart(monthly, miara)}
                       trwajacy={trwa ? minione - 1 : null}
                       odwrotnie={miara === 'expense'} fmt={money} wybrany={selMonth} onWybierz={setSelMonth} />
                     <table className="an-tabela">
@@ -417,27 +395,28 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
                         })}
                       </tbody>
                     </table>
+                    </div>
                     <p className="an-note">Dotknij miesiąca na wykresie lub w tabeli — kategorie, dni tygodnia i największe wydatki poniżej pokażą wtedy tylko ten miesiąc.</p>
                   </>
                 ) : <div className="an-pusty">Brak danych w tym roku</div>}
-              </Rozwijana>
+              </Sekcja>
 
-              <Rozwijana id="fin-kat-wyd" tytul={`Na co idą pieniądze · ${okres}`} domyslnie
+              <Sekcja id="fin-kat-wyd" tytul={`Na co idą pieniądze · ${okres}`} domyslnie
                 podsumowanie={kategorie.expense[0] ? `${kategorie.expense[0].nazwa} ${moneyK(kategorie.expense[0].wartosc)}` : null}>
-                <DonutSzczegoly key={`e${activeYear}-${selMonth}`} pozycje={kategorie.expense} fmt={money} srodek="Wydatki" szczegoly={szczegolyKat('expense')} pusty="Brak wydatków w tym okresie" />
-              </Rozwijana>
+                <DonutSzczegoly legenda="chipy" key={`e${activeYear}-${selMonth}`} pozycje={kategorie.expense} fmt={money} srodek="Wydatki" szczegoly={szczegolyKat('expense')} pusty="Brak wydatków w tym okresie" />
+              </Sekcja>
 
-              <Rozwijana id="fin-kat-prz" tytul={`Skąd przychody · ${okres}`}
+              <Sekcja id="fin-kat-prz" tytul={`Skąd przychody · ${okres}`}
                 podsumowanie={kategorie.income[0] ? `${kategorie.income[0].nazwa} ${moneyK(kategorie.income[0].wartosc)}` : null}>
-                <DonutSzczegoly key={`i${activeYear}-${selMonth}`} pozycje={kategorie.income} fmt={money} srodek="Przychody" szczegoly={szczegolyKat('income')} pusty="Brak przychodów w tym okresie" />
-              </Rozwijana>
+                <DonutSzczegoly legenda="chipy" key={`i${activeYear}-${selMonth}`} pozycje={kategorie.income} fmt={money} srodek="Przychody" szczegoly={szczegolyKat('income')} pusty="Brak przychodów w tym okresie" />
+              </Sekcja>
 
-              <Rozwijana id="fin-dni" tytul={`Wydatki wg dni tygodnia · ${okres}`}
+              <Sekcja id="fin-dni" tytul={`Wydatki wg dni tygodnia · ${okres}`}
                 podsumowanie={weekday.some(v => v > 0) ? `najwięcej: ${DNI_TYG_KROTKO[weekday.indexOf(Math.max(...weekday))]}` : null}>
                 <DniTygodnia wartosci={weekday} kolor="var(--expense)" fmt={moneyK} />
-              </Rozwijana>
+              </Sekcja>
 
-              <Rozwijana id="fin-top" tytul={`Największe wydatki · ${okres}`} podsumowanie={topTx[0] ? moneyK(topTx[0].amount) : null}>
+              <Sekcja id="fin-top" tytul={`Największe wydatki · ${okres}`} podsumowanie={topTx[0] ? moneyK(topTx[0].amount) : null}>
                 {topTx.length ? (
                   <div className="an-rank">
                     {topTx.map(t => (
@@ -451,7 +430,7 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
                     ))}
                   </div>
                 ) : <div className="an-pusty">Brak wydatków</div>}
-              </Rozwijana>
+              </Sekcja>
 
             </>
           )}

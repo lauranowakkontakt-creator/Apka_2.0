@@ -43,6 +43,24 @@ export function Rozwijana({ id, tytul, podsumowanie, domyslnie = false, akcja, c
   )
 }
 
+/**
+ * Sekcja zawsze rozwinięta — karta z tytułem. Używana w analizach Finansów,
+ * gdzie wszystko ma być widać bez klikania. Przyjmuje te same propsy co
+ * Rozwijana (id, podsumowanie, domyslnie są ignorowane), `szeroka` rozciąga
+ * kartę na całą szerokość siatki `.an-grid`.
+ */
+export function Sekcja({ tytul, akcja, szeroka = false, children }) {
+  return (
+    <section className={`sek${szeroka ? ' wide' : ''}`}>
+      <div className="sek-head">
+        <span className="sek-title">{tytul}</span>
+        {akcja}
+      </div>
+      <div className="sek-body">{children}</div>
+    </section>
+  )
+}
+
 /** Przełącznik roku ze strzałkami. `lata` od najnowszego. */
 export function WyborRoku({ lata, rok, onChange }) {
   const i = lata.indexOf(rok)
@@ -320,7 +338,7 @@ export function AnalizaRoku({ id, wpisy, jednostka = ['wpis', 'wpisy', 'wpisów'
  *
  * pozycje: [{ nazwa, wartosc, kolor, delta? }] — od największej
  */
-export function DonutSzczegoly({ pozycje, fmt = (v) => String(Math.round(v)), szczegoly, limit = 7, rozmiar = 210, grubosc = 30, srodek = 'Razem', pusty = 'Brak danych' }) {
+export function DonutSzczegoly({ pozycje, fmt = (v) => String(Math.round(v)), szczegoly, limit = 7, rozmiar = 210, grubosc = 30, srodek = 'Razem', pusty = 'Brak danych', legenda = 'lista' }) {
   const on = useMounted(100)
   const [sel, setSel] = useState(null)
   const [hover, setHover] = useState(null)
@@ -379,6 +397,16 @@ export function DonutSzczegoly({ pozycje, fmt = (v) => String(Math.round(v)), sz
             )}
           </div>
         </div>
+        {legenda === 'chipy' ? (
+          <div className="an-donut-chips">
+            {dane.map((p, i) => (
+              <button type="button" key={p.nazwa + i} className={`an-chip${sel === i ? ' sel' : ''}${akt !== null && akt !== i ? ' dim' : ''}`}
+                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onClick={() => wybor(i)}>
+                <i style={{ background: p.kolor }} />{p.nazwa}<b>{Math.round((p.wartosc / suma) * 100)}%</b>
+              </button>
+            ))}
+          </div>
+        ) : (
         <div className="an-donut-leg">
           {dane.map((p, i) => (
             <button type="button" key={p.nazwa + i} className={`an-donut-row${sel === i ? ' sel' : ''}${akt !== null && akt !== i ? ' dim' : ''}`}
@@ -390,6 +418,7 @@ export function DonutSzczegoly({ pozycje, fmt = (v) => String(Math.round(v)), sz
             </button>
           ))}
         </div>
+        )}
       </div>
       {wybrana && (
         <div className="an-donut-det" key={wybrana.nazwa} style={{ '--det-color': wybrana.kolor }}>
