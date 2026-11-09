@@ -170,7 +170,7 @@ export default function TitheView({ user, onClose }) {
               {pool.items.map(t => (
                 <div key={t.id} className="tithe-pool-item">
                   <span className="tithe-pool-icon">
-                    <CatIcon categoryId={t.categoryId} emoji={t.categoryIcon} size={14} />
+                    <CatIcon categoryId={t.categoryId} subcategoryId={t.subcategoryId} emoji={t.categoryIcon} size={14} />
                   </span>
                   <div className="tithe-pool-main">
                     <div className="tithe-pool-title">{t.description || t.category || 'Przychód'}</div>

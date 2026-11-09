@@ -8,7 +8,10 @@ const sluchacze = new Set()
 
 export function ustawIkonyKategorii(settings) {
   const next = {}
-  ;[...(settings?.expense || []), ...(settings?.income || [])].forEach(c => { if (c?.id && c.icon) next[c.id] = c.icon })
+  ;[...(settings?.expense || []), ...(settings?.income || [])].forEach(c => {
+    if (c?.id && c.icon) next[c.id] = c.icon
+    ;(c?.subcategories || []).forEach(s => { if (s?.id && s.icon) next[s.id] = s.icon }) // ikony podkategorii
+  })
   const same = Object.keys(next).length === Object.keys(ikony).length && Object.keys(next).every(k => ikony[k] === next[k])
   if (same) return
   ikony = next

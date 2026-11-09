@@ -56,7 +56,7 @@ export default function SearchPanel({ user, onClose }) {
           {results.length === 0 && <p className="list-empty">Brak wyników</p>}
           {results.map(t => (
             <div key={t.id} className={`transaction-item ${t.type}`}>
-              <div className="t-icon"><CatIcon categoryId={t.categoryId} emoji={t.categoryIcon} size={20} /></div>
+              <div className="t-icon"><CatIcon categoryId={t.categoryId} subcategoryId={t.subcategoryId} emoji={t.categoryIcon} size={20} /></div>
               <div className="t-details">
                 <span className="t-category">{[t.category, t.subcategoryLabel, t.subsubcategoryLabel].filter(Boolean).join(' › ')}</span>
                 {t.description && <span className="t-desc">{t.description}</span>}

@@ -94,7 +94,7 @@ export default function TransactionList({
                     border: `1px solid ${catColor}44`,
                     color: catColor,
                   }}>
-                    <CatIcon categoryId={t.categoryId} emoji={t.categoryIcon} size={18} />
+                    <CatIcon categoryId={t.categoryId} subcategoryId={t.subcategoryId} emoji={t.categoryIcon} size={18} />
                   </div>
                   <div className="t-details">
                     <span className="t-category">

@@ -1242,9 +1242,10 @@ export const CATEGORY_ICON_MAP = {
 // W aplikacji NIE używamy emotek: jeśli zapisana wartość nie jest znanym kluczem
 // ikony (np. to emotka ze starszych danych), pokazujemy neutralną ikonę SVG —
 // nigdy surowej emotki/tekstu.
-export function CatIcon({ categoryId, emoji, size = 18, style }) {
+export function CatIcon({ categoryId, subcategoryId, emoji, size = 18, style }) {
   useIkonyKategorii() // odśwież, gdy w ustawieniach zmieni się ikona kategorii
-  const Comp = ICON_KEY_MAP[ikonaKategorii(categoryId)] || CATEGORY_ICON_MAP[categoryId] || ICON_KEY_MAP[emoji]
+  // W transakcji: ikona podkategorii, a gdy jej nie ma — ikona kategorii.
+  const Comp = ICON_KEY_MAP[ikonaKategorii(subcategoryId)] || ICON_KEY_MAP[ikonaKategorii(categoryId)] || CATEGORY_ICON_MAP[categoryId] || ICON_KEY_MAP[emoji]
   if (Comp) return <Comp size={size} style={style} />
   if (emoji) return <IconTag size={size} style={style} />
   return <span style={{ fontSize: size, lineHeight: 1, opacity: 0.4, ...style }}>·</span>

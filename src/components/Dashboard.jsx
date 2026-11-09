@@ -361,7 +361,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
                   return (
                     <div key={t.id} className="rev-row clickable" onClick={() => { setEditTransaction(t); setShowForm(true) }}>
                       <span className="rev-row-icon" style={{ background: isExpense ? 'color-mix(in oklab, var(--expense) 16%, var(--surface))' : 'color-mix(in oklab, var(--income) 16%, var(--surface))', color: isExpense ? 'var(--expense)' : 'var(--income)' }}>
-                        <CatIcon categoryId={t.categoryId} emoji={t.categoryIcon} size={18} />
+                        <CatIcon categoryId={t.categoryId} subcategoryId={t.subcategoryId} emoji={t.categoryIcon} size={18} />
                       </span>
                       <div className="rev-row-main">
                         <div className="rev-row-name">{t.description || t.subsubcategoryLabel || t.subcategoryLabel || t.category || 'Transakcja'}</div>
