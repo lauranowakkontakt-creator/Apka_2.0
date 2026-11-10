@@ -28,6 +28,17 @@ export const nextOccurrence = (base, rec) =>
   : rec === 'weekly' ? addWeeks(base, 1)
   : addMonths(base, 1)
 
+// Kolejny termin zadania cyklicznego, który wypada PO dzisiejszym dniu.
+// Zaległe zadanie „codziennie" sprzed dwóch tygodni po odhaczeniu przeskakuje
+// od razu na jutro, zamiast zostawać zaległe na kolejne 13 kliknięć.
+// Rytm zostaje zachowany: zadanie „co tydzień" z poniedziałku wraca w poniedziałek.
+export function nextOccurrenceAfter(base, rec, today = new Date()) {
+  const dzis = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  let next = nextOccurrence(base, rec)
+  for (let i = 0; next <= dzis && i < 5000; i++) next = nextOccurrence(next, rec)
+  return next
+}
+
 export const zadaniaAktywne = (todos) => todos.filter(t => !t.done)
 
 /**

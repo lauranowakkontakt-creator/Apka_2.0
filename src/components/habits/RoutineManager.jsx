@@ -74,7 +74,7 @@ export default function RoutineManager({ user, onClose }) {
             <div key={r.id} style={{ display: 'flex', gap: 8 }}>
               <input className="form-input" value={editName} autoFocus maxLength={30}
                 onChange={e => setEditName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') saveName(r.id); if (e.key === 'Escape') { setEditId(null); setEditName('') } }}
+                onKeyDown={e => { if (e.key === 'Enter') saveName(r.id); if (e.key === 'Escape') { e.stopPropagation(); setEditId(null); setEditName('') } }}
                 style={{ flex: 1, minWidth: 0 }} />
               <button className="btn-save" style={{ width: 'auto', margin: 0, padding: '0 14px' }} onClick={() => saveName(r.id)}><IconCheck size={15} /></button>
             </div>

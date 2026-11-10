@@ -3,6 +3,8 @@
 // z cykliczności (expandEvents w CalendarDashboard), więc tutaj operujemy
 // na zwykłych datach 'yyyy-MM-dd'.
 
+import { isMonthlyPaymentOn } from './paymentLogic.js'
+
 // Wydarzenia obejmujące dany dzień — także wielodniowe (date..dateEnd).
 export function eventsOnDate(events, dateStr) {
   return events.filter(e => dateStr >= e.date && dateStr <= (e.dateEnd || e.date))
@@ -11,9 +13,10 @@ export function eventsOnDate(events, dateStr) {
 export const todosOnDate = (todos, dateStr) =>
   todos.filter(t => t.dueDate === dateStr)
 
-// Płatności miesięczne wypadają w konkretnym dniu miesiąca.
-export const paymentsOnDate = (payments, dayNum) =>
-  payments.filter(p => (p.dayOfMonth || 1) === dayNum)
+// Płatności miesięczne wypadają w konkretnym dniu miesiąca; ustawione na
+// 29.–31. w krótszym miesiącu wypadają w jego ostatnim dniu. `date` to Date.
+export const paymentsOnDate = (payments, date) =>
+  payments.filter(p => isMonthlyPaymentOn(p, date))
 
 // Wspólna kolejność pozycji dnia: najpierw z godziną (rosnąco), potem
 // całodniowe. Przy równej godzinie decyduje typ (wydarzenie → zadanie →

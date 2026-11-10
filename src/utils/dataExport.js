@@ -1,5 +1,6 @@
 import { collection, getDocs, getDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase/config'
+import { format } from 'date-fns'
 
 // Wszystkie podkolekcje użytkownika
 const COLLECTIONS = [
@@ -67,7 +68,9 @@ async function download(filename, content, type) {
   return true
 }
 
-const stamp = () => new Date().toISOString().slice(0, 10)
+// Daty w czasie LOKALNYM. toISOString() liczy w UTC, więc wpis dodany po
+// północy (00:00–02:00) trafiał do pliku z datą poprzedniego dnia.
+const stamp = () => format(new Date(), 'yyyy-MM-dd')
 
 // Pełna kopia wszystkich danych do JSON
 export async function exportAllJSON(uid) {
@@ -99,7 +102,7 @@ export async function exportTransactionsCSV(uid) {
   const accName = Object.fromEntries(accSnap.docs.map(d => [d.id, d.data().name]))
   const rows = snap.docs.map(d => {
     const t = d.data()
-    const date = t.date?.toDate ? t.date.toDate().toISOString().slice(0, 10) : ''
+    const date = t.date?.toDate ? format(t.date.toDate(), 'yyyy-MM-dd') : ''
     const typ = t.categoryId === 'transfer' ? 'przelew wewnętrzny' : t.type === 'income' ? 'przychód' : 'wydatek'
     return [date, typ, t.type === 'expense' ? -t.amount : t.amount, t.currency || 'PLN', t.category, t.subcategoryLabel || '', t.subsubcategoryLabel || '', t.description || '', accName[t.accountId] || t.accountId || '']
   }).sort((a, b) => b[0].localeCompare(a[0]))

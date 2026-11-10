@@ -1,6 +1,6 @@
 import { db } from '../../firebase/config'
 import { bladSubskrypcji } from '../../utils/polaczenie'
-import { nextOccurrence, pOrder, zadaniaUkonczone } from '../../utils/todoLogic'
+import { nextOccurrenceAfter, pOrder, zadaniaUkonczone } from '../../utils/todoLogic'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { confirmDialog } from '../ConfirmModal'
 import { CatIcon, IconChevronDown, IconChevronLeft, IconChevronRight, IconEdit, IconPlus, IconStar } from '../Icons'
@@ -64,7 +64,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
     // Zadanie cykliczne: zamiast „zrobione" przesuwamy na kolejny termin i odznaczamy podzadania
     if (!todo.done && todo.recurrence) {
       const base = todo.dueDate ? parseISO(todo.dueDate) : new Date()
-      const next = nextOccurrence(base, todo.recurrence)
+      const next = nextOccurrenceAfter(base, todo.recurrence)
       await updateDoc(doc(db, 'users', user.uid, 'todos', todo.id), {
         dueDate: format(next, 'yyyy-MM-dd'),
         subtasks: (todo.subtasks || []).map(s => ({ ...s, done: false })),
@@ -143,7 +143,6 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
   const activeListColor = activeListObj?.color || 'var(--sky)'
 
   const dueToday = active.filter(t => t.dueDate && isToday(parseISO(t.dueDate)))
-  const highCount = active.filter(t => t.priority === 'high').length
 
   const listRow = (isActive, color) => ({
     display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8,

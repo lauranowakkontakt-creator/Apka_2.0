@@ -13,22 +13,25 @@ export { periodKey, isPaymentActive, isPaymentDue } from './paymentLogic'
 // odhaczenia okresu → duplikat przy odświeżeniu.
 export async function addTransactionForPayment(uid, p, period = periodKey(new Date(), p.frequency)) {
   const batch = writeBatch(db)
+  // Konto mogło zostać usunięte po utworzeniu płatności — update na
+  // nieistniejącym dokumencie wywala cały batch i blokuje księgowanie.
+  const accRef = p.accountId ? doc(db, 'users', uid, 'accounts', p.accountId) : null
+  const accSnap = accRef ? await getDoc(accRef) : null
+  const acc = accSnap?.exists() ? accSnap.data() : null
   batch.set(doc(collection(db, 'users', uid, 'transactions')), {
     type: p.type, amount: p.amount,
+    // Waluta jak przy ręcznym wpisie: taka, jak konta. Bez tego płatność
+    // z konta EUR liczyła się w statystykach jako złotówki.
+    currency: acc?.currency || 'PLN',
     category: p.category, categoryId: p.categoryId, categoryIcon: p.categoryIcon,
     subcategoryId: p.subcategoryId || null, subcategoryLabel: p.subcategoryLabel || null,
     description: p.name, accountId: p.accountId || null,
     date: Timestamp.now(), createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     fromRegular: p.id
   })
-  if (p.accountId) {
-    // Konto mogło zostać usunięte po utworzeniu płatności — update na
-    // nieistniejącym dokumencie wywala cały batch i blokuje księgowanie.
-    const accRef = doc(db, 'users', uid, 'accounts', p.accountId)
-    if ((await getDoc(accRef)).exists()) {
-      const delta = p.type === 'expense' ? -p.amount : p.amount
-      batch.update(accRef, { balance: increment(delta) })
-    }
+  if (acc) {
+    const delta = p.type === 'expense' ? -p.amount : p.amount
+    batch.update(accRef, { balance: increment(delta) })
   }
   batch.update(doc(db, 'users', uid, 'regularPayments', p.id), {
     donePeriods: arrayUnion(period)

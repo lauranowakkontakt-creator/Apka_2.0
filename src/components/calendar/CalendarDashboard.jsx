@@ -15,8 +15,9 @@ import PeopleManager from './PeopleManager'
 import PeopleView from './PeopleView'
 import WeekView from './WeekView'
 import { DEFAULT_CATEGORIES, getEventColor, whoOf } from './wspolne'
-import { addDays, addMonths, endOfMonth, format, getDate, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns'
+import { addDays, addMonths, endOfMonth, format, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns'
 import { pl } from 'date-fns/locale'
+import { paymentsOnDate } from '../../utils/calendarDay'
 import { Timestamp, addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { useEffect, useMemo, useState } from 'react'
@@ -146,7 +147,7 @@ export default function CalendarDashboard({ user, setHeaderExtras }) {
     return filterPersonId ? all.filter(e => e.personId === filterPersonId) : all
   }
   const todosOnDay    = (day) => todos.filter(t => t.dueDate === format(day, 'yyyy-MM-dd'))
-  const paymentsOnDay = (day) => payments.filter(p => p.dayOfMonth === getDate(day))
+  const paymentsOnDay = (day) => paymentsOnDate(payments, day)
 
   // Górna belka („Apka"): [＋ Dodaj wydarzenie][⋮ Agenda / Osoby / Kategorie].
   // Hook musi być przed early-returnem (zasady hooków).

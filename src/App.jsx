@@ -25,6 +25,7 @@ import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from '
 import { getCurrencyCode } from './utils/currency'
 import { useSynchronizujIkonyKategorii } from './utils/useSynchronizujIkony'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
+import { useZamykanieWstecz } from './utils/useZamykanieWstecz'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
 // się do emulatora Auth na jedno stałe konto lokalne. Zawsze to samo konto =
@@ -151,6 +152,13 @@ export default function App() {
     }, () => { clearTimeout(timeout); setLoading(false) })
     return () => { unsubscribe(); clearTimeout(timeout) }
   }, [])
+
+  // Esc i systemowe „wstecz": zamknij okno → wróć na Pulpit → wyjdź z apki.
+  useZamykanieWstecz({
+    wlaczone: !!user,
+    naPulpicie: activeModule === 'home',
+    wrocNaPulpit: () => setActiveModule('home'),
+  })
 
   if (loading) return (
     <div className="loading-screen">

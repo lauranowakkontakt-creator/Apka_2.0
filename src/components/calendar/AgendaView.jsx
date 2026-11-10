@@ -29,7 +29,7 @@ export default function AgendaView({ events, categories, calPeople, filterPerson
             {isToday(parseISO(date)) ? 'DZIŚ' : format(parseISO(date), 'EEEE, d MMMM', { locale: pl })}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {grouped[date].map(e => <EventRow key={e.id} e={e} categories={categories} calPeople={calPeople} onEdit={onEdit} onDelete={onDelete} />)}
+            {grouped[date].map(e => <EventRow key={`${e.id}-${e.date}`} e={e} categories={categories} calPeople={calPeople} onEdit={onEdit} onDelete={onDelete} />)}
           </div>
         </div>
       ))}
@@ -39,7 +39,7 @@ export default function AgendaView({ events, categories, calPeople, filterPerson
             <IconChevronRight size={12} style={{ verticalAlign: 'middle' }} /> Minione ({past.length})
           </summary>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-            {past.map(e => <EventRow key={e.id} e={e} categories={categories} calPeople={calPeople} onEdit={onEdit} onDelete={onDelete} muted />)}
+            {past.map(e => <EventRow key={`${e.id}-${e.date}`} e={e} categories={categories} calPeople={calPeople} onEdit={onEdit} onDelete={onDelete} muted />)}
           </div>
         </details>
       )}

@@ -3,9 +3,9 @@ import { collection, orderBy, query, doc, updateDoc, arrayUnion, arrayRemove, de
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
-import { format, startOfWeek, addDays, subDays, startOfMonth, endOfMonth, getDaysInMonth, addMonths, subMonths } from 'date-fns'
+import { format, startOfWeek, addDays, subDays, startOfMonth, addMonths, subMonths } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import HabitForm, { HABIT_CATEGORIES, DEFAULT_HABIT_CATEGORIES } from './HabitForm'
+import HabitForm, { DEFAULT_HABIT_CATEGORIES } from './HabitForm'
 import PauseForm from './PauseForm'
 import HabitReorderModal from './HabitReorderModal'
 import HabitFreshStart from './HabitFreshStart'
@@ -16,7 +16,7 @@ import HabitArchive from './HabitArchive'
 import RoutineManager from './RoutineManager'
 // Nastrój nie jest już osobną apką — mieszka w Nawykach, otwierany z kafelka.
 // Leniwie, żeby wejście w Nawyki nie ciągnęło kodu wykresów nastroju.
-import { CatIcon, IconFlame, IconStar, IconCheck, IconPause, IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconFlag, IconEdit, IconClose } from '../Icons'
+import { CatIcon, IconFlame, IconStar, IconCheck, IconPause, IconChevronDown, IconChevronLeft, IconChevronRight, IconPlus, IconFlag, IconEdit } from '../Icons'
 import { Ring, BarChartSVG } from '../ChartPrimitives'
 import DayPath from '../DayPath'
 import { AnalizaRoku, Rozwijana, Ranking } from '../Analityka'
@@ -158,13 +158,11 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
     return [...s].sort((a, b) => a - b)
   })()
 
-  const todayDue  = filtered.filter(h => isHabitDue(h, TODAY, pauses) === 'due')
   // Cel dnia liczymy z nawyków WYMAGANYCH, a zrobione — ze wszystkich, więc
   // nadprogramowa robota potrafi przebić cel (np. 11 z 8).
   const score     = dayScore(filtered, TODAY, pauses)
   const doneToday = score.doneTotal
 
-  const todayIsPaused = isPausedDay(TODAY, pauses)
 
   // Overall streak — max streak across all habits
   const maxStreak = filtered.length > 0

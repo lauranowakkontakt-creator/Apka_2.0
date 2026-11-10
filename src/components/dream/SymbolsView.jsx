@@ -167,7 +167,7 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
         <div style={{ display: 'flex', gap: 8 }}>
           <input className="form-input" value={name} autoFocus placeholder="np. drzewo, dom, woda..."
             maxLength={40} onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') add(); if (e.key === 'Escape') { setAdding(false); setName('') } }}
+            onKeyDown={e => { if (e.key === 'Enter') add(); if (e.key === 'Escape') { e.stopPropagation(); setAdding(false); setName('') } }}
             style={{ flex: 1, minWidth: 0 }} />
           <button className="btn-save" style={{ width: 'auto', margin: 0, padding: '0 16px' }} onClick={add}>Dodaj</button>
         </div>

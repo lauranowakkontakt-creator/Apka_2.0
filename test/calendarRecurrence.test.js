@@ -123,3 +123,21 @@ test('RECURRENCE i RECUR_LABEL pokrywają te same tryby', () => {
   const idy = RECURRENCE.map(r => r.id).filter(Boolean)
   assert.deepEqual(idy.sort(), Object.keys(RECUR_LABEL).sort())
 })
+
+test('cykl miesięczny z 31. dnia nie zsuwa się na 28. po lutym', () => {
+  const ev = [{ id: 'a', date: '2026-01-31', recurrence: 'monthly' }]
+  assert.deepEqual(expandEvents(ev, '2026-01-01', '2026-06-30').map(e => e.date),
+    ['2026-01-31', '2026-02-28', '2026-03-31', '2026-04-30', '2026-05-31', '2026-06-30'])
+})
+
+test('to samo wystąpienie ma tę samą datę niezależnie od oglądanego zakresu', () => {
+  const ev = [{ id: 'a', date: '2026-01-31', recurrence: 'monthly' }]
+  assert.deepEqual(expandEvents(ev, '2026-05-01', '2026-05-31').map(e => e.date), ['2026-05-31'])
+  assert.deepEqual(expandEvents(ev, '2027-03-01', '2027-03-31').map(e => e.date), ['2027-03-31'])
+})
+
+test('29 lutego co rok: w latach zwykłych 28 lutego, w przestępnych znów 29', () => {
+  const ev = [{ id: 'a', date: '2024-02-29', recurrence: 'yearly' }]
+  assert.deepEqual(expandEvents(ev, '2025-01-01', '2028-12-31').map(e => e.date),
+    ['2025-02-28', '2026-02-28', '2027-02-28', '2028-02-29'])
+})

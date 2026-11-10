@@ -8,7 +8,6 @@ import { IconEdit, IconTrash, IconClose, IconSavings } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
 import { ColorPicker } from '../Pickers'
 import { APP_COLORS } from '../../utils/palette'
-import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
 export default function SavingsGoals({ user, onClose }) {

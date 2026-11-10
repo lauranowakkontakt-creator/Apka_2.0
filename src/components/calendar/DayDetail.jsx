@@ -1,7 +1,7 @@
 import { daysBetween, eventsOnDate, paymentsOnDate, sortDayItems, spanInfo, todosOnDate, upcomingEvents } from '../../utils/calendarDay'
 import { IconEdit, IconPlus, IconTrash } from '../Icons'
 import { findCat, getEventColor, whoOf } from './wspolne'
-import { format, getDate, isToday, parseISO } from 'date-fns'
+import { format, isToday, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 
 // Panel dnia — wydarzenia, zadania i płatności przypadające na wybrany dzień.
@@ -23,7 +23,7 @@ export default function DayDetail({ day, events, todos, payments, categories, ca
       kind: 'todo', key: 't-' + t.id, raw: t,
       title: t.title, time: null, color: '#6366f1', meta: 'zadanie',
     })),
-    ...paymentsOnDate(payments, getDate(day)).map(p => ({
+    ...paymentsOnDate(payments, day).map(p => ({
       kind: 'payment', key: 'p-' + p.id, raw: p,
       title: p.name, time: null, color: '#f59e0b',
       meta: `płatność${p.amount ? ` · ${p.type === 'income' ? '+' : '−'}${p.amount}` : ''}`,

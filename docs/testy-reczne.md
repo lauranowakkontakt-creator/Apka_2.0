@@ -55,6 +55,10 @@ W dowolnym formularzu z kwotą — transakcja, dług, cel oszczędnościowy:
 - [ ] Obrót ekranu i powrót — tekst nie puchnie
 - [ ] Modal/szuflada: tło pod spodem **nie** przewija się razem z zawartością
 - [ ] Da się powiększyć gestem (dostępność)
+- [ ] **„Wstecz" na Androidzie** przy otwartym formularzu zamyka formularz,
+      nie apkę; kolejne „wstecz" wraca z modułu na Pulpit, a dopiero z Pulpitu
+      wychodzi z apki
+- [ ] Na komputerze **Esc** zamyka otwarte okno, ustawienia i „Więcej"
 
 ## 6. Dane
 

@@ -4,7 +4,7 @@ import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import StatTiles from '../StatTiles'
-import { format, startOfMonth, getDaysInMonth, addDays, subMonths, addMonths } from 'date-fns'
+import { format, startOfMonth, getDaysInMonth, addDays, addMonths } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { LineAreaSVG, DonutStat, BarChartSVG } from '../ChartPrimitives'
 import { IconTrash, IconChevronLeft, IconChevronRight, IconPlus, IconClose, IconChart } from '../Icons'
@@ -116,7 +116,7 @@ function AddChip({ onAdd, placeholder = 'nowa…' }) {
   return (
     <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
       <input autoFocus value={val} onChange={e => setVal(e.target.value)} maxLength={20}
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submit() } if (e.key === 'Escape') setOpen(false) }}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submit() } if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }}
         placeholder={placeholder}
         style={{ width: 120, padding: '6px 10px', borderRadius: 99, fontSize: 12.5, fontFamily: 'inherit',
           background: 'var(--surface)', border: '1px solid var(--accent)', color: 'var(--text)', outline: 'none' }} />
@@ -385,15 +385,6 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
   const monthLbl = (() => { const l = format(month, 'LLLL', { locale: pl }); return l.charAt(0).toUpperCase() + l.slice(1) })()
   const mStart = startOfMonth(month)
   const daysCount = getDaysInMonth(month)
-  const monthLogs = useMemo(() => logs.filter(l => l.date.startsWith(monthStr)), [logs, monthStr])
-
-  // Średnia + zmiana m/m (skala 1–10)
-  const valid = monthLogs.filter(l => l.moodValue)
-  const monthAvg = valid.length ? valid.reduce((s, l) => s + l.moodValue, 0) / valid.length : 0
-  const prevStr = format(subMonths(month, 1), 'yyyy-MM')
-  const prevValid = logs.filter(l => l.date.startsWith(prevStr) && l.moodValue)
-  const prevAvg = prevValid.length ? prevValid.reduce((s, l) => s + l.moodValue, 0) / prevValid.length : 0
-  const diff = prevAvg > 0 && monthAvg > 0 ? to10(monthAvg) - to10(prevAvg) : null
 
   // Wykres dzienny
   const chartData = useMemo(() => Array.from({ length: daysCount }, (_, i) => {
@@ -448,7 +439,6 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
     return { idx: m, label: format(ms, 'LLL', { locale: pl }), avgV, color: mObj?.color, count: ml.length }
   })
   const yearValid = logs.filter(l => (l.date || '').startsWith(String(year)) && l.moodValue)
-  const yearAvg = yearValid.length ? yearValid.reduce((s, l) => s + l.moodValue, 0) / yearValid.length : 0
 
   const dayLogs = logs.filter(l => l.date === selDate).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
   const canAdd = selDate <= today
@@ -735,10 +725,4 @@ function SingleMoodPreview({ point }) {
       </div>
     </div>
   )
-}
-
-function AnimBar({ pct, color }) {
-  const [w, setW] = useState(0)
-  useEffect(() => { const id = setTimeout(() => setW(pct), 80); return () => clearTimeout(id) }, [pct])
-  return <div style={{ height: '100%', borderRadius: 99, background: color, width: `${w}%`, transition: 'width .7s ease' }} />
 }

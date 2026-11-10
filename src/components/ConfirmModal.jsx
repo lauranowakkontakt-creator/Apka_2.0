@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
+import { useState, useEffect, useRef, useCallback, createContext } from 'react'
 import { IconClose } from './Icons'
 
 const ConfirmContext = createContext(null)

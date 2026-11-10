@@ -3,7 +3,7 @@ import { collection, orderBy, query, deleteDoc, doc, updateDoc, where, Timestamp
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
+import { format, subMonths, startOfMonth } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import AccountForm from './AccountForm'
 import AccountReorderModal from './AccountReorderModal'

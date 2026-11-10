@@ -2,15 +2,18 @@ import { useState, useEffect, useMemo } from 'react'
 import { collection, query, orderBy, doc, limit } from 'firebase/firestore'
 import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
-import { format, subDays, addDays, parseISO, differenceInDays, isPast, isToday } from 'date-fns'
+import { format, subDays, addDays, parseISO, isPast, isToday } from 'date-fns'
 import { pl } from 'date-fns/locale'
+import { isMonthlyPaymentOn } from '../utils/paymentLogic'
+import { expandEvents } from '../utils/calendarRecurrence'
+import { eventsOnDate } from '../utils/calendarDay'
 import {
   IconBudget, IconHabits, IconTodo, IconPrayer, IconBook,
-  IconFlame, IconChevronRight, IconCheck, IconClock, IconBills,
+  IconFlame, IconChevronRight, IconCheck, IconClock,
   IcSun,
 } from './Icons'
 import { Ring } from './ChartPrimitives'
-import { fmt, getCurrencyCode, CURRENCIES } from '../utils/currency'
+import { fmt, getCurrencyCode } from '../utils/currency'
 import { isInvestment, sumByCurrency } from '../utils/investmentMath'
 import { BIBLE_BOOKS, TOTAL_CHAPTERS, chapterKey } from '../utils/bibleData'
 import { dayScore, isRequiredHabit } from '../utils/habitLogic'
@@ -166,22 +169,15 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
   const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd')
 
   /* ── DZIŚ / JUTRO — wspólna agenda ── */
-  const occursOn = (e, dateStr) => {
-    if (dateStr < e.date) return false
-    if (e.recurUntil && dateStr > e.recurUntil) return false
-    if (!e.recurrence) return dateStr <= (e.dateEnd || e.date)
-    const start = parseISO(e.date), now = parseISO(dateStr)
-    if (e.recurrence === 'daily')  return true
-    if (e.recurrence === 'weekly') return differenceInDays(now, start) % 7 === 0
-    if (e.recurrence === 'monthly') return start.getDate() === now.getDate()
-    if (e.recurrence === 'yearly')  return start.getDate() === now.getDate() && start.getMonth() === now.getMonth()
-    return false
-  }
+  // Cykliczność liczy ta sama funkcja co w Kalendarzu (expandEvents) — własna
+  // kopia tutaj gubiła wydarzenia „co miesiąc 31." w krótszych miesiącach
+  // i kolejne dni cyklicznych wydarzeń wielodniowych.
+  const occursOn = (dateStr) => eventsOnDate(expandEvents(events, dateStr, dateStr), dateStr)
   const buildAgenda = (dateStr) => {
     const items = []
     const d = parseISO(dateStr)
     // Wydarzenia z kalendarza (z uwzględnieniem cykliczności) — z osobą w nazwie
-    events.filter(e => occursOn(e, dateStr)).forEach(e => {
+    occursOn(dateStr).forEach(e => {
       const person = e.personName || e.who || ''
       items.push({
         key: 'ev-' + e.id + '-' + dateStr, module: 'calendar', color: e.color || '#5FBF98',
@@ -195,10 +191,8 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
       items.push({ key: 'td-' + t.id + '-' + dateStr, module: 'todo', color: '#5BB6D9', time: null, label: t.title, meta: 'zadanie' })
     })
     // Płatności (miesięczne, w dniu, jeszcze nieodhaczone)
-    const dayNum = d.getDate()
     const period = format(d, 'yyyy-MM')
-    payments.filter(p => p.frequency === 'monthly' && (p.dayOfMonth || 1) === dayNum && !p.donePeriods?.includes(period)
-      && (!p.dateFrom || p.dateFrom <= dateStr) && (!p.dateTo || p.dateTo >= dateStr)).forEach(p => {
+    payments.filter(p => isMonthlyPaymentOn(p, d) && !p.donePeriods?.includes(period)).forEach(p => {
       items.push({ key: 'pm-' + p.id + '-' + dateStr, module: 'budget', color: '#E0B15A', time: null, label: p.name, meta: `${p.type === 'income' ? '+' : '−'}${fmt(p.amount)}` })
     })
     // Sortuj: z godziną najpierw (wg godziny), reszta po. Pozycje z ukrytych
@@ -211,8 +205,6 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
   const habitsLeft = habitsStat.due - habitsStat.done
   const prayerLeft = prayerStat.active - prayerStat.prayedToday
 
-  const curCode = getCurrencyCode()
-  const curSymbol = CURRENCIES.find(c => c.code === curCode)?.symbol || 'zł'
   const privateMode = (() => {
     try { return localStorage.getItem('mw_privateMode') === 'true' } catch { return false }
   })()
