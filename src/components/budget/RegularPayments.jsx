@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react'
 import { collection, orderBy, query, doc } from 'firebase/firestore'
-import { deleteDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { fmt } from '../../utils/currency'
 import { CatIcon, IconEdit, IconTrash, IconCheck, IconCalendar, IconRepeat } from '../Icons'
 import RegularPaymentForm from './RegularPaymentForm'
-import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { periodKey, isPaymentActive, addTransactionForPayment, removeTransactionForPayment } from '../../utils/regularPayments'
 import { bladSubskrypcji } from '../../utils/polaczenie'
@@ -54,9 +53,7 @@ export default function RegularPayments({ user }) {
   }
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć płatność?', message: 'Płatność zostanie trwale usunięta.' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'regularPayments', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'regularPayments', id), 'Usunięto płatność')
   }
 
   const totalMonthly = payments

@@ -1,8 +1,8 @@
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 import { nextOccurrenceAfter, pOrder, zadaniaUkonczone } from '../../utils/todoLogic'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
-import { confirmDialog } from '../ConfirmModal'
 import { CatIcon, IconChevronDown, IconChevronLeft, IconChevronRight, IconEdit, IconPlus, IconStar } from '../Icons'
 import StatTiles from '../StatTiles'
 import { toast } from '../Toast'
@@ -15,7 +15,7 @@ import TodoStats from './TodoStats'
 import { format, isToday, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { Timestamp, collection, doc, orderBy, query } from 'firebase/firestore'
-import { deleteDoc, updateDoc } from '../../utils/zapis'
+import { updateDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { useEffect, useState } from 'react'
 
@@ -89,9 +89,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
   }
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć zadanie?' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'todos', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'todos', id), 'Usunięto zadanie')
   }
 
   // Wybrane (gwiazdka) zawsze na górze, dalej jak dotąd: termin, potem priorytet.

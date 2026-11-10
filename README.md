@@ -184,6 +184,19 @@ onSnapshot(q, snap => {
 zamiast wisieć. Reszta — log, rozróżnienie „brak sieci" od „awaria", zapalenie
 paska u góry ekranu — dzieje się sama.
 
+**Zapisy idą przez [`utils/zapis.js`](src/utils/zapis.js)**, nie prosto z SDK
+(`addDoc`, `updateDoc`, `setDoc`, `deleteDoc`, `writeBatch` — te same nazwy,
+inna ścieżka importu). Firestore potwierdza zapis dopiero po odpowiedzi
+serwera, więc bez sieci `await zapis; onClose()` wisiałby na „Zapisywanie…",
+mimo że wpis jest już zapisany lokalnie. Pilnuje tego
+[`test/zapis.test.js`](test/zapis.test.js).
+
+**Usuwanie pojedynczych wpisów** (zadanie, transakcja, prośba, notatka…) nie
+pyta „Usunąć?" — usuwa od razu i pokazuje „Cofnij"
+([`utils/usunZCofnieciem.js`](src/utils/usunZCofnieciem.js)). Pytanie zostaje
+tam, gdzie usunięcie pociąga za sobą inne dane (konto, kategoria, osoba,
+nawyk z historią).
+
 **Podgląd logów na telefonie:** Ustawienia → *Gdy coś nie działa* →
 Diagnostyka. Widać tam ostatnie 200 zdarzeń z kodami błędów Firestore, z
 przyciskiem kopiowania. Na telefonie nie ma konsoli, więc to jedyna droga,

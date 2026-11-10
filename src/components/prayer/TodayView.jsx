@@ -1,7 +1,7 @@
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import { filterIntentions, groupByPerson, loadFilters, saveFilters, sortIntentions } from '../../utils/prayerFilters'
 import { findPrio } from '../../utils/prayerStats'
-import { confirmDialog } from '../ConfirmModal'
 import { CatIcon, IconCheck, IconChevronLeft, IconChevronRight, IconPrayer } from '../Icons'
 import { toast } from '../Toast'
 import IntentionForm from './IntentionForm'
@@ -11,7 +11,7 @@ import { TODAY, toggleChecklistItem } from './wspolne'
 import { addDays, format, parseISO, subDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { Timestamp, arrayRemove, arrayUnion, doc } from 'firebase/firestore'
-import { deleteDoc, updateDoc } from '../../utils/zapis'
+import { updateDoc } from '../../utils/zapis'
 import { useEffect, useMemo, useState } from 'react'
 
 // Widok „Dziś" — prośby na dany dzień, z możliwością cofania się w tył.
@@ -78,8 +78,7 @@ export default function TodayView({ user, intentions, people, carMode }) {
     updateDoc(doc(db, 'users', user.uid, 'prayerIntentions', item.id), { status: 'ended', endedAt: Timestamp.now() })
 
   const deleteItem = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć prośbę?' })
-    if (ok) await deleteDoc(doc(db, 'users', user.uid, 'prayerIntentions', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'prayerIntentions', id), 'Usunięto prośbę')
   }
 
   const porzadek = useMemo(

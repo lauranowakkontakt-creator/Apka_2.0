@@ -1,12 +1,12 @@
 import { db } from '../../firebase/config'
-import { confirmDialog } from '../ConfirmModal'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import { CatIcon, IconCheck, IconChevronDown, IconChevronLeft, IconChevronRight, IconPrayer, IconTrash } from '../Icons'
 import { toast } from '../Toast'
 import IntentionForm from './IntentionForm'
 import RequestCard from './RequestCard'
 import { TODAY, toggleChecklistItem } from './wspolne'
 import { Timestamp, arrayRemove, arrayUnion, doc } from 'firebase/firestore'
-import { deleteDoc, updateDoc } from '../../utils/zapis'
+import { updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Szczegóły jednej osoby: jej prośby, notatki i historia modlitwy.
@@ -71,9 +71,7 @@ export default function PersonDetailView({ user, person, intentions, carMode, on
   }
 
   const deleteItem = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć prośbę?' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'prayerIntentions', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'prayerIntentions', id), 'Usunięto prośbę')
   }
 
   return (

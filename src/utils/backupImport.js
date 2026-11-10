@@ -25,6 +25,8 @@ export const EXTRA_SINGLES = ['settings/tithe', 'settings/shopCategories', 'sett
 export const OTHER_MODULES = Object.entries(MODULE_DATA)
   .filter(([id]) => id !== 'budget')
   .map(([id, m]) => ({ id, label: m.label, collections: m.collections, singles: m.docs.map(d => d.join('/')) }))
+  // Notatki nie mają (jeszcze) modułu w apce, ale są w kopii — nie gubimy ich.
+  .concat([{ id: 'notes', label: 'Notatki', collections: ['notes'], singles: [] }])
 export const OTHER_COLLECTIONS = OTHER_MODULES.flatMap(m => m.collections)
 export const OTHER_SINGLES = OTHER_MODULES.flatMap(m => m.singles)
 

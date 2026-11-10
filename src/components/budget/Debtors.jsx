@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { collection, query, doc, Timestamp, orderBy } from 'firebase/firestore'
-import { addDoc, updateDoc, deleteDoc } from '../../utils/zapis'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { fmt, parseAmount } from '../../utils/currency'
 import { IconEdit, IconTrash, IconClose, IconUsers, IconCheck, IconArrowUp, IconArrowDown, IconChevronDown } from '../Icons'
-import { confirmDialog } from '../ConfirmModal'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
 const INCOME_COLOR  = '#5FBF98' // var(--income)
@@ -30,9 +30,7 @@ export default function Debtors({ user, onClose }) {
   }, [user.uid])
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć wpis?' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'debtors', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'debtors', id), 'Usunięto wpis')
   }
 
   const toggleSettled = async (debt) => {

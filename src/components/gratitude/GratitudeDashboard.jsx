@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { collection, query, orderBy, doc, Timestamp, limit } from 'firebase/firestore'
-import { addDoc, updateDoc, deleteDoc } from '../../utils/zapis'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { format, parseISO, isToday, isYesterday, subDays, addDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
@@ -12,7 +13,6 @@ import StatTiles from '../StatTiles'
 import { AnalizaRoku, Rozwijana } from '../Analityka'
 import { IconPlus, IconTrash, IconSearch, IconCheck, IconClose, IconEdit,
   IconChevronLeft, IconChevronRight, IconRepeat, IcSun } from '../Icons'
-import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
@@ -123,9 +123,7 @@ export default function GratitudeDashboard({ user, setHeaderExtras }) {
   }
 
   const remove = async (entry) => {
-    const ok = await confirmDialog({ title: 'Usunąć wpis?', message: entry.text })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'gratitude', entry.id)).catch(() => {})
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'gratitude', entry.id), 'Usunięto wpis')
   }
 
   const saveEdit = async () => {

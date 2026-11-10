@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
 import { collection, query, doc, Timestamp, orderBy } from 'firebase/firestore'
-import { addDoc, deleteDoc } from '../../utils/zapis'
+import { addDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import StatTiles from '../StatTiles'
 import { format, startOfMonth, getDaysInMonth, addDays, addMonths } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { LineAreaSVG, DonutStat, BarChartSVG } from '../ChartPrimitives'
 import { IconTrash, IconChevronLeft, IconChevronRight, IconPlus, IconClose, IconChart } from '../Icons'
-import { confirmDialog } from '../ConfirmModal'
 import { ALL_EMOTIONS } from './EmotionWheel'
 import SegTabs from '../SegTabs'
 import { Rozwijana, RokWPikselach } from '../Analityka'
@@ -169,9 +169,7 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
   }, [selDate])
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć wpis nastroju?' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'moodLogs', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'moodLogs', id), 'Usunięto wpis nastroju')
   }
 
   if (loading) return <div className="list-loading">Ładowanie...</div>

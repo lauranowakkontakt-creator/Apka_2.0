@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { collection, query, doc, Timestamp, orderBy, increment } from 'firebase/firestore'
-import { addDoc, updateDoc, deleteDoc, setDoc, writeBatch } from '../../utils/zapis'
+import { addDoc, updateDoc, setDoc, writeBatch } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { format } from 'date-fns'
 import { DonutStat } from '../ChartPrimitives'
@@ -48,9 +49,7 @@ export default function ShoppingList({ user }) {
   const bought  = items.filter(i => i.status === 'bought')
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć produkt?', confirmLabel: 'Usuń' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'shoppingItems', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'shoppingItems', id), 'Usunięto produkt')
   }
 
   const handleBuy = async (item, actualPrice) => {
