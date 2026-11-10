@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { collection, query, orderBy, addDoc, setDoc, deleteDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, query, orderBy, doc, Timestamp } from 'firebase/firestore'
+import { addDoc, setDoc, deleteDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import { DREAM_CATEGORIES, DREAM_EMOTIONS, mergeDreamCategories, mergeDreamEmotions } from '../../utils/dreams'

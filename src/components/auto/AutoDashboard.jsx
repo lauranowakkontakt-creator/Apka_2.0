@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { collection, query, orderBy, addDoc, updateDoc, deleteDoc, setDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, query, orderBy, doc, Timestamp } from 'firebase/firestore'
+import { addDoc, updateDoc, deleteDoc, setDoc } from '../../utils/zapis'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { onSnapshot } from '../../utils/subskrypcje'

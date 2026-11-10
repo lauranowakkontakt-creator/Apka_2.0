@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { collection, orderBy, query, where, getDocs, getDoc, arrayUnion, arrayRemove, Timestamp, increment, doc, writeBatch, updateDoc } from 'firebase/firestore'
+import { collection, orderBy, query, where, getDocs, getDoc, arrayUnion, arrayRemove, Timestamp, increment, doc } from 'firebase/firestore'
+import { writeBatch, updateDoc } from './zapis'
 import { onSnapshot } from './subskrypcje'
 import { db } from '../firebase/config'
 import { periodKey, isPaymentDue } from './paymentLogic'

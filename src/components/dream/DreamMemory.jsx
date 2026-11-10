@@ -9,7 +9,8 @@ import { confirmDialog } from '../ConfirmModal'
 import { IconCheck, IconTrash } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY, fmtDate } from './wspolne'
-import { Timestamp, addDoc, collection, deleteDoc, doc, orderBy, query } from 'firebase/firestore'
+import { Timestamp, collection, doc, orderBy, query } from 'firebase/firestore'
+import { addDoc, deleteDoc } from '../../utils/zapis'
 import { useEffect, useMemo, useState } from 'react'
 
 // Ćwiczenie pamięci (podręcznik kursu 201, rozdz. 4.3–4.4): wybierz pokój w domu,

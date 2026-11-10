@@ -7,7 +7,8 @@ import RequestCard from './RequestCard'
 import ZakonczProsbe from './ZakonczProsbe'
 import { czyZaplanowana } from '../../utils/prayerAnswered'
 import { TODAY, toggleChecklistItem } from './wspolne'
-import { arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, doc } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Szczegóły jednej osoby: jej prośby, notatki i historia modlitwy.

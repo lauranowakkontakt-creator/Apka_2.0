@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { collection, addDoc, updateDoc, doc, Timestamp, orderBy, query, getDoc } from 'firebase/firestore'
+import { collection, doc, Timestamp, orderBy, query, getDoc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, kolorPodkategorii } from '../../utils/categories'

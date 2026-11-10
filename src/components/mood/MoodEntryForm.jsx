@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { IconChevronRight, IconChevronLeft, IconPlus, IconTrash } from '../Icons'
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, Timestamp } from 'firebase/firestore'
+import { collection, doc, getDoc, Timestamp } from 'firebase/firestore'
+import { addDoc, updateDoc, deleteDoc } from '../../utils/zapis'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { db } from '../../firebase/config'

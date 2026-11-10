@@ -11,7 +11,8 @@ import ZakonczProsbe from './ZakonczProsbe'
 import { TODAY, toggleChecklistItem } from './wspolne'
 import { addDays, format, parseISO, subDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import { arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, doc } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from '../../utils/zapis'
 import { useEffect, useMemo, useState } from 'react'
 
 // Widok „Dziś" — prośby na dany dzień, z możliwością cofania się w tył.

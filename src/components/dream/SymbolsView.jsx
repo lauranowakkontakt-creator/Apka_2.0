@@ -5,7 +5,8 @@ import { confirmDialog } from '../ConfirmModal'
 import { IconChevronLeft, IconChevronRight, IconTag, IconTrash } from '../Icons'
 import { toast } from '../Toast'
 import DreamCard from './DreamCard'
-import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from '../../utils/zapis'
 import { useMemo, useState } from 'react'
 
 // Symbole ze snów: lista, ich wystąpienia i przejście do konkretnego snu.

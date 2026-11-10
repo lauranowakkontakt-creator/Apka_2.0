@@ -4,7 +4,8 @@ import { IcStones, IconArchive, IconClose } from '../Icons'
 import { toast } from '../Toast'
 import WspomnikForm from '../wspomnik/WspomnikForm'
 import { TODAY } from './wspolne'
-import { Timestamp, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, doc } from 'firebase/firestore'
+import { updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Zakończenie prośby: „Bóg wysłuchał” albo zwykłe archiwum. Wysłuchana prośba

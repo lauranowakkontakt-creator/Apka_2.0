@@ -3,7 +3,8 @@ import { confirmDialog } from '../ConfirmModal'
 import { CatIcon, IconClose, IconEdit, IconTrash } from '../Icons'
 import { IconPicker, ColorPicker } from '../Pickers'
 import { DEFAULT_COLOR } from '../../utils/palette'
-import { Timestamp, addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, deleteDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Zarządzanie kategoriami wydarzeń.

@@ -12,7 +12,8 @@ import {
   DREAM_POSITIONS, DREAM_SPHERES, DREAM_ORIGINS, DREAM_KINDS, DREAM_VIVIDNESS, DREAM_ATMOSPHERE,
   DREAM_COLORS, DREAM_ELEMENTS, BEFORE_SLEEP,
 } from '../../utils/dreamJackson'
-import { Timestamp, addDoc, arrayUnion, collection, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, arrayUnion, collection, doc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 // Formularz snu: pisanie i edycja, razem z oznaczaniem osób (@) i symboli (#).

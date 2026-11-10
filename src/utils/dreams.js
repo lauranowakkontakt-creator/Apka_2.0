@@ -1,4 +1,5 @@
-import { collection, query, where, getDocs, updateDoc, deleteDoc, doc, arrayRemove, arrayUnion } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, arrayRemove, arrayUnion } from 'firebase/firestore'
+import { updateDoc, deleteDoc } from './zapis'
 import { symbolForms } from './dreamLogic'
 import { db } from '../firebase/config'
 

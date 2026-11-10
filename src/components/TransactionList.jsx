@@ -1,4 +1,5 @@
-import { doc, increment, writeBatch } from 'firebase/firestore'
+import { doc, increment } from 'firebase/firestore'
+import { writeBatch } from '../utils/zapis'
 import { db } from '../firebase/config'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
