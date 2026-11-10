@@ -1,6 +1,6 @@
 import PersonBubble from '../PersonBubble'
 import { db } from '../../firebase/config'
-import { DREAM_EMOTIONS, symbolMatchesQuery, symbolForms, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
+import { symbolMatchesQuery, symbolForms, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
 import { IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
@@ -17,7 +17,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 // Formularz snu: pisanie i edycja, razem z oznaczaniem osób (@) i symboli (#).
 
-export default function DreamForm({ user, categories, people, symbols, onCreateSymbol, editData, onClose }) {
+export default function DreamForm({ user, categories, emotions: emotionList, people, symbols, onCreateSymbol, editData, onClose }) {
   const [title, setTitle]       = useState(editData?.title || '')
   const [date, setDate]         = useState(editData?.date || TODAY())
   const [text, setText]         = useState(editData?.text || '')
@@ -75,7 +75,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
     setText(val)
     const caret = e.target.selectionStart
     // Symbol (#) może mieć kilka słów (np. „#stary dom"); osoba (@) — jedno.
-    setTrigger(detectTrigger(val.slice(0, caret)))
+    setTrigger(detectTrigger(val.slice(0, caret), allSymbols))
   }
 
   const personMatches = useMemo(() => {
@@ -97,14 +97,21 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
   const canCreateSymbol = trigger?.type === 'symbol' && trigger.query.trim() &&
     !allSymbols.some(s => symbolForms(s).some(f => f.toLowerCase() === trigger.query.trim().toLowerCase()))
 
-  const insertToken = (prefix, name) => {
+  // Wstawia #symbol / @osobę w miejsce wpisanego fragmentu. Bierze AKTUALNĄ treść
+  // z pola (nie z domknięcia) — tworzenie symbolu jest asynchroniczne i w tym czasie
+  // można już pisać dalej; stary tekst nadpisywałby wtedy świeżo wpisane znaki.
+  const insertToken = (prefix, name, trig = trigger) => {
     const ta = textRef.current
-    const caret = ta ? ta.selectionStart : text.length
+    const cur = ta ? ta.value : text
+    const caret = ta ? ta.selectionStart : cur.length
     const insert = prefix + name + ' '
-    const next = text.slice(0, trigger.start) + insert + text.slice(caret)
+    // Kursor mógł odjechać dalej niż koniec tagu — zastępujemy tylko sam tag.
+    const end = Math.max(trig.start + 1, Math.min(caret, trig.start + 1 + trig.query.length))
+    const skip = cur[end] === ' ' ? 1 : 0 // wstawka kończy się spacją — bez podwójnej
+    const next = cur.slice(0, trig.start) + insert + cur.slice(end + skip)
     setText(next)
     setTrigger(null)
-    setCaretPos(trigger.start + insert.length)
+    setCaretPos(trig.start + insert.length + Math.max(0, caret - end - skip))
   }
 
   // Klik osoby: użyj formy dokładnie tak, jak ją wpisano (np. odmienioną „Manueli").
@@ -122,11 +129,13 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
   // a powiązanie trzyma lista symbolIds.
   const pickSymbol = (s) => { if (!symbolIds.includes(s.id)) setSymbolIds([...symbolIds, s.id]); insertToken('#', s.name) }
   const createAndPick = async () => {
-    const n = trigger.query.trim()
+    const trig = trigger
+    const n = trig.query.trim()
+    setTrigger(null) // od razu zamknij listę — nie czekaj na bazę
     const sym = await onCreateSymbol(n)
     setLocalSymbols(prev => [...prev, sym])
     setSymbolIds(prev => prev.includes(sym.id) ? prev : [...prev, sym.id])
-    insertToken('#', sym.name)
+    insertToken('#', sym.name, trig)
   }
 
   // Przywróć kursor po wstawieniu
@@ -303,7 +312,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
           <div className="form-group">
             <label>Emocje po obudzeniu <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— można wybrać kilka</span></label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {DREAM_EMOTIONS.map(em => (
+              {emotionList.map(em => (
                 <Chip key={em.id} color={em.color} active={emotions.includes(em.id)}
                   onClick={() => toggle(emotions, setEmotions, em.id)}>
                   {em.label}

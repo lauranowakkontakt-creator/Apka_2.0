@@ -3088,7 +3088,7 @@ body { overscroll-behavior-y: none; }
   border-radius: 8px; border: 1.5px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer;
 }
 .pick-icon.active { border-color: var(--pick); color: var(--pick); background: color-mix(in srgb, var(--pick) 14%, transparent); }
-.pick-colors { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
+.pick-colors { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; max-width: 360px; }
 .pick-color {
   aspect-ratio: 1; min-width: 0; padding: 0; border-radius: 50%; border: none; cursor: pointer;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); transition: transform .12s;

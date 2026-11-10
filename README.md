@@ -43,6 +43,7 @@ serwerem.
 | `npm run lokalnie` | **emulatory + apka** — tak pracujemy na co dzień |
 | `npm run emulatory` | same emulatory (np. do `npm run preview`) |
 | `npm run demo` | **tryb demo** — apka z losowymi danymi, bez Firebase i bez Javy (patrz niżej) |
+| `npm run bot` | **bot testujący** — sam chodzi po trybie demo (komputer + telefon), klika losowo, wpisuje dziwne teksty i zgłasza wyjątki, ekrany awarii, poziome przewijanie; raport w `bot-raport.md`, zrzuty w `bot-zrzuty/`. Wymaga `npm i -D playwright` |
 | `npm run build:demo` | build trybu demo do `dist-demo/` (statyczne pliki, działają pod dowolnym adresem) |
 | `npm run dev` | sam serwer Vite (bez emulatorów apka się nie zaloguje) |
 | `npm run lint` | ESLint — łapie użycie nieistniejących nazw |

@@ -5,7 +5,7 @@ import { db } from '../firebase/config'
 const COLLECTIONS = [
   'accounts', 'transactions', 'regularPayments', 'savingsGoals', 'shoppingItems', 'debtors',
   'habits', 'habitPauses', 'habitCategories', 'habitRoutines',
-  'dreams', 'dreamCategories', 'dreamSymbols', 'dreamMemory',
+  'dreams', 'dreamCategories', 'dreamEmotions', 'dreamSymbols', 'dreamMemory',
   'moodLogs', 'todos', 'todoLists',
   'calendarEvents', 'calendarPeople', 'calendarCategories',
   'prayerIntentions', 'prayerPeople', 'bibleNotes',

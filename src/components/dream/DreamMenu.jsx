@@ -20,7 +20,7 @@ export default function DreamMenu({ onAction }) {
 
   const items = [
     { id: 'symbols',    Icon: IconTag,   label: 'Symbole' },
-    { id: 'categories', Icon: IconTag,   label: 'Kategorie snów' },
+    { id: 'categories', Icon: IconTag,   label: 'Kategorie i emocje' },
     { id: 'memory',     Icon: IconBook,  label: 'Ćwiczenie pamięci' },
     { id: 'import',     Icon: IconUpload, label: 'Import snów' },
     { id: 'stats',      Icon: IconChart, label: 'Statystyki' },

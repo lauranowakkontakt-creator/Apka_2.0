@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   DREAM_EMOTIONS, DREAM_CATEGORIES, SYMBOL_COLORS,
   getEmotion, getCategory, parseMentions, parseSymbols, dreamPeopleIds, nameStem, personForms,
-  detectTrigger, tokenizeDreamText, mergeDreamCategories, findDreamCategory,
+  detectTrigger, tokenizeDreamText, mergeDreamCategories, mergeDreamEmotions, findDreamCategory,
 } from '../src/utils/dreamLogic.js'
 
 test('tokenizeDreamText: #symbol podświetlony bez prefiksu, z id i kolorem', () => {
@@ -235,12 +235,32 @@ test('mergeDreamCategories — pusto/nic nie psuje wbudowanych', () => {
   assert.deepEqual(mergeDreamCategories(null), DREAM_CATEGORIES)
 })
 
-test('mergeDreamCategories — odsiewa śmieci i kolizje id z wbudowanymi', () => {
+test('mergeDreamCategories — odsiewa śmieci, kolizja id to nadpisanie wbudowanej', () => {
   const merged = mergeDreamCategories([
     null, {}, { label: 'bez id' },
-    { id: 'koszmar', label: 'Podszywka' },
+    { id: 'koszmar', label: 'Podszywka', color: '#111111' },
   ])
-  assert.deepEqual(merged, DREAM_CATEGORIES)
+  assert.equal(merged.length, DREAM_CATEGORIES.length)
+  const k = merged.find(c => c.id === 'koszmar')
+  assert.equal(k.label, 'Podszywka')
+  assert.equal(k.color, '#111111')
+  assert.equal(k.edited, true)
+  assert.deepEqual(merged.filter(c => c.id !== 'koszmar'), DREAM_CATEGORIES.filter(c => c.id !== 'koszmar'))
+})
+
+test('mergeDreamEmotions — własna emocja dopisana, wbudowana nadpisana', () => {
+  const m = mergeDreamEmotions([{ id: 'x', label: 'Nuda', color: '#222222' }, { id: 'lek', label: 'Strach' }])
+  assert.equal(m.at(-1).label, 'Nuda')
+  assert.equal(m.find(e => e.id === 'lek').label, 'Strach')
+  assert.equal(m.find(e => e.id === 'lek').color, DREAM_EMOTIONS.find(e => e.id === 'lek').color)
+})
+
+test('detectTrigger z symbolami: po wybranym symbolu dalsze słowa nie są tagiem', () => {
+  const syms = [{ id: 's1', name: 'drzewo' }, { id: 's2', name: 'stary dom' }]
+  assert.equal(detectTrigger('#drzewo i potem', syms), null)
+  assert.equal(detectTrigger('#drzewo i', syms), null)
+  assert.equal(detectTrigger('#stary d', syms).query, 'stary d')
+  assert.equal(detectTrigger('#drzewo', syms).query, 'drzewo')
 })
 
 test('mergeDreamCategories — bierze `name`, gdy nie ma `label`, i domyka braki', () => {

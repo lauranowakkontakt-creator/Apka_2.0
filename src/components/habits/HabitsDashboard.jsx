@@ -441,7 +441,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
                   fontSize: 13.5, fontWeight: 600,
-                  textDecoration: done ? 'line-through' : 'none',
+                  textDecorationLine: done ? 'line-through' : 'none',
                   textDecorationColor: 'var(--text-muted)',
                   color: done ? 'var(--text-muted)' : 'var(--text)',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',

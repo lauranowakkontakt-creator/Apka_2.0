@@ -56,7 +56,7 @@ export function DreamText({ text, highlightPeople = [], highlightSymbols = [], o
             onClick={clickable ? () => onOpenSymbol(s.id) : undefined}
             style={{
               color, fontWeight: 600, whiteSpace: 'nowrap',
-              textDecoration: 'underline', textDecorationColor: color,
+              textDecorationLine: 'underline', textDecorationColor: color,
               textUnderlineOffset: 2, textDecorationThickness: '1px',
               cursor: clickable ? 'pointer' : 'inherit',
             }}>{s.t}</span>
