@@ -20,6 +20,7 @@ const SINGLE_DOCS = [
   ['settings', 'categories'],
   ['settings', 'shopCategories'],
   ['settings', 'tithe'],
+  ['settings', 'currency'],
   ['settings', 'calendar'],
   ['settings', 'habitPauses'],
   ['settings', 'mood'],
