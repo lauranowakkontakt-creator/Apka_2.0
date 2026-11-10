@@ -94,3 +94,31 @@ test('plan — regularne płatności, lista zakupów i dziesięcina: tylko braku
   const p2 = planBackupImport(b, { ...current, singles: { 'settings/tithe': { categories: [] } } }, DEF)
   assert.equal(p2.singles['settings/tithe'], undefined)   // istniejących ustawień nie nadpisujemy
 })
+
+test('pozostałe moduły: dopisywane po id, istniejące wpisy i ustawienia zostają', () => {
+  const b = backup()
+  b.habits = [{ id: 'h1', name: 'Woda', createdAt: '2026-01-05T08:00:00.000Z' }, { id: 'h2', name: 'Czytanie' }]
+  b.dreams = [{ id: 'd1', title: 'Sen' }]
+  b.todos = 'uszkodzone'                       // nie tablica — pomijamy bez wywrotki
+  b.singles['bible/progress'] = { read: ['Rdz 1'] }
+  b.singles['settings/calendar'] = { weekStart: 1 }
+  const cur = { accounts: [], transactions: [], categories: null, extras: {},
+    other: { habits: [{ id: 'h2' }] }, singles: { 'settings/calendar': { weekStart: 0 } } }
+  const p = planBackupImport(b, cur, { expense: [], income: [] })
+  assert.deepEqual(p.other.habits.map(x => x.id), ['h1'])
+  assert.ok(p.other.habits[0].createdAt instanceof Date)   // data wraca jako Date → Timestamp
+  assert.deepEqual(p.other.dreams.map(x => x.id), ['d1'])
+  assert.equal(p.other.todos, undefined)
+  assert.deepEqual(p.otherSingles, { 'bible/progress': { read: ['Rdz 1'] } })
+  assert.deepEqual(p.otherSummary.map(m => [m.id, m.count, m.settings]),
+    [['habits', 1, false], ['bible', 0, true], ['dream', 1, false]])
+})
+
+test('ponowny import tej samej kopii nie dodaje nic w pozostałych modułach', () => {
+  const b = backup()
+  b.moodLogs = [{ id: 'm1' }]
+  const cur = { accounts: [], transactions: [], categories: null, extras: {}, other: { moodLogs: [{ id: 'm1' }] }, singles: {} }
+  const p = planBackupImport(b, cur, { expense: [], income: [] })
+  assert.deepEqual(p.other, {})
+  assert.deepEqual(p.otherSummary, [])
+})
