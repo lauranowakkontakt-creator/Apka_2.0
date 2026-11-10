@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '../../utils/categories'
-import { planBackupImport, EXTRA_COLLECTIONS, EXTRA_SINGLES } from '../../utils/backupImport'
+import { planBackupImport, EXTRA_COLLECTIONS, EXTRA_SINGLES, OTHER_COLLECTIONS, OTHER_SINGLES } from '../../utils/backupImport'
 import { wPaczkach } from '../../utils/zapisWPaczkach'
 import { zapiszWiele } from '../../firebase/lite'
 import { log } from '../../utils/logger'
@@ -26,8 +26,9 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
       getDocs(collection(db, ...base, 'transactions')),
       getDoc(doc(db, ...base, 'settings', 'categories')),
       Promise.all(EXTRA_COLLECTIONS.map(c => getDocs(collection(db, ...base, c)))),
-      Promise.all(EXTRA_SINGLES.map(k => getDoc(doc(db, ...base, ...k.split('/'))))),
-    ]).then(([accSnap, txSnap, catDoc, extraSnaps, singleDocs]) => {
+      Promise.all([...EXTRA_SINGLES, ...OTHER_SINGLES].map(k => getDoc(doc(db, ...base, ...k.split('/'))))),
+      Promise.all(OTHER_COLLECTIONS.map(c => getDocs(collection(db, ...base, c)))),
+    ]).then(([accSnap, txSnap, catDoc, extraSnaps, singleDocs, otherSnaps]) => {
       if (!alive) return
       const current = {
         accounts: accSnap.docs.map(d => ({ id: d.id, ...d.data() })),
@@ -37,7 +38,8 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
         }),
         categories: catDoc.exists() ? catDoc.data() : null,
         extras: Object.fromEntries(EXTRA_COLLECTIONS.map((c, i) => [c, extraSnaps[i].docs.map(d => ({ id: d.id }))])),
-        singles: Object.fromEntries(EXTRA_SINGLES.map((k, i) => [k, singleDocs[i].exists() ? singleDocs[i].data() : null]).filter(([, v]) => v)),
+        singles: Object.fromEntries([...EXTRA_SINGLES, ...OTHER_SINGLES].map((k, i) => [k, singleDocs[i].exists() ? singleDocs[i].data() : null]).filter(([, v]) => v)),
+        other: Object.fromEntries(OTHER_COLLECTIONS.map((c, i) => [c, otherSnaps[i].docs.map(d => ({ id: d.id }))])),
       }
       setPlan(planBackupImport(backup, current,
         { expense: DEFAULT_EXPENSE_CATEGORIES, income: DEFAULT_INCOME_CATEGORIES }))
@@ -64,9 +66,13 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
     if (plan.categories) writes.push({ path: [...base, 'settings', 'categories'], data: plan.categories, merge: true })
     for (const c of EXTRA_COLLECTIONS) for (const x of plan.extras?.[c] || []) { const [id, data] = strip(x); writes.push({ path: [...base, c, id], data }) }
     for (const [k, v] of Object.entries(plan.singles || {})) writes.push({ path: [...base, ...k.split('/')], data: v })
+    // Pozostałe moduły (nawyki, to-do, kalendarz, sen…) — po id, jak w kopii
+    for (const [c, list] of Object.entries(plan.other || {})) for (const x of list) { const [id, data] = strip(x); writes.push({ path: [...base, c, id], data }) }
+    for (const [k, v] of Object.entries(plan.otherSingles || {})) writes.push({ path: [...base, ...k.split('/')], data: v })
     // To samo id co w kopii → ponowny import trafia w te same dokumenty i nic nie dubluje
     for (const t of plan.transactions) { const [id, data] = strip(t); writes.push({ path: [...base, 'transactions', id], data }) }
     const total = plan.transactions.length
+    const otherCount = (plan.otherSummary || []).reduce((n, m) => n + m.count, 0)
     const pre = writes.length - total
     setProgress({ done: 0, total })
     try {
@@ -75,7 +81,7 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
         onProgress: (d) => { setWaiting(null); setProgress({ done: Math.max(0, d - pre), total }) },
         onWait: (code, proba) => { setWaiting({ proba, code }); log.warn('import', 'paczka zapisu ponawiana', { code, proba }) },
       })
-      toast.success(`Zaimportowano ${total} transakcji`)
+      toast.success(otherCount ? `Zaimportowano ${total} transakcji i ${otherCount} wpisów z pozostałych modułów` : `Zaimportowano ${total} transakcji`)
       onDone()
     } catch (e) {
       log.blad('import', 'Import kopii nie powiódł się', e)
@@ -97,6 +103,8 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
   const EXTRA_LABELS = { regularPayments: 'Regularne płatności', shoppingItems: 'Lista zakupów', savingsGoals: 'Cele oszczędnościowe', debtors: 'Dłużnicy' }
   const extraRows = EXTRA_COLLECTIONS.map(c => [c, plan.extras?.[c] || []]).filter(([, l]) => l.length)
   const extraCount = extraRows.reduce((n, [, l]) => n + l.length, 0) + Object.keys(plan.singles || {}).length
+  const otherRows = plan.otherSummary || []
+  const otherAny = otherRows.length > 0
   const transfers = transactions.filter(t => t.categoryId === 'transfer').length
   const busy = !!progress
 
@@ -108,8 +116,9 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
       </div>
 
       <p className="imp-hint">
-        Kopia danych — dopiszę tylko to, czego w apce jeszcze nie ma. Niczego nie
-        usuwam ani nie nadpisuję, a salda kont zostają bez zmian.
+        Kopia danych ze wszystkich modułów — dopiszę tylko to, czego w apce
+        jeszcze nie ma. Niczego nie usuwam ani nie nadpisuję, a salda kont
+        zostają bez zmian.
       </p>
 
       <div className="imp-plan">
@@ -133,6 +142,12 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
           </div>
         ))}
         {plan.singles?.['settings/tithe'] && <div className="imp-plan-row"><span>Ustawienia dziesięciny</span><b>tak</b></div>}
+        {otherAny && <div className="imp-plan-sub" style={{ marginTop: 10 }}>Pozostałe moduły — nowe wpisy:</div>}
+        {otherRows.map(m => (
+          <div key={m.id} className="imp-plan-row">
+            <span>{m.label}</span><b>{m.count || 'ustawienia'}</b>
+          </div>
+        ))}
       </div>
 
       {busy && (
@@ -145,8 +160,8 @@ export default function BackupImport({ user, backup, fileName, onBack, onDone })
         ? `Firebase odrzuca zapisy: wyczerpany dzienny limit darmowego planu (kod: resource-exhausted). Ponawiam (${waiting.proba}/5)…`
         : `Serwer nie odpowiada (kod: ${waiting.code}) — ponawiam (${waiting.proba}/5)…`) : 'Zapisuję paczkami po 250. Gdyby coś przerwało, przy kolejnym imporcie dopiszę tylko brakujące.'}</p>}
       {error && <p className="form-error">{error}</p>}
-      <button type="button" className="btn-save" disabled={busy || (!transactions.length && !newAccounts.length && !newCategories.length && !extraCount)} onClick={run}>
-        {busy ? 'Importowanie…' : transactions.length ? `Importuj ${transactions.length} transakcji` : extraCount || newAccounts.length || newCategories.length ? 'Importuj' : 'Nic nowego do dodania'}
+      <button type="button" className="btn-save" disabled={busy || (!transactions.length && !newAccounts.length && !newCategories.length && !extraCount && !otherAny)} onClick={run}>
+        {busy ? 'Importowanie…' : transactions.length ? `Importuj ${transactions.length} transakcji` : extraCount || newAccounts.length || newCategories.length || otherAny ? 'Importuj' : 'Nic nowego do dodania'}
       </button>
     </div>
   )

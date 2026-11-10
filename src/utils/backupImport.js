@@ -3,8 +3,10 @@
 // Czysta logika: dostaje kopię i to, co już jest w bazie, i zwraca PLAN —
 // co dodać, co pominąć i dlaczego. Zapis robi komponent ImportView.
 //
-// Zakres: tylko budżet — konta, transakcje i kategorie. Reszta modułów z kopii
-// (nawyki, to-do…) zostaje nietknięta.
+// Zakres: cała kopia. Budżet (konta, transakcje, kategorie) ma własne zasady
+// dopasowania i wykrywania duplikatów; pozostałe moduły (nawyki, to-do,
+// kalendarz, modlitwa, Biblia, osoby, sen, wdzięcznik, nastrój) są dopisywane
+// po id — wpis, który już jest w apce, zostaje nietknięty.
 //
 // Zasady bezpieczeństwa:
 //  - nic nie jest nadpisywane ani usuwane, tylko dopisywane,
@@ -13,9 +15,18 @@
 //    i konto), jest pomijana — import tej samej kopii drugi raz nic nie doda.
 
 import { dupKey } from './budgetImport.js'
+import { MODULE_DATA } from './moduleData.js'
 
 export const EXTRA_COLLECTIONS = ['regularPayments', 'shoppingItems', 'savingsGoals', 'debtors']
 export const EXTRA_SINGLES = ['settings/tithe', 'settings/shopCategories']
+
+// Pozostałe moduły — lista bierze się z MODULE_DATA, więc nowy moduł albo nowa
+// kolekcja trafia do importu kopii bez dopisywania jej tutaj.
+export const OTHER_MODULES = Object.entries(MODULE_DATA)
+  .filter(([id]) => id !== 'budget')
+  .map(([id, m]) => ({ id, label: m.label, collections: m.collections, singles: m.docs.map(d => d.join('/')) }))
+export const OTHER_COLLECTIONS = OTHER_MODULES.flatMap(m => m.collections)
+export const OTHER_SINGLES = OTHER_MODULES.flatMap(m => m.singles)
 
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/
 
@@ -162,6 +173,25 @@ export function planBackupImport(backup, current, defaultCategories) {
     if (data.singles?.[key] && !current.singles?.[key]) singles[key] = data.singles[key]
   }
 
+  // Pozostałe moduły: po id, bez nadpisywania. Pojedyncze dokumenty (postęp
+  // czytania Biblii, ustawienia kalendarza…) tylko wtedy, gdy w apce ich brak.
+  const other = {}
+  for (const col of OTHER_COLLECTIONS) {
+    const have = new Set((current.other?.[col] || []).map(x => x.id))
+    const fresh = (Array.isArray(data[col]) ? data[col] : []).filter(x => x?.id && !have.has(x.id))
+    if (fresh.length) other[col] = fresh
+  }
+  const otherSingles = {}
+  for (const key of OTHER_SINGLES) {
+    if (data.singles?.[key] && !current.singles?.[key]) otherSingles[key] = data.singles[key]
+  }
+  // Podsumowanie dla ekranu: ile nowych wpisów w którym module.
+  const otherSummary = OTHER_MODULES.map(m => ({
+    id: m.id, label: m.label,
+    count: m.collections.reduce((n, c) => n + (other[c]?.length || 0), 0),
+    settings: m.singles.some(k => otherSingles[k]),
+  })).filter(m => m.count || m.settings)
+
   const years = {}
   for (const t of transactions) {
     const y = t.date.getFullYear()
@@ -175,6 +205,9 @@ export function planBackupImport(backup, current, defaultCategories) {
     newCategories,
     extras,
     singles,
+    other,
+    otherSingles,
+    otherSummary,
     skipped: { sameId, sameContent, invalid },
     years,
   }
