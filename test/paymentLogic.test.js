@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { periodKey, isPaymentActive, isPaymentDue, dueDayInMonth, isMonthlyPaymentOn } from '../src/utils/paymentLogic.js'
+import { periodKey, isPaymentActive, isPaymentDue, dueDayInMonth, isMonthlyPaymentOn, naleznePeriods } from '../src/utils/paymentLogic.js'
 
 test('periodKey — format yyyy-MM', () => {
   assert.equal(periodKey(new Date(2026, 6, 5)), '2026-07')
@@ -106,4 +106,78 @@ test('isMonthlyPaymentOn — dzień, zakres dat i częstotliwość', () => {
   assert.equal(isMonthlyPaymentOn({ dayOfMonth: 30 }, new Date(2026, 2, 28)), false)
   assert.equal(isMonthlyPaymentOn({ dayOfMonth: 5, dateFrom: '2026-06-01' }, new Date(2026, 4, 5)), false)
   assert.equal(isMonthlyPaymentOn({ dayOfMonth: 5, frequency: 'weekly' }, new Date(2026, 4, 5)), false)
+})
+
+const okresy = (p, dzis) => naleznePeriods(p, dzis).map(x => x.period)
+const iso = (d) => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
+
+test('naleznePeriods — bez historii i bez autoSince: tylko bieżący okres', () => {
+  assert.deepEqual(okresy({ dayOfMonth: 5 }, new Date(2026, 10, 10)), ['2026-11'])
+  assert.deepEqual(okresy({ dayOfMonth: 15 }, new Date(2026, 10, 10)), []) // jeszcze nie należna
+})
+
+test('naleznePeriods — nadrabia miesiące pominięte od ostatniego zaksięgowania', () => {
+  const p = { dayOfMonth: 5, donePeriods: ['2026-07', '2026-08'] }
+  const w = naleznePeriods(p, new Date(2026, 10, 10))
+  assert.deepEqual(w.map(x => x.period), ['2026-09', '2026-10', '2026-11'])
+  assert.deepEqual(w.map(x => iso(x.date)), ['2026-09-05', '2026-10-05', '2026-11-05'])
+  assert.deepEqual(w.map(x => x.biezacy), [false, false, true])
+})
+
+test('naleznePeriods — bieżący miesiąc przed dniem płatności nie wchodzi, zaległe tak', () => {
+  const p = { dayOfMonth: 20, donePeriods: ['2026-09'] }
+  assert.deepEqual(okresy(p, new Date(2026, 10, 10)), ['2026-10'])
+})
+
+test('naleznePeriods — zaległa płatność z 31. dostaje ostatni dzień krótkiego miesiąca', () => {
+  const p = { dayOfMonth: 31, donePeriods: ['2026-01'] }
+  assert.deepEqual(naleznePeriods(p, new Date(2026, 2, 31)).map(x => iso(x.date)),
+    ['2026-02-28', '2026-03-31'])
+})
+
+test('naleznePeriods — autoSince: nie księguje wstecz sprzed włączenia auto', () => {
+  // prowadzona ręcznie, ostatnio odhaczona w marcu; auto włączone we wrześniu
+  const p = { dayOfMonth: 5, donePeriods: ['2026-03'], autoSince: '2026-09-20' }
+  assert.deepEqual(okresy(p, new Date(2026, 10, 10)), ['2026-09', '2026-10', '2026-11'])
+  // nowa płatność auto, nigdy nie księgowana, apka nieotwierana 2 miesiące
+  assert.deepEqual(okresy({ dayOfMonth: 5, autoSince: '2026-09-01' }, new Date(2026, 10, 10)),
+    ['2026-09', '2026-10', '2026-11'])
+})
+
+test('naleznePeriods — zakres dat „obowiązuje od/do" ucina zaległe okresy', () => {
+  const p = { dayOfMonth: 5, donePeriods: ['2026-05'], dateTo: '2026-08-31' }
+  assert.deepEqual(okresy(p, new Date(2026, 10, 10)), ['2026-06', '2026-07', '2026-08'])
+  const q = { dayOfMonth: 5, autoSince: '2026-06-01', dateFrom: '2026-08-10' }
+  // sierpień: należna od 10. (po dateFrom), nie od 5.
+  assert.deepEqual(naleznePeriods(q, new Date(2026, 8, 6)).map(x => iso(x.date)), ['2026-08-10', '2026-09-05'])
+})
+
+test('naleznePeriods — okresy już zaksięgowane w środku przerwy są pomijane', () => {
+  const p = { dayOfMonth: 1, donePeriods: ['2026-10'], autoSince: '2026-08-01' }
+  assert.deepEqual(okresy(p, new Date(2026, 10, 10)), ['2026-11'])
+})
+
+test('naleznePeriods — tygodniowa i roczna', () => {
+  // wtorek 10 XI 2026 to tydzień 46; ostatnio zaksięgowany tydzień 43
+  const t = naleznePeriods({ frequency: 'weekly', donePeriods: ['2026-W43'] }, new Date(2026, 10, 10))
+  assert.deepEqual(t.map(x => x.period), ['2026-W44', '2026-W45', '2026-W46'])
+  assert.deepEqual(t.map(x => iso(x.date)), ['2026-10-26', '2026-11-02', '2026-11-09'])
+  const r = naleznePeriods({ frequency: 'yearly', dateFrom: '2023-09-15', donePeriods: ['2024'] }, new Date(2026, 10, 10))
+  assert.deepEqual(r.map(x => [x.period, iso(x.date)]), [['2025', '2025-09-15'], ['2026', '2026-09-15']])
+  // przed rocznicą w bieżącym roku — tylko zaległy
+  const r2 = naleznePeriods({ frequency: 'yearly', dateFrom: '2023-12-01', donePeriods: ['2024'] }, new Date(2026, 10, 10))
+  assert.deepEqual(r2.map(x => x.period), ['2025'])
+})
+
+test('naleznePeriods — bezpiecznik: najwyżej 24 ostatnie okresy', () => {
+  const w = naleznePeriods({ dayOfMonth: 1, donePeriods: ['2015-01'] }, new Date(2026, 10, 10))
+  assert.equal(w.length, 24)
+  assert.equal(w.at(-1).period, '2026-11')
+})
+
+test('naleznePeriods — zgodne z isPaymentDue dla bieżącego okresu', () => {
+  for (const p of [{ dayOfMonth: 5 }, { dayOfMonth: 15 }, { dayOfMonth: 5, dateTo: '2026-11-08' }, { dayOfMonth: 5, dateFrom: '2026-11-20' }, { dayOfMonth: 5, donePeriods: ['2026-11'] }]) {
+    const dzis = new Date(2026, 10, 10)
+    assert.equal(naleznePeriods(p, dzis).some(x => x.biezacy), isPaymentDue(p, '2026-11', dzis), JSON.stringify(p))
+  }
 })

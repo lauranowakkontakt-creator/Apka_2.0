@@ -3,6 +3,7 @@ import { collection, doc, Timestamp, orderBy, query, getDoc } from 'firebase/fir
 import { addDoc, updateDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { format } from 'date-fns'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, kolorPodkategorii } from '../../utils/categories'
 import { getCurrencyCode, parseAmount } from '../../utils/currency'
 import { CatIcon, IconClose } from '../Icons'
@@ -72,6 +73,10 @@ export default function RegularPaymentForm({ user, onClose, editData }) {
       dateTo: dateTo || null,
       updatedAt: Timestamp.now()
     }
+    // Od kiedy działa auto-księgowanie. Dzięki temu nadrabianie pominiętych
+    // okresów nie sięga wstecz przed dzień, w którym auto zostało włączone.
+    if (!autoAdd) data.autoSince = null
+    else if (!editData?.autoAdd) data.autoSince = format(new Date(), 'yyyy-MM-dd')
     try {
       if (editData) {
         await updateDoc(doc(db, 'users', user.uid, 'regularPayments', editData.id), data)
@@ -201,7 +206,7 @@ export default function RegularPaymentForm({ user, onClose, editData }) {
             <div style={{ flex: 1 }}>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Automatyczne dodawanie</p>
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                {autoAdd ? 'Transakcja tworzona automatycznie przy otworzeniu zakładki' : 'Ręczne odznaczenie czy płatność wykonana'}
+                {autoAdd ? 'Transakcja tworzona automatycznie; okresy pominięte, gdy apka była zamknięta, są nadrabiane' : 'Ręczne odznaczenie czy płatność wykonana'}
               </p>
             </div>
             <button type="button" className={`bmi-toggle ${autoAdd ? 'on' : ''}`} onClick={() => setAutoAdd(v => !v)} />
