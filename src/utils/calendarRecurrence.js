@@ -28,6 +28,19 @@ export const recStep = (d, rec) =>
   : rec === 'monthly' ? addMonths(d, 1)
   : addYears(d, 1)
 
+// n-te wystąpienie liczone ZAWSZE od daty bazowej, nie od poprzedniego.
+//
+// Krok po kroku (31 sty → 28 lut → 28 mar → …) gubi dzień miesiąca na zawsze:
+// wydarzenie „co miesiąc 31." po pierwszym lutym lądowało 28. każdego miesiąca,
+// a w dodatku innego dnia w zależności od tego, który miesiąc był otwarty.
+// Liczone od bazy wraca na 31. tam, gdzie miesiąc ma 31 dni, a w krótszych
+// wypada w ostatnim dniu. To samo dla 29 lutego przy cyklu rocznym.
+export const nthOccurrence = (baza, rec, n) =>
+  rec === 'daily'   ? addDays(baza, n)
+  : rec === 'weekly'  ? addWeeks(baza, n)
+  : rec === 'monthly' ? addMonths(baza, n)
+  : addYears(baza, n)
+
 // Bezpiecznik: gdyby przeskok się nie udał, pętla i tak się zatrzyma.
 // 900 wystączy na trzy lata dziennych wystąpień w jednym oknie widoku.
 const LIMIT_ITERACJI = 900
@@ -80,17 +93,11 @@ export function expandEvents(events, rangeStart, rangeEnd) {
     // przeskoku cofamy o długość wydarzenia.
     const cel = addDays(parseISO(rangeStart), -dlugosc)
 
-    let cur = baza
-    const pominac = przeskocz(baza, cel, e.recurrence)
-    if (pominac > 0) {
-      cur = e.recurrence === 'daily'   ? addDays(baza, pominac)
-          : e.recurrence === 'weekly'  ? addWeeks(baza, pominac)
-          : e.recurrence === 'monthly' ? addMonths(baza, pominac)
-          : addYears(baza, pominac)
-    }
+    let n = przeskocz(baza, cel, e.recurrence)
 
     let obrot = 0
     while (obrot++ < LIMIT_ITERACJI) {
+      const cur = nthOccurrence(baza, e.recurrence, n++)
       const cd = format(cur, 'yyyy-MM-dd')
       if (cd > rangeEnd || cd > twardyKoniec) break
 
@@ -98,7 +105,6 @@ export function expandEvents(events, rangeStart, rangeEnd) {
       if ((cdEnd || cd) >= rangeStart) {
         wynik.push({ ...e, date: cd, dateEnd: cdEnd, _baseId: e.id, _recurring: true })
       }
-      cur = recStep(cur, e.recurrence)
     }
   }
 

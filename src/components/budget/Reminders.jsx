@@ -3,11 +3,12 @@ import { collection, query, orderBy } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
-import { format, getDaysInMonth } from 'date-fns'
+import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { CatIcon, IconBell, IconClose } from '../Icons'
 import { fmt } from '../../utils/currency'
 import { bladSubskrypcji } from '../../utils/polaczenie'
+import { dueDayInMonth } from '../../utils/paymentLogic'
 
 export default function Reminders({ user, onClose }) {
   const [payments, setPayments] = useState([])
@@ -27,12 +28,14 @@ export default function Reminders({ user, onClose }) {
   const thisMonth = format(today, 'LLLL yyyy', { locale: pl })
 
   const monthly = payments.filter(p => p.frequency === 'monthly')
-  const sorted  = [...monthly].sort((a, b) => (a.dayOfMonth || 1) - (b.dayOfMonth || 1))
+  // Dzień, w którym płatność wypada W TYM miesiącu (31. w lutym = 28./29.)
+  const dzien   = (p) => dueDayInMonth(p, today)
+  const sorted  = [...monthly].sort((a, b) => dzien(a) - dzien(b))
 
-  const upcoming = sorted.filter(p => (p.dayOfMonth || 1) >= todayDay)
-  const past     = sorted.filter(p => (p.dayOfMonth || 1) < todayDay)
+  const upcoming = sorted.filter(p => dzien(p) >= todayDay)
+  const past     = sorted.filter(p => dzien(p) < todayDay)
 
-  const daysUntil = (day) => Math.max(0, (day || 1) - todayDay)
+  const daysUntil = (p) => Math.max(0, dzien(p) - todayDay)
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -62,7 +65,7 @@ export default function Reminders({ user, onClose }) {
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {upcoming.map(p => {
-                        const days = daysUntil(p.dayOfMonth)
+                        const days = daysUntil(p)
                         const isToday = days === 0
                         return (
                           <div key={p.id} style={{

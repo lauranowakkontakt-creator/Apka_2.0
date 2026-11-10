@@ -10,7 +10,6 @@ import { useDragReorder, DragHandle } from '../DragReorder'
 import { przenies } from '../../utils/dragReorder'
 import { IconPicker, ColorPicker } from '../Pickers'
 import { confirmDialog } from '../ConfirmModal'
-import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
 export default function CategoriesView({ user, onClose }) {

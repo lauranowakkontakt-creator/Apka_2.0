@@ -21,8 +21,20 @@ test('todosOnDate / paymentsOnDate', () => {
   const todos = [{ id: 1, dueDate: '2026-08-27' }, { id: 2, dueDate: '2026-08-28' }]
   assert.deepEqual(todosOnDate(todos, '2026-08-27').map(t => t.id), [1])
   const pmts = [{ id: 'p1', dayOfMonth: 10 }, { id: 'p2', dayOfMonth: 27 }, { id: 'p3' }]
-  assert.deepEqual(paymentsOnDate(pmts, 27).map(p => p.id), ['p2'])
-  assert.deepEqual(paymentsOnDate(pmts, 1).map(p => p.id), ['p3']) // brak pola = 1.
+  assert.deepEqual(paymentsOnDate(pmts, new Date(2026, 7, 27)).map(p => p.id), ['p2'])
+  assert.deepEqual(paymentsOnDate(pmts, new Date(2026, 7, 1)).map(p => p.id), ['p3']) // brak pola = 1.
+})
+
+test('paymentsOnDate — 31. w krótkim miesiącu, zakres dat i częstotliwość', () => {
+  const pmts = [
+    { id: 'p31', dayOfMonth: 31 },
+    { id: 'koniec', dayOfMonth: 28, dateTo: '2026-01-31' },
+    { id: 'roczna', dayOfMonth: 28, frequency: 'yearly' },
+  ]
+  // luty 2026 ma 28 dni: płatność z 31. wypada 28.; zakończona i roczna nie
+  assert.deepEqual(paymentsOnDate(pmts, new Date(2026, 1, 28)).map(p => p.id), ['p31'])
+  assert.deepEqual(paymentsOnDate(pmts, new Date(2026, 2, 28)).map(p => p.id), [])
+  assert.deepEqual(paymentsOnDate(pmts, new Date(2026, 2, 31)).map(p => p.id), ['p31'])
 })
 
 test('sortDayItems — z godziną najpierw, potem całodniowe', () => {

@@ -221,7 +221,7 @@ export default function StatsPanel({ user, privateMode = false, rok, onRokChange
     const wKat = (t) => t.type === type && (t.category || 'Inne') === poz.nazwa
     const poLatach = {}
     tx.forEach(t => { if (wKat(t)) { const y = t.date.getFullYear(); poLatach[y] = (poLatach[y] || 0) + t.amount } })
-    const rows = Object.entries(poLatach).sort((a, b) => b[0] - a[0]).map(([nazwa, wartosc], i) => ({ nazwa, wartosc, kolor: poz.kolor }))
+    const rows = Object.entries(poLatach).sort((a, b) => b[0] - a[0]).map(([nazwa, wartosc]) => ({ nazwa, wartosc, kolor: poz.kolor }))
     const suma = rows.reduce((a, x) => a + x.wartosc, 0)
     const razem = tx.filter(t => t.type === type).reduce((a, t) => a + t.amount, 0) || 1
     return (

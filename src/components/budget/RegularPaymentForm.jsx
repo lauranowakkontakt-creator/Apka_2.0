@@ -64,7 +64,7 @@ export default function RegularPaymentForm({ user, onClose, editData }) {
       categoryIcon: cat?.icon || 'IconRepeat',
       subcategoryId: subcat?.id || null,
       subcategoryLabel: subcat?.label || null,
-      frequency, dayOfMonth: parseInt(dayOfMonth) || 1,
+      frequency, dayOfMonth: Math.min(31, Math.max(1, parseInt(dayOfMonth, 10) || 1)),
       accountId: accountId || null,
       autoAdd,
       dateFrom: dateFrom || null,

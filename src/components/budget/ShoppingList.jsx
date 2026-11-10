@@ -4,7 +4,6 @@ import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { format } from 'date-fns'
-import { pl } from 'date-fns/locale'
 import { DonutStat } from '../ChartPrimitives'
 import { fmt, getCurrencyCode, parseAmount } from '../../utils/currency'
 import { EXPENSE_CATEGORIES } from '../TransactionForm'
@@ -12,7 +11,6 @@ import { CatIcon, IconTrash, IconClose, IconTag, IconShopping, IconCheck } from 
 import { DEFAULT_COLOR } from '../../utils/palette'
 import { IconPicker, ColorPicker } from '../Pickers'
 import { confirmDialog } from '../ConfirmModal'
-import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
 const COLORS = ['#C94B28','#6366f1','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#14b8a6']

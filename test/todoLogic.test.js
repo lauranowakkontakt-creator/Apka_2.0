@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
 const {
-  PRIORITY, RECURRENCE, pOrder, priorytetDoSortu, nextOccurrence,
+  PRIORITY, RECURRENCE, pOrder, priorytetDoSortu, nextOccurrence, nextOccurrenceAfter,
   zadaniaAktywne, zadaniaPoTerminie, zadaniaNaDzis, naDate, statystykiOkresu,
   zadaniaUkonczone,
 } = await import('../src/utils/todoLogic.js')
@@ -173,4 +173,18 @@ test('przesunListe: zamienia sąsiadów i zapisuje tylko to, co się zmieniło',
   assert.deepEqual(przesunListe(l, 'c', 1), [])
   // Stare listy bez `order` dostają kolejność przy pierwszym przesunięciu.
   assert.deepEqual(przesunListe([{ id: 'a' }, { id: 'b' }], 'b', -1), [{ id: 'b', order: 0 }, { id: 'a', order: 1 }])
+})
+
+test('nextOccurrenceAfter — zaległe zadanie cykliczne przeskakuje za dzisiejszy dzień', () => {
+  const dzis = new Date(2026, 10, 10, 15, 30) // wtorek 10 listopada, po południu
+  const d = (x) => [x.getFullYear(), x.getMonth() + 1, x.getDate()].join('-')
+  // codziennie, zaległe od dwóch tygodni → jutro
+  assert.equal(d(nextOccurrenceAfter(new Date(2026, 9, 27), 'daily', dzis)), '2026-11-11')
+  // co tydzień z poniedziałku 19 X → najbliższy poniedziałek po dziś
+  assert.equal(d(nextOccurrenceAfter(new Date(2026, 9, 19), 'weekly', dzis)), '2026-11-16')
+  // termin dzisiejszy → zwykły krok
+  assert.equal(d(nextOccurrenceAfter(new Date(2026, 10, 10), 'daily', dzis)), '2026-11-11')
+  // zrobione przed terminem → kolejny termin liczony od terminu, nie od dziś
+  assert.equal(d(nextOccurrenceAfter(new Date(2026, 10, 14), 'weekly', dzis)), '2026-11-21')
+  assert.equal(d(nextOccurrenceAfter(new Date(2026, 7, 5), 'monthly', dzis)), '2026-12-5')
 })

@@ -48,6 +48,7 @@ import { useRegularPaymentsProcessor } from './utils/regularPayments'
 import { useModalA11y } from './utils/useModalA11y'
 import { usePolaDaty } from './utils/usePolaDaty'
 import { MODULE_ACCENTS } from './utils/moduleColors'
+import { useZamykanieWstecz } from './utils/useZamykanieWstecz'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
 // się do emulatora Auth na jedno stałe konto lokalne. Zawsze to samo konto =
@@ -193,6 +194,13 @@ export default function App() {
     }, () => { clearTimeout(timeout); setLoading(false) })
     return () => { unsubscribe(); clearTimeout(timeout) }
   }, [])
+
+  // Systemowe „wstecz": zamknij okno → wróć na Pulpit → wyjdź z apki.
+  useZamykanieWstecz({
+    wlaczone: !!user,
+    naPulpicie: activeModule === 'home',
+    wrocNaPulpit: () => setActiveModule('home'),
+  })
 
   if (loading) return (
     <div className="loading-screen">

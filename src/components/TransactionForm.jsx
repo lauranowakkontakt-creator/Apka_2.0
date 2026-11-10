@@ -141,7 +141,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
     if (!acc) return
     syncedAcc.current = accountId
     if (acc.currency) setCurrency(acc.currency)
-  }, [accountId, accounts]) // eslint-disable-line
+  }, [accountId, accounts])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

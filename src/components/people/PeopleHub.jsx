@@ -24,7 +24,6 @@ import { bladSubskrypcji } from '../../utils/polaczenie'
 import { MODULE_ACCENTS } from '../../utils/moduleColors'
 
 const TODAY = () => format(new Date(), 'yyyy-MM-dd')
-const initials = (name) => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
 export default function PeopleHub({ user, onOpenDream, setHeaderExtras }) {
   const [people, setPeople]         = useState([])

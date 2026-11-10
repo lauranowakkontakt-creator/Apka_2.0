@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { periodKey, isPaymentActive, isPaymentDue } from '../src/utils/paymentLogic.js'
+import { periodKey, isPaymentActive, isPaymentDue, dueDayInMonth, isMonthlyPaymentOn } from '../src/utils/paymentLogic.js'
 
 test('periodKey — format yyyy-MM', () => {
   assert.equal(periodKey(new Date(2026, 6, 5)), '2026-07')
@@ -83,4 +83,27 @@ test('isPaymentDue — tygodniowa: nowy tydzień ISO znów należna', () => {
   assert.equal(isPaymentDue(p, doneWeek, new Date(2026, 6, 15)), false)
   const nextWeek = periodKey(new Date(2026, 6, 20), 'weekly')
   assert.equal(isPaymentDue(p, nextWeek, new Date(2026, 6, 20)), true)
+})
+
+test('dueDayInMonth — 29.–31. w krótszym miesiącu to jego ostatni dzień', () => {
+  assert.equal(dueDayInMonth({ dayOfMonth: 31 }, new Date(2026, 1, 10)), 28) // luty
+  assert.equal(dueDayInMonth({ dayOfMonth: 31 }, new Date(2028, 1, 10)), 29) // luty przestępny
+  assert.equal(dueDayInMonth({ dayOfMonth: 31 }, new Date(2026, 3, 10)), 30) // kwiecień
+  assert.equal(dueDayInMonth({ dayOfMonth: 31 }, new Date(2026, 4, 10)), 31)
+  assert.equal(dueDayInMonth({ dayOfMonth: 15 }, new Date(2026, 1, 10)), 15)
+  assert.equal(dueDayInMonth({}, new Date(2026, 1, 10)), 1)
+  assert.equal(dueDayInMonth({ dayOfMonth: 45 }, new Date(2026, 4, 10)), 31) // śmieciowa wartość
+})
+
+test('isPaymentDue — płatność z 31. jest należna ostatniego dnia lutego', () => {
+  const p = { dayOfMonth: 31 }
+  assert.equal(isPaymentDue(p, '2026-02', new Date(2026, 1, 27)), false)
+  assert.equal(isPaymentDue(p, '2026-02', new Date(2026, 1, 28)), true)
+})
+
+test('isMonthlyPaymentOn — dzień, zakres dat i częstotliwość', () => {
+  assert.equal(isMonthlyPaymentOn({ dayOfMonth: 30 }, new Date(2026, 1, 28)), true)
+  assert.equal(isMonthlyPaymentOn({ dayOfMonth: 30 }, new Date(2026, 2, 28)), false)
+  assert.equal(isMonthlyPaymentOn({ dayOfMonth: 5, dateFrom: '2026-06-01' }, new Date(2026, 4, 5)), false)
+  assert.equal(isMonthlyPaymentOn({ dayOfMonth: 5, frequency: 'weekly' }, new Date(2026, 4, 5)), false)
 })

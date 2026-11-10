@@ -14,7 +14,6 @@ export default function SearchPanel({ user, onClose, onEdit }) {
   const [all, setAll]           = useState([])
   const [search, setSearch]     = useState('')
   const [filterType, setType]   = useState('all')
-  const [filterCat, setCat]     = useState('')
 
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'transactions'), orderBy('date', 'desc'))

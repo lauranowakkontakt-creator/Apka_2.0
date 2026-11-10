@@ -110,7 +110,7 @@ export function logiJakoTekst() {
       // Stos pomijamy: w zrzucie do wklejenia zajmuje kilkanaście linii na wpis
       // i topi to, co naprawdę interesujące (kolejność zdarzeń i kody błędów).
       // W buforze zostaje — odczytajLogi() nadal go zwraca.
-      const { stos, ...dane } = w.dane || {}
+      const { stos: _stos, ...dane } = w.dane || {}
       return `${czasHHMMSS(w.czas)} ${w.poziom.toUpperCase().padEnd(5)} [${w.zrodlo}] ${w.wiadomosc}${serializuj(dane)}`
     })
     .join('\n')
