@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { fmt } from '../utils/currency'
 import { CatIcon, IconEdit, IconTrash, IconBank } from './Icons'
-import { confirmDialog } from './ConfirmModal'
+import { pokazCofnij } from '../utils/usunZCofnieciem'
 import { toast } from './Toast'
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, isTransfer } from '../utils/categories'
 
@@ -23,25 +23,34 @@ export default function TransactionList({
   showAccount = true,
 }) {
   const accName = (id) => accounts.find(a => a.id === id)?.name
+  // Usunięcie od razu, z „Cofnij" (bez pytania) — cofnięcie odkłada transakcję
+  // pod tym samym id i oddaje saldo, też atomowo.
   const handleDelete = async (t) => {
-    const ok = await confirmDialog({ title: 'Usunąć transakcję?', message: 'Ta operacja jest nieodwracalna.' })
-    if (!ok) return
+    const ref = doc(db, 'users', user.uid, 'transactions', t.id)
+    // Konto transakcji mogło zostać usunięte — update na nieistniejącym
+    // dokumencie wywala cały batch i transakcji nie dałoby się usunąć.
+    // Sprawdzamy istnienie po wczytanej liście kont (bez strzału do sieci,
+    // który przy słabym połączeniu potrafił zawisnąć i blokować usuwanie).
+    const accRef = t.accountId && accounts.some(a => a.id === t.accountId)
+      ? doc(db, 'users', user.uid, 'accounts', t.accountId) : null
+    const reversal = t.type === 'income' ? -t.amount : t.amount
     try {
       // Atomowo: usunięcie transakcji + cofnięcie salda w jednym batchu
       const batch = writeBatch(db)
-      batch.delete(doc(db, 'users', user.uid, 'transactions', t.id))
-      // Konto transakcji mogło zostać usunięte — update na nieistniejącym
-      // dokumencie wywala cały batch i transakcji nie dałoby się usunąć.
-      // Sprawdzamy istnienie po wczytanej liście kont (bez strzału do sieci,
-      // który przy słabym połączeniu potrafił zawisnąć i blokować usuwanie).
-      if (t.accountId && accounts.some(a => a.id === t.accountId)) {
-        const reversal = t.type === 'income' ? -t.amount : t.amount
-        batch.update(doc(db, 'users', user.uid, 'accounts', t.accountId), { balance: increment(reversal) })
-      }
+      batch.delete(ref)
+      if (accRef) batch.update(accRef, { balance: increment(reversal) })
       await batch.commit()
     } catch {
       toast.error('Błąd usuwania transakcji')
+      return
     }
+    const { id: _id, ...dane } = t
+    pokazCofnij('Usunięto transakcję', async () => {
+      const batch = writeBatch(db)
+      batch.set(ref, dane)
+      if (accRef) batch.update(accRef, { balance: increment(-reversal) })
+      await batch.commit()
+    })
   }
 
   if (loading) return <div className="list-loading">Ładowanie...</div>

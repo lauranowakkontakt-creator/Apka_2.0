@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
 import { collection, query, orderBy, doc, Timestamp } from 'firebase/firestore'
-import { addDoc, updateDoc, deleteDoc, setDoc } from '../../utils/zapis'
+import { addDoc, updateDoc, setDoc } from '../../utils/zapis'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 import SegTabs from '../SegTabs'
 import StatTiles from '../StatTiles'
-import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { IconPlus, IconEdit, IconTrash, IconClose, IcCar } from '../Icons'
 import {
@@ -73,10 +73,8 @@ export default function AutoDashboard({ user, setHeaderExtras }) {
 
   if (loading) return <div className="list-loading">Ładowanie...</div>
 
-  const usun = async (kolekcja, wpis, pytanie) => {
-    const ok = await confirmDialog({ title: pytanie })
-    if (!ok) return
-    try { await deleteDoc(doc(db, 'users', user.uid, kolekcja, wpis.id)) } catch { toast.error('Nie udało się usunąć') }
+  const usun = async (kolekcja, wpis, opis) => {
+    await usunZCofnieciem(doc(db, 'users', user.uid, kolekcja, wpis.id), opis)
   }
 
   return (
@@ -134,7 +132,7 @@ export default function AutoDashboard({ user, setHeaderExtras }) {
                     {na100 != null && <em className="auto-row-wynik" style={{ color: p.color }}>{fmt1(na100)}<small>l/100 km</small></em>}
                     <div className="auto-row-akcje">
                       <button type="button" className="t-btn" aria-label="Edytuj tankowanie" onClick={() => setOkno({ typ: 'paliwo', wpis: t })}><IconEdit size={13} /></button>
-                      <button type="button" className="t-btn delete" aria-label="Usuń tankowanie" onClick={() => usun('carFuel', t, 'Usunąć to tankowanie?')}><IconTrash size={13} /></button>
+                      <button type="button" className="t-btn delete" aria-label="Usuń tankowanie" onClick={() => usun('carFuel', t, 'Usunięto tankowanie')}><IconTrash size={13} /></button>
                     </div>
                   </div>
                 )
@@ -170,7 +168,7 @@ export default function AutoDashboard({ user, setHeaderExtras }) {
                   </div>
                   <div className="auto-row-akcje">
                     <button type="button" className="t-btn" aria-label="Edytuj naprawę" onClick={() => setOkno({ typ: 'naprawa', wpis: n })}><IconEdit size={13} /></button>
-                    <button type="button" className="t-btn delete" aria-label="Usuń naprawę" onClick={() => usun('carRepairs', n, 'Usunąć tę naprawę?')}><IconTrash size={13} /></button>
+                    <button type="button" className="t-btn delete" aria-label="Usuń naprawę" onClick={() => usun('carRepairs', n, 'Usunięto naprawę')}><IconTrash size={13} /></button>
                   </div>
                 </div>
               ))}

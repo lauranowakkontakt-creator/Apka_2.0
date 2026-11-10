@@ -1,14 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { collection, query, orderBy, doc } from 'firebase/firestore'
-import { deleteDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 import SegTabs from '../SegTabs'
 import StatTiles from '../StatTiles'
-import { confirmDialog } from '../ConfirmModal'
-import { toast } from '../Toast'
 import { IconPlus } from '../Icons'
 import { ostatniePoStrefach, podsumowanie, dawnoTemu } from '../../utils/iplLogic'
 import { TODAY } from './wspolne'
@@ -69,9 +67,7 @@ export default function IplDashboard({ user, setHeaderExtras }) {
   if (loading) return <div className="list-loading">Ładowanie...</div>
 
   const usun = async (wpis) => {
-    const ok = await confirmDialog({ title: 'Usunąć ten zabieg?' })
-    if (!ok) return
-    try { await deleteDoc(doc(db, 'users', user.uid, 'iplZabiegi', wpis.id)) } catch { toast.error('Nie udało się usunąć') }
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'iplZabiegi', wpis.id), 'Usunięto zabieg')
   }
 
   return (

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { collection, query, doc, Timestamp, orderBy } from 'firebase/firestore'
-import { addDoc, updateDoc, deleteDoc } from '../../utils/zapis'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { fmt, parseAmount } from '../../utils/currency'
 import { IconEdit, IconTrash, IconClose, IconSavings } from '../Icons'
-import { confirmDialog } from '../ConfirmModal'
 import { ColorPicker } from '../Pickers'
 import { APP_COLORS } from '../../utils/palette'
 import { bladSubskrypcji } from '../../utils/polaczenie'
@@ -27,9 +27,7 @@ export default function SavingsGoals({ user, onClose }) {
   }, [user.uid])
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć cel oszczędnościowy?' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'savingsGoals', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'savingsGoals', id), 'Usunięto cel oszczędnościowy')
   }
 
   const goalsWithTarget = goals.filter(g => !g.noTarget)

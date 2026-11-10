@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { collection, query, orderBy, doc, Timestamp } from 'firebase/firestore'
-import { addDoc, updateDoc, deleteDoc } from '../../utils/zapis'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import { BIBLE_BOOKS } from '../../utils/bibleData'
 import { IconBook, IconClose, IconEdit, IconTrash, IconPlus } from '../Icons'
-import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
@@ -33,9 +33,7 @@ export default function BibleNotes({ user }) {
   const nextNumber = notes.reduce((max, n) => Math.max(max, n.number || 0), 0) + 1
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć notatkę?' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'bibleNotes', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'bibleNotes', id), 'Usunięto notatkę')
   }
 
   if (loading) return <div className="list-loading">Ładowanie...</div>

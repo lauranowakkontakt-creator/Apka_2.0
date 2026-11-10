@@ -1,16 +1,16 @@
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 import { onSnapshot } from '../../utils/subskrypcje'
 import {
   MEMORY_GOAL_DAYS, MEMORY_MAX_DETAILS, MEMORY_MIN_DETAILS, MEMORY_ROOMS,
   cleanMemoryDetails, memoryEntryValid, memoryStreak,
 } from '../../utils/dreamForms'
-import { confirmDialog } from '../ConfirmModal'
 import { IconCheck, IconTrash } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY, fmtDate } from './wspolne'
 import { Timestamp, collection, doc, orderBy, query } from 'firebase/firestore'
-import { addDoc, deleteDoc } from '../../utils/zapis'
+import { addDoc } from '../../utils/zapis'
 import { useEffect, useMemo, useState } from 'react'
 
 // Ćwiczenie pamięci (podręcznik kursu 201, rozdz. 4.3–4.4): wybierz pokój w domu,
@@ -52,9 +52,7 @@ export default function DreamMemory({ user }) {
   }
 
   const remove = async (e) => {
-    const ok = await confirmDialog({ title: 'Usunąć to ćwiczenie?', message: `${e.room}, ${fmtDate(e.date)}` })
-    if (!ok) return
-    try { await deleteDoc(doc(db, 'users', user.uid, 'dreamMemory', e.id)) } catch { toast.error('Nie udało się usunąć') }
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'dreamMemory', e.id), 'Usunięto ćwiczenie')
   }
 
   return (
