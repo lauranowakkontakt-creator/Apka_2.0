@@ -10,7 +10,8 @@ import RequestCard from './RequestCard'
 import { TODAY, toggleChecklistItem } from './wspolne'
 import { addDays, format, parseISO, subDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import { Timestamp, arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, arrayRemove, arrayUnion, doc } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from '../../utils/zapis'
 import { useEffect, useMemo, useState } from 'react'
 
 // Widok „Dziś" — prośby na dany dzień, z możliwością cofania się w tył.

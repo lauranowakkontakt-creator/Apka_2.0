@@ -3,7 +3,8 @@ import { RECUR_LABEL } from '../../utils/calendarRecurrence'
 import { PRIORITY, RECURRENCE } from '../../utils/todoLogic'
 import { CatIcon, IconCheck, IconClose, IconPlus, IconTrash } from '../Icons'
 import PersonBubble from '../PersonBubble'
-import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Formularz zadania: dodawanie i edycja, z podzadaniami i cyklicznością.

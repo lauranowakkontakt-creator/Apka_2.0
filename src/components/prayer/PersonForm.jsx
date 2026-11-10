@@ -2,7 +2,8 @@ import { db } from '../../firebase/config'
 import { PERSON_COLORS } from '../../utils/prayerStats'
 import { IconClose } from '../Icons'
 import { IconPicker, ColorPicker } from '../Pickers'
-import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Formularz osoby: dodawanie i edycja.

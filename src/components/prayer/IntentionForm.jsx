@@ -3,7 +3,8 @@ import { collectTags, normalizeTags, parseTags, tagsToText, toggleTag } from '..
 import { NOTE_MODES, checklistToText, normalizeNoteMode, parseChecklist, pruneDone } from '../../utils/prayerList'
 import { PRIORITY_CFG, findPrio } from '../../utils/prayerStats'
 import { IconClose } from '../Icons'
-import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Formularz prośby: dodawanie i edycja.

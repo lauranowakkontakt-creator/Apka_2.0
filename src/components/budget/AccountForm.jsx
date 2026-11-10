@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { collection, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, doc, Timestamp } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { db } from '../../firebase/config'
 import { CURRENCIES as CURRENCY_LIST, parseAmount } from '../../utils/currency'
 import { IconClose, IconBank, IconCash, IconCard, IconRepeat, IconSavings, IconTrendUp, IconPlus } from '../Icons'

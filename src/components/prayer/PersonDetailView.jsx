@@ -5,7 +5,8 @@ import { toast } from '../Toast'
 import IntentionForm from './IntentionForm'
 import RequestCard from './RequestCard'
 import { TODAY, toggleChecklistItem } from './wspolne'
-import { Timestamp, arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, arrayRemove, arrayUnion, doc } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Szczegóły jednej osoby: jej prośby, notatki i historia modlitwy.

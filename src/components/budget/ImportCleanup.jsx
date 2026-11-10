@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { collection, doc, getDoc, getDocs, setDoc, query, where, limit } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, where, limit } from 'firebase/firestore'
+import { setDoc } from '../../utils/zapis'
 import { db } from '../../firebase/config'
 import { wPaczkach } from '../../utils/zapisWPaczkach'
 import { zapiszWiele } from '../../firebase/lite'

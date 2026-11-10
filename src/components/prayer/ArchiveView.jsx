@@ -5,7 +5,8 @@ import { confirmDialog } from '../ConfirmModal'
 import { CatIcon, IconCalendar, IconCheck, IconEdit, IconPrayer, IconRepeat, IconTrash } from '../Icons'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from '../../utils/zapis'
 import { useMemo, useState } from 'react'
 
 // Archiwum zakończonych próśb, z możliwością przywrócenia.

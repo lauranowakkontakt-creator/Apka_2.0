@@ -2,7 +2,8 @@ import { db } from '../../firebase/config'
 import { toggleChecked } from '../../utils/prayerList'
 import { toast } from '../Toast'
 import { format } from 'date-fns'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
+import { updateDoc } from '../../utils/zapis'
 
 // Drobiazgi używane przez kilka widoków Modlitwy naraz.
 // Osobny plik zamiast duplikatów albo importu „w bok" między widokami —

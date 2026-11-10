@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, where, Timestamp, increment, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, orderBy, where, Timestamp, increment } from 'firebase/firestore'
+import { setDoc, writeBatch } from '../../utils/zapis'
 import { db } from '../../firebase/config'
 import { format } from 'date-fns'
 import { fmt, getCurrencyCode } from '../../utils/currency'

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { updateDoc, doc } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
+import { updateDoc } from '../../utils/zapis'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { db } from '../../firebase/config'

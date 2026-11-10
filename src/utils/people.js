@@ -1,4 +1,5 @@
-import { collection, query, where, getDocs, deleteDoc, updateDoc, doc, arrayRemove } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, arrayRemove } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from './zapis'
 import { db } from '../firebase/config'
 import { scrubPersonFromDreams } from './dreams'
 

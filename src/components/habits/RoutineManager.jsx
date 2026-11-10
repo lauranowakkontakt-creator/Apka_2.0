@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { collection, query, orderBy, addDoc, updateDoc, deleteDoc, doc, writeBatch, Timestamp } from 'firebase/firestore'
+import { collection, query, orderBy, doc, Timestamp } from 'firebase/firestore'
+import { addDoc, updateDoc, deleteDoc, writeBatch } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import { IconClose, IconTrash, IconEdit, IconCheck } from '../Icons'

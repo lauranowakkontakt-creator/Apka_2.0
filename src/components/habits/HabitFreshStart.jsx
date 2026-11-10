@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { writeBatch, doc } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
+import { writeBatch } from '../../utils/zapis'
 import { format } from 'date-fns'
 import { db } from '../../firebase/config'
 import { CatIcon, IconClose, IconCheck, IconFlame, IconStar } from '../Icons'

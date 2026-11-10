@@ -1,7 +1,8 @@
 import { db } from '../../firebase/config'
 import { IconClose } from '../Icons'
 import { IconPicker, ColorPicker } from '../Pickers'
-import { Timestamp, addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, deleteDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Formularz listy zadań.

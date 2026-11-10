@@ -4,7 +4,8 @@ import { CatIcon, IconChevronDown, IconChevronRight, IconClose, IconPrayer, Icon
 import PersonBubble from '../PersonBubble'
 import { findCat, PRAYER_PRIOS, PRAYER_WINDOWS, findPerson } from './wspolne'
 import { addDays, format, parseISO, subDays } from 'date-fns'
-import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Formularz wydarzenia: dodawanie i edycja, razem z cyklicznością

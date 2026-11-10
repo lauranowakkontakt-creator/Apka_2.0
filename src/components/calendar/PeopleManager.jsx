@@ -5,7 +5,8 @@ import { confirmDialog } from '../ConfirmModal'
 import { IconArchive, IconClose, IconEdit, IconRestore, IconTrash } from '../Icons'
 import PersonBubble from '../PersonBubble'
 import { ColorPicker } from '../Pickers'
-import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Zarządzanie osobami: dodawanie, edycja, kolor i ikona.

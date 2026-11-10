@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { doc, writeBatch } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
+import { writeBatch } from '../../utils/zapis'
 import { db } from '../../firebase/config'
 import SegTabs from '../SegTabs'
 import { CatIcon, IconClose, IconReorder } from '../Icons'
