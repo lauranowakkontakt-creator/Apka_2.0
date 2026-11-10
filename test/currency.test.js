@@ -154,3 +154,34 @@ test('parseAmount — zapis bez zera wiodącego', () => {
   assert.equal(parseAmount(',50'), 0.5)
   assert.equal(parseAmount('.5'), 0.5)
 })
+
+test('ustawienia waluty: normalizacja, porównanie i zapis na urządzeniu', async () => {
+  const { ustawieniaWaluty, normalizujWalute, teSameUstawieniaWaluty, domyslnaWaluta, zastosujUstawieniaWaluty, getRates, getCurrencyCode } =
+    await import('../src/utils/currency.js')
+  localStorage.removeItem('app_currency'); localStorage.removeItem('app_fx_rates')
+  assert.deepEqual(ustawieniaWaluty(), { code: 'PLN', rates: {} })
+  assert.equal(domyslnaWaluta(ustawieniaWaluty()), true)
+
+  // śmieci z bazy nie przechodzą: nieznana waluta, kurs zł, kurs ujemny i tekst
+  assert.deepEqual(normalizujWalute({ code: 'XXX', rates: { EUR: 4.25, PLN: 2, USD: -1, GBP: 'abc', ABC: 3 } }),
+    { code: 'PLN', rates: { EUR: 4.25 } })
+  assert.deepEqual(normalizujWalute(undefined), { code: 'PLN', rates: {} })
+
+  assert.equal(teSameUstawieniaWaluty({ code: 'EUR', rates: { USD: 4.1 } }, { code: 'EUR', rates: { USD: 4.1 } }), true)
+  assert.equal(teSameUstawieniaWaluty({ code: 'EUR', rates: { USD: 4.1 } }, { code: 'EUR', rates: { USD: 4.2 } }), false)
+  assert.equal(teSameUstawieniaWaluty({ code: 'EUR', rates: {} }, { code: 'PLN', rates: {} }), false)
+
+  // ustawienia z innego urządzenia lądują w localStorage i od razu obowiązują
+  assert.equal(zastosujUstawieniaWaluty({ code: 'EUR', rates: { USD: 3.9 } }), true)
+  assert.equal(getCurrencyCode(), 'EUR')
+  assert.equal(getRates().USD, 3.9)
+  assert.equal(getRates().GBP, 5.0)                     // reszta zostaje domyślna
+  assert.equal(domyslnaWaluta(ustawieniaWaluty()), false)
+  // to samo drugi raz — bez zmian (żeby synchronizacja nie kręciła się w kółko)
+  assert.equal(zastosujUstawieniaWaluty({ code: 'EUR', rates: { USD: 3.9 } }), false)
+  // kurs usunięty na innym urządzeniu znika i tutaj
+  assert.equal(zastosujUstawieniaWaluty({ code: 'EUR', rates: {} }), true)
+  assert.equal(getRates().USD, 4.0)
+
+  localStorage.removeItem('app_currency'); localStorage.removeItem('app_fx_rates')
+})

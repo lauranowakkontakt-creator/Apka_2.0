@@ -26,6 +26,7 @@ import { getCurrencyCode } from './utils/currency'
 import { useSynchronizujIkonyKategorii } from './utils/useSynchronizujIkony'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
 import { useZamykanieWstecz } from './utils/useZamykanieWstecz'
+import { useSynchronizujWalute, zapiszWaluteWBazie } from './utils/useSynchronizujWalute'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
 // się do emulatora Auth na jedno stałe konto lokalne. Zawsze to samo konto =
@@ -130,10 +131,17 @@ export default function App() {
   // Zmiana waluty głównej/kursów: przeładowanie modułów (key), żeby przeliczyły sumy.
   const [currencyCode, setCurrencyCodeState] = useState(getCurrencyCode)
   const [currencyRev, setCurrencyRev] = useState(0)
-  const handleCurrencyChange = useCallback((code) => {
+  const odswiezWalute = useCallback((code) => {
     setCurrencyCodeState(code)
     setCurrencyRev(r => r + 1)
   }, [])
+  // Zmiana w Ustawieniach na tym urządzeniu: odśwież i wyślij do bazy.
+  const handleCurrencyChange = useCallback((code) => {
+    odswiezWalute(code)
+    zapiszWaluteWBazie(user?.uid)
+  }, [odswiezWalute, user?.uid])
+  // Zmiana z innego urządzenia: tylko odśwież (bez odsyłania z powrotem).
+  useSynchronizujWalute(user?.uid, odswiezWalute)
 
   useEffect(() => {
     const timeout = setTimeout(() => setLoading(false), 8000)

@@ -18,7 +18,7 @@ import { dupKey } from './budgetImport.js'
 import { MODULE_DATA } from './moduleData.js'
 
 export const EXTRA_COLLECTIONS = ['regularPayments', 'shoppingItems', 'savingsGoals', 'debtors']
-export const EXTRA_SINGLES = ['settings/tithe', 'settings/shopCategories']
+export const EXTRA_SINGLES = ['settings/tithe', 'settings/shopCategories', 'settings/currency']
 
 // Pozostałe moduły — lista bierze się z MODULE_DATA, więc nowy moduł albo nowa
 // kolekcja trafia do importu kopii bez dopisywania jej tutaj.

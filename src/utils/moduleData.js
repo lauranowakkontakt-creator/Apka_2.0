@@ -4,9 +4,9 @@
 export const MODULE_DATA = {
   budget: {
     label: 'Finanse',
-    what: 'konta, transakcje, regularne płatności, dłużników, cele, listę zakupów, kategorie i ustawienia dziesięciny',
+    what: 'konta, transakcje, regularne płatności, dłużników, cele, listę zakupów, kategorie, ustawienia dziesięciny i waluty',
     collections: ['accounts', 'transactions', 'regularPayments', 'debtors', 'savingsGoals', 'shoppingItems'],
-    docs: [['settings', 'categories'], ['settings', 'shopCategories'], ['settings', 'tithe']],
+    docs: [['settings', 'categories'], ['settings', 'shopCategories'], ['settings', 'tithe'], ['settings', 'currency']],
   },
   habits: {
     label: 'Nawyki',

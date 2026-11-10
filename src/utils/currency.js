@@ -47,6 +47,58 @@ export function setRate(code, value) {
   try { localStorage.setItem('app_fx_rates', JSON.stringify(own)) } catch { /* tryb prywatny */ }
 }
 
+// ─── Ustawienia waluty jako jeden obiekt — do synchronizacji między urządzeniami.
+// localStorage zostaje szybkim, synchronicznym źródłem dla całej apki
+// (getCurrencyCode / getRates woła się w setkach miejsc), a kopia leży
+// w Firestore (settings/currency) — patrz useSynchronizujWalute.js.
+
+// Tylko kursy ustawione przez użytkownika (bez wartości domyślnych).
+export function getOwnRates() {
+  let own = {}
+  try { own = JSON.parse(localStorage.getItem('app_fx_rates') || '{}') || {} } catch { /* uszkodzone */ }
+  return oczyscKursy(own)
+}
+
+function oczyscKursy(kursy) {
+  const out = {}
+  for (const [c, v] of Object.entries(kursy || {})) {
+    if (c in DEFAULT_RATES && c !== 'PLN' && Number(v) > 0 && Number.isFinite(Number(v))) out[c] = Number(v)
+  }
+  return out
+}
+
+export const ustawieniaWaluty = () => ({ code: getCurrencyCode(), rates: getOwnRates() })
+
+// Sprowadza cokolwiek (dokument z bazy, kopię) do poprawnej postaci.
+export function normalizujWalute(u) {
+  return {
+    code: CURRENCIES.some(x => x.code === u?.code) ? u.code : BASE_CURRENCY,
+    rates: oczyscKursy(u?.rates),
+  }
+}
+
+export function teSameUstawieniaWaluty(a, b) {
+  const x = normalizujWalute(a), y = normalizujWalute(b)
+  if (x.code !== y.code) return false
+  const kx = Object.keys(x.rates).sort(), ky = Object.keys(y.rates).sort()
+  return kx.length === ky.length && kx.every((k, i) => k === ky[i] && x.rates[k] === y.rates[k])
+}
+
+// Czy to wciąż ustawienia fabryczne (zł, bez własnych kursów).
+export const domyslnaWaluta = (u) => teSameUstawieniaWaluty(u, { code: BASE_CURRENCY, rates: {} })
+
+// Zapisuje ustawienia (np. pobrane z bazy) na tym urządzeniu.
+// Zwraca true, jeśli coś się zmieniło.
+export function zastosujUstawieniaWaluty(u) {
+  const nowe = normalizujWalute(u)
+  if (teSameUstawieniaWaluty(nowe, ustawieniaWaluty())) return false
+  try {
+    localStorage.setItem('app_currency', nowe.code)
+    localStorage.setItem('app_fx_rates', JSON.stringify(nowe.rates))
+  } catch { /* tryb prywatny */ }
+  return true
+}
+
 /** Przelicza kwotę między walutami przez złote. Nieznana waluta = bez zmian. */
 export function convert(amount, from = 'PLN', to = getCurrencyCode()) {
   const n = Number(amount) || 0
