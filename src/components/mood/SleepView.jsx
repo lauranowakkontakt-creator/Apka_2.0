@@ -3,12 +3,10 @@ import { collection, addDoc, deleteDoc, doc, Timestamp } from 'firebase/firestor
 import { format, subDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { db } from '../../firebase/config'
-import StatTiles from '../StatTiles'
 import SegTabs from '../SegTabs'
-import { BarChartSVG } from '../ChartPrimitives'
 import { IconTrash, IconClose, IconPlus, IcMoon } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
-import { minutySnu, fmtCzas, fmtGodziny, senDnia, sredniaSnu } from '../../utils/sleepLogic'
+import { minutySnu, fmtCzas, fmtGodziny, senDnia, sredniaSnu, naOsi } from '../../utils/sleepLogic'
 import { kicker, Skala5, TODAY } from './wspolne'
 
 // Zakładka „Sen": długość nocy, pobudki i drzemki.
@@ -25,8 +23,9 @@ export default function SleepView({ user, logs, formularz, setFormularz }) {
   const dni7 = useMemo(() => Array.from({ length: 7 }, (_, i) => format(subDays(new Date(), 6 - i), 'yyyy-MM-dd')), [today]) // eslint-disable-line react-hooks/exhaustive-deps
   const sr7 = sredniaSnu(logs, dni7)
   const ostatnia = senDnia(logs, today)
-  const wykres = dni7.map(d => ({ label: format(new Date(d + 'T12:00:00'), 'EEEEEE', { locale: pl }), value: Math.round((senDnia(logs, d).noc / 60) * 10) / 10, active: d === today }))
-  const ostatnie = useMemo(() => [...logs].sort((a, b) => (b.date + (b.end || '')).localeCompare(a.date + (a.end || ''))).slice(0, 20), [logs])
+  const [wiecej, setWiecej] = useState(false)
+  const wszystkie = useMemo(() => [...logs].sort((a, b) => (b.date + (b.end || '')).localeCompare(a.date + (a.end || ''))), [logs])
+  const ostatnie = wiecej ? wszystkie.slice(0, 60) : wszystkie.slice(0, 4)
 
   const start = () => { const v = { at: Date.now() }; zapiszStoper(v); setStoper(v) }
   const stop = () => {
@@ -70,18 +69,36 @@ export default function SleepView({ user, logs, formularz, setFormularz }) {
         )}
       </div>
 
-      <StatTiles tiles={[
-        { label: 'Średnio noc · 7 dni', value: sr7.noc ? `${fmtGodziny(sr7.noc)} h` : '—' },
-        { label: 'Pobudki / noc', value: sr7.pobudki === null ? '—' : sr7.pobudki.toFixed(1).replace('.', ',') },
-        { label: 'Drzemki · 7 dni', value: sr7.drzemki },
-      ]} />
-
-      <div className="card" style={{ padding: 16 }}>
-        {kicker('Długość nocy · ostatnie 7 dni', { marginBottom: 10 })}
-        {sr7.nocy > 0
-          ? <BarChartSVG data={wykres} height={130} accent="var(--info)" fmt={v => `${String(v).replace('.', ',')} h`} />
-          : <div className="an-pusty">Brak zapisanych nocy z ostatniego tygodnia</div>}
-      </div>
+      {/* Ostatnie 7 nocy na osi 20:00–12:00: widać i długość, i porę snu */}
+      <section className="card sleep-week">
+        <div className="sleep-week-head">
+          <strong>Ostatnie 7 nocy</strong>
+          <span>{sr7.noc ? <>śr. <b>{fmtGodziny(sr7.noc)} h</b></> : 'brak zapisów'}{sr7.pobudki ? ` · ${sr7.pobudki.toFixed(1).replace('.', ',')} pobudki` : ''}{sr7.drzemki ? ` · ${sr7.drzemki} ${sr7.drzemki === 1 ? 'drzemka' : sr7.drzemki < 5 ? 'drzemki' : 'drzemek'}` : ''}</span>
+        </div>
+        <div className="sleep-axis" aria-hidden="true">{['20', '22', '0', '2', '4', '6', '8', '10', '12'].map(h => <span key={h}>{h}</span>)}</div>
+        {dni7.slice().reverse().map(d => {
+          const noce = logs.filter(l => l.date === d && l.type !== 'nap')
+          const dzien = senDnia(logs, d)
+          return (
+            <div key={d} className={`sleep-night${d === today ? ' today' : ''}`}>
+              <span className="sleep-night-lbl">{format(new Date(d + 'T12:00:00'), 'EEEEEE d', { locale: pl })}</span>
+              <div className="sleep-night-track">
+                {noce.map(l => {
+                  const poz = naOsi(l.start, l.end)
+                  return poz && (
+                    <div key={l.id} className="sleep-night-bar" title={`${l.start}–${l.end}`} aria-label={`${l.start}–${l.end}, ${fmtCzas(l.minutes)}`}
+                      style={{ left: `${poz[0] * 100}%`, width: `${(poz[1] - poz[0]) * 100}%`, opacity: l.quality ? 0.45 + l.quality * 0.11 : 0.85 }}>
+                      {Array.from({ length: Math.min(l.wakeups || 0, 5) }, (_, i) => <i key={i} style={{ left: `${((i + 1) / ((l.wakeups || 0) + 1)) * 100}%` }} />)}
+                    </div>
+                  )
+                })}
+              </div>
+              <span className="sleep-night-val">{dzien.maNoc ? fmtGodziny(dzien.noc) : '–'}{dzien.liczbaDrzemek > 0 && <em>+{dzien.drzemki}′</em>}</span>
+            </div>
+          )
+        })}
+        <div className="sleep-week-legend"><span><i className="bar" />sen</span><span><i className="tick" />pobudka</span><span><em>+30′</em> drzemka</span></div>
+      </section>
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" className="mood-btn-ghost" onClick={() => setFormularz({ type: 'night' })}><IconPlus size={14} /> Noc</button>
@@ -102,6 +119,9 @@ export default function SleepView({ user, logs, formularz, setFormularz }) {
               <button type="button" className="t-btn delete" aria-label="Usuń zapis" onClick={() => usun(l)}><IconTrash size={12} /></button>
             </div>
           ))}
+          {wszystkie.length > 4 && (
+            <button type="button" className="an-more" onClick={() => setWiecej(v => !v)}>{wiecej ? 'Pokaż mniej' : `Pokaż starsze (${Math.min(60, wszystkie.length) - 4})`}</button>
+          )}
         </div>
       )}
 

@@ -60,6 +60,26 @@ jobs:
             | awk '{print $5, $9}' | sort -rh | head -10 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+  # Testy w prawdziwej przeglądarce (rozmiar telefonu i komputera) na wersji
+  # demo: scenariusze klikane jak przez człowieka + kontrola, czy nic na
+  # siebie nie nachodzi i nie wystaje w bok. Łapią to, czego nie widzą testy
+  # jednostkowe — np. etykietę wchodzącą na przyciski na małym telefonie.
+  e2e:
+    name: Testy w przeglądarce
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Przeglądarka Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Testy e2e
+        run: npm run e2e
+
   bezpieczenstwo:
     name: Audyt zależności
     runs-on: ubuntu-latest

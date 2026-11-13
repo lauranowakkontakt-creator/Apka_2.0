@@ -71,4 +71,11 @@ export default [
       'no-misleading-character-class': 'off',
     },
   },
+
+  // Testy przeglądarkowe: funkcje przekazywane do page.evaluate() działają
+  // w przeglądarce, więc mają jej zmienne (document, innerWidth…).
+  {
+    files: ['test/e2e/**/*.js'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
 ]

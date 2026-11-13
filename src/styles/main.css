@@ -3360,7 +3360,7 @@ body { overscroll-behavior-y: none; }
 .mood-person.on { border-color: var(--c); background: color-mix(in oklab, var(--c) 20%, transparent); color: var(--text); font-weight: 700; }
 .mood-note { font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 10px 0 0; }
 .mood-note.ok { color: var(--text); padding: 8px 12px; border-radius: 10px; background: color-mix(in oklab, var(--income) 14%, transparent); border: 1px solid color-mix(in oklab, var(--income) 40%, transparent); }
-.mood-save { margin: 0; position: sticky; bottom: 0; }
+.mood-save { margin: 0; }
 
 .mood-btn-main { min-height: 44px; padding: 10px 18px; border-radius: 12px; border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; background: var(--accent); color: #fff; flex-shrink: 0; }
 .mood-btn-ghost { flex: 1; min-height: 44px; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -3374,7 +3374,10 @@ body { overscroll-behavior-y: none; }
 
 /* Koło emocji */
 .emo-wheel svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; font-family: var(--font-sans); }
-.emo-wheel svg g:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.emo-wheel svg { -webkit-tap-highlight-color: transparent; }
+/* Safari rysował po dotknięciu płatka prostokątną ramkę fokusu wokół całego płatka */
+.emo-wheel svg g:focus { outline: none; }
+.emo-wheel svg g:focus-visible path:last-of-type { stroke: var(--text); }
 .emo-hint { text-align: center; font-size: 12.5px; color: var(--text-muted); margin: 8px 0 0; }
 .emo-panel { margin-top: 10px; padding: 12px; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
 .emo-panel-lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
@@ -3451,9 +3454,299 @@ body { overscroll-behavior-y: none; }
 .wplyw-sub { font-size: 12px; color: var(--text-muted); }
 .mood-person { text-align: left; }
 
-/* Nastrój na komputerze: kalendarz w kolumnie ~400 px, wpisy dnia obok. */
+/* ── Nastrój: widok główny ──────────────────────────────────────────────── */
+.mood-main { display: flex; flex-direction: column; gap: 12px; }
 .mood-main-grid { display: flex; flex-direction: column; gap: 12px; }
 @media (min-width: 900px) {
-  .mood-main-grid { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 20px; align-items: start; }
-  .mood-cal-card { position: sticky; top: 12px; }
+  .mood-main-grid { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .mood-cal { position: sticky; top: 12px; }
 }
+
+/* Karta „dziś” */
+.mood-today-card { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--border); }
+.mood-today-top { display: flex; align-items: center; gap: 12px; }
+.mood-today-face { width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+  background: color-mix(in oklab, var(--c) 22%, var(--surface)); box-shadow: inset 0 0 0 2px var(--c); }
+.mood-today-face.empty { background: var(--surface2); box-shadow: inset 0 0 0 2px var(--border-strong); color: var(--text-muted); font-size: 22px; font-weight: 700; }
+.mood-today-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mood-today-txt small { font-size: 11.5px; color: var(--text-muted); }
+.mood-today-txt small::first-letter { text-transform: uppercase; }
+.mood-today-txt strong { font-size: 18px; letter-spacing: -.01em; }
+.mood-today-txt span { font-size: 12px; color: var(--text-sub); }
+.mood-quick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.mood-quick button { height: 42px; border-radius: 12px; cursor: pointer; display: grid; place-items: center;
+  background: color-mix(in oklab, var(--c) 12%, transparent); border: 1.5px solid color-mix(in oklab, var(--c) 35%, transparent);
+  transition: transform .15s var(--spring), background .15s; }
+.mood-quick button:hover { background: color-mix(in oklab, var(--c) 24%, transparent); }
+.mood-quick button:active { transform: scale(.94); }
+.mood-today-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mood-today-chips button { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 5px 11px; border-radius: 99px;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text); cursor: pointer; background: var(--surface2); border: 1px solid var(--border); }
+.mood-today-chips button svg { color: var(--info); }
+.mood-today-chips i { width: 8px; height: 8px; border-radius: 99px; }
+.mood-today-chips em { font-style: normal; font-weight: 500; color: var(--text-muted); }
+
+/* Kalendarz — kolorowe kółka zamiast szarych kafli */
+.mood-cal { padding: 12px 12px 10px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--border); }
+.mood-cal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.mood-cal-nav { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-sub); flex-shrink: 0; }
+.mood-cal-nav:hover { background: var(--surface2); color: var(--text); }
+.mood-cal-title { flex: 1; text-align: center; display: flex; flex-direction: column; gap: 1px; }
+.mood-cal-title strong { font-size: 14.5px; }
+.mood-cal-title small { font-size: 11.5px; color: var(--text-muted); }
+.mood-cal-title b { font-weight: 700; }
+.mood-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; justify-items: center; }
+.mood-cal-dow { font-size: 10px; font-weight: 700; color: var(--text-muted); padding-bottom: 2px; text-transform: uppercase; letter-spacing: .04em; }
+.mood-cal-day { position: relative; width: 100%; max-width: 40px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+  font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--text-sub); cursor: pointer; background: transparent; border: none; transition: transform .12s; }
+.mood-cal-day:hover { background: var(--surface2); }
+.mood-cal-day.has { background: var(--c); color: #12131A; font-weight: 700; }
+.mood-cal-day.future { color: var(--text-muted); opacity: .55; }
+.mood-cal-day.today { box-shadow: inset 0 0 0 2px var(--accent); }
+.mood-cal-day.has.today { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+.mood-cal-day.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); transform: scale(1.04); }
+.mood-cal-day .cal-okres { bottom: -1px; width: 5px; height: 5px; margin-left: -2.5px; box-shadow: 0 0 0 1.5px var(--surface); }
+.mood-cal-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+.mood-cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.mood-cal-legend i { width: 8px; height: 8px; border-radius: 99px; }
+.mood-cal-legend .cal-okres { position: static; margin: 0; width: 6px; height: 6px; }
+
+/* Wpisy dnia */
+.mood-day { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mood-day-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 2px; }
+.mood-day-head strong { font-size: 15px; }
+.mood-day-add { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 5px 12px; border-radius: 99px; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text); background: var(--surface2); border: 1px solid var(--border); }
+.mood-day-sleep { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-sub); padding: 0 2px; }
+.mood-day-sleep svg { color: var(--info); }
+.mood-day-empty { margin: 0; padding: 18px 12px; text-align: center; font-size: 13px; color: var(--text-muted); border: 1px dashed var(--border-strong); border-radius: var(--r); }
+.mood-log { display: flex; gap: 10px; padding: 10px 10px 10px 12px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--border); }
+.mood-log-face { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+  background: color-mix(in oklab, var(--c, var(--text-muted)) 22%, var(--surface)); box-shadow: inset 0 0 0 1.5px var(--c, var(--border)); }
+.mood-log-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.mood-log-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.mood-log-head strong { font-size: 14px; }
+.mood-log-head span { font-size: 11.5px; color: var(--text-muted); }
+.mood-log-head .t-btn { margin-left: auto; }
+.mood-log-ratings { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--text-muted); }
+.mood-log-ratings span { display: inline-flex; align-items: center; gap: 6px; }
+.mood-log-ratings b { display: inline-flex; gap: 2px; }
+.mood-log-ratings b i { width: 6px; height: 6px; border-radius: 99px; background: var(--surface3); }
+.mood-log-note { margin: 0; font-size: 12.5px; color: var(--text-sub); font-style: italic; line-height: 1.5; }
+
+/* Formularz: zwijane części */
+.mood-form { gap: 10px; }
+.mood-form > div:first-child { margin-bottom: 6px; }
+.mood-part { border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); }
+.mood-part-head { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 12px; cursor: pointer;
+  background: none; border: none; font-family: inherit; text-align: left; color: var(--text); }
+.mood-part-title { font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.mood-part-sum { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text-muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mood-part-chev { color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
+.mood-part.open .mood-part-chev { transform: rotate(90deg); }
+.mood-part.open .mood-part-sum { color: var(--text-sub); }
+.mood-part-body { padding: 2px 12px 14px; }
+.mood-part .emo-panel { background: var(--surface); }
+.emo-wheel svg { max-width: 290px; }
+.mood-chip { min-height: 38px; padding: 7px 13px; font-size: 13.5px; }
+.mood-chip-input, .mood-chip-ok { min-height: 38px; }
+
+/* Sen: tydzień na osi nocy */
+.sleep-week { padding: 14px; }
+.sleep-week-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.sleep-week-head strong { font-size: 14.5px; }
+.sleep-week-head span { font-size: 12px; color: var(--text-muted); }
+.sleep-week-head b { color: var(--text); }
+.sleep-axis, .sleep-night { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; }
+.sleep-axis { display: flex; justify-content: space-between; margin: 0 52px 4px; font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.sleep-axis span { width: 0; display: flex; justify-content: center; }
+.sleep-night { height: 26px; }
+.sleep-night-lbl { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+.sleep-night.today .sleep-night-lbl { color: var(--text); font-weight: 700; }
+.sleep-night-track { position: relative; height: 12px; border-radius: 6px;
+  background: repeating-linear-gradient(90deg, var(--surface2) 0 calc(12.5% - 1px), var(--border-strong) calc(12.5% - 1px) 12.5%); }
+.sleep-night-bar { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: var(--info); }
+.sleep-night-bar i { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; border-radius: 2px; background: var(--warn); }
+.sleep-night-val { font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sleep-night-val em { font-style: normal; font-weight: 600; font-size: 10.5px; color: var(--warn); margin-left: 3px; }
+.sleep-week-legend { display: flex; gap: 14px; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+.sleep-week-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sleep-week-legend i.bar { width: 14px; height: 6px; border-radius: 3px; background: var(--info); }
+.sleep-week-legend i.tick { width: 2px; height: 10px; border-radius: 2px; background: var(--warn); }
+.sleep-week-legend em { font-style: normal; font-weight: 600; color: var(--warn); }
+
+/* Cykl: pierścień */
+.cycle-hero { padding: 14px; gap: 14px; align-items: center; }
+.cycle-ring { flex-shrink: 0; font-family: var(--font-sans); }
+.cycle-hero-txt { gap: 4px; }
+.cycle-hero-txt strong { font-size: 16px; }
+.cycle-hero-txt b { color: var(--text); }
+.cycle-mini { font-size: 11.5px !important; color: var(--text-muted) !important; }
+.mood-btn-ghost.sm { flex: none; min-height: 36px; padding: 6px 12px; font-size: 13px; margin-top: 4px; align-self: flex-start; }
+.cycle-today { padding: 14px; }
+.cycle-today-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.cycle-today-head i { width: 8px; height: 8px; border-radius: 99px; }
+.cycle-opis { font-size: 13.5px; line-height: 1.55; }
+.cycle-opis small { color: var(--text-muted); }
+.cycle-legend { margin-top: 0; padding: 0 2px; }
+/* Stara reguła .mood-cal-grid (sprzed przebudowy) rysowała drugą ramkę w środku kalendarza */
+.mood-cal .mood-cal-grid { background: none; border: none; padding: 0; border-radius: 0; }
+@media (min-width: 900px) {
+  .mood-today-card { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+  .mood-today-top { flex: 1 1 240px; }
+  .mood-quick { flex: 0 0 320px; }
+  .mood-today-chips { flex-basis: 100%; }
+}
+
+/* Okres w kalendarzu nastroju: czerwona kropla w rogu dnia — widoczna także
+   na dniu zamalowanym kolorem nastroju (kropka pod spodem ginęła). */
+.mcal-okres { position: absolute; top: -1px; right: -1px; width: 11px; height: 11px; border-radius: 50% 0 50% 50%;
+  background: #EF4444; box-shadow: 0 0 0 2px var(--surface); transform: rotate(-45deg); pointer-events: none; }
+.mcal-okres.prog { background: var(--surface); box-shadow: inset 0 0 0 2px #F87171, 0 0 0 2px var(--surface); }
+.mcal-okres.leg { position: static; display: inline-block; width: 9px; height: 9px; box-shadow: none; }
+
+/* Mały kalendarz cyklu */
+.cyc-cal { padding: 12px 12px 10px; }
+.cyc-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.cyc-cal-head strong { font-size: 14px; }
+.cyc-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; justify-items: center; }
+.cyc-day { width: 100%; max-width: 32px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: var(--text-sub); }
+.cyc-day.okres { background: #EF4444; color: #fff; font-weight: 700; }
+.cyc-day.prog { box-shadow: inset 0 0 0 2px #F87171; color: var(--text); font-weight: 600; background: color-mix(in oklab, #F87171 14%, transparent); }
+.cyc-day.owu { background: color-mix(in oklab, #FBBF24 22%, transparent); color: var(--text); }
+.cyc-day.today { outline: 2px solid var(--text); outline-offset: 1px; font-weight: 700; color: var(--text); }
+.cyc-cal-legend { display: flex; justify-content: center; gap: 14px; margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+.cyc-cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.cyc-cal-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.cyc-cal-legend i.okres { background: #EF4444; }
+.cyc-cal-legend i.prog { box-shadow: inset 0 0 0 2px #F87171; }
+.cyc-cal-legend i.owu { background: color-mix(in oklab, #FBBF24 45%, transparent); }
+.cyc-cal-next { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 13px; font-weight: 600; display: flex; flex-direction: column; gap: 2px; }
+.cyc-cal-next small { font-size: 11.5px; font-weight: 400; color: var(--text-muted); }
+@media (min-width: 900px) {
+  .cyc-cal { max-width: 380px; }
+}
+.mood-cal-day .mcal-okres { top: 9%; right: 9%; width: 10px; height: 10px; }
+.emo-level-name { font-size: 12.5px; overflow-wrap: normal; word-break: keep-all; }
+@media (max-width: 360px) { .emo-level-name { font-size: 11.5px; } }
+
+/* Stopka formularza: przyklejona do dołu okna, z pełnym tłem okna — przycisk
+   (także wyszarzony) nie prześwituje już przez treść pod spodem. */
+.mood-form-foot { position: sticky; bottom: calc(-28px - env(safe-area-inset-bottom, 0px)); margin: 4px -24px calc(-28px - env(safe-area-inset-bottom, 0px));
+  padding: 12px 24px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--border); z-index: 2; }
+.mood-form-foot .btn-save:disabled { opacity: 1; background: var(--surface3); color: var(--text-muted); }
+
+/* Chwile dnia (rano źle → wieczorem dobrze) */
+.mood-chwile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px; }
+.mood-log .mood-chwile { margin-bottom: 0; }
+.mood-chwila { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 3px; border-radius: 99px; color: var(--text-sub); font-variant-numeric: tabular-nums;
+  background: color-mix(in oklab, var(--c) 14%, transparent); border: 1px solid color-mix(in oklab, var(--c) 40%, transparent); }
+.mood-chwila + .mood-chwila { position: relative; margin-left: 12px; }
+.mood-chwila + .mood-chwila::before { content: '→'; position: absolute; left: -15px; color: var(--text-muted); }
+.mood-tag small { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-left: 2px; font-variant-numeric: tabular-nums; }
+.mood-tag b { font-size: 11px; margin-left: 1px; }
+.mood-tag b.plus, .wplyw-ocena b.plus { color: var(--income); }
+.mood-tag b.minus, .wplyw-ocena b.minus { color: var(--expense); }
+.mood-log-open { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; padding: 0; background: none; border: none; cursor: pointer; font-family: inherit; color: var(--text); text-align: left; }
+.mood-log-open strong { font-size: 14px; }
+.mood-log-open span { font-size: 11.5px; color: var(--text-muted); }
+.mood-log-open svg { color: var(--text-muted); }
+.mood-log { cursor: default; }
+
+/* „Jak to na Ciebie wpłynęło?” przy czynnikach */
+.mood-wplyw { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.mood-wplyw-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.mood-wplyw-row > span { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.mood-wplyw-row > span i { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.mood-wplyw-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.mood-wplyw-btns button { min-height: 34px; padding: 5px 11px; border-radius: 99px; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  background: transparent; border: 1.5px solid var(--border-strong); color: var(--text-muted); }
+.mood-wplyw-btns button.on.minus { border-color: var(--expense); background: color-mix(in oklab, var(--expense) 18%, transparent); color: var(--text); }
+.mood-wplyw-btns button.on.plus { border-color: var(--income); background: color-mix(in oklab, var(--income) 18%, transparent); color: var(--text); }
+.wplyw-ocena { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 3px; font-size: 12px; color: var(--text-muted); }
+.wplyw-ocena b { font-weight: 700; }
+
+/* Przełącznik „Wpisz do kalendarza” */
+.mood-kal { margin-top: 14px; padding: 10px 12px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--border); }
+.mood-switch { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.mood-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.mood-switch-ui { width: 42px; height: 24px; border-radius: 99px; background: var(--surface3); position: relative; flex-shrink: 0; transition: background .2s; }
+.mood-switch-ui::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s var(--spring); }
+.mood-switch input:checked + .mood-switch-ui { background: var(--income); }
+.mood-switch input:checked + .mood-switch-ui::after { transform: translateX(18px); }
+.mood-switch input:focus-visible + .mood-switch-ui { outline: 2px solid var(--text); outline-offset: 2px; }
+.mood-switch > span:last-child { display: flex; flex-direction: column; gap: 1px; }
+.mood-switch small { font-size: 11.5px; font-weight: 400; color: var(--text-muted); }
+
+/* Skale z opisem */
+.mood-row-lbl > span { display: flex; flex-direction: column; gap: 1px; color: var(--text); }
+.mood-row-lbl small { font-size: 10.5px; color: var(--text-muted); }
+.mood-row-lbl small { white-space: nowrap; }
+
+/* ── Formularz dnia z chwilami ──────────────────────────────────────────── */
+.mood-day-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.mood-day-bar-info { font-size: 12.5px; color: var(--text-muted); }
+.mood-day-bar-info b { color: var(--text); }
+.mood-date, .mood-time { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+.mood-date input, .mood-time input { min-height: 38px; padding: 6px 10px; border-radius: 10px; font-family: inherit; font-size: 16px;
+  color: var(--text); background: var(--surface2); border: 1px solid var(--border-strong); color-scheme: dark; }
+.mood-chwila-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.mood-chwile-lista { display: flex; flex-direction: column; gap: 6px; }
+.mood-chwila-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 4px; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); }
+.mood-chwila-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px; background: none; border: none; cursor: pointer; text-align: left; font-family: inherit; color: var(--text); }
+.mood-chwila-face { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+  background: color-mix(in oklab, var(--c) 22%, var(--surface)); box-shadow: inset 0 0 0 1.5px var(--c); }
+.mood-chwila-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mood-chwila-txt strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.mood-chwila-txt small { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mood-chwila-add { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; border-radius: var(--r); cursor: pointer;
+  font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text); background: transparent; border: 1.5px dashed var(--border-strong); }
+.mood-foot-row { display: flex; gap: 8px; }
+.mood-foot-row .mood-btn-ghost { flex: 0 0 auto; min-height: 50px; }
+.mood-foot-row .mood-save { flex: 1; }
+
+/* Chwile na karcie dnia */
+.mood-log-chwile { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mood-log-chwile li { display: flex; align-items: flex-start; gap: 8px; padding-left: 8px; border-left: 2px solid var(--c); }
+.mood-log-chwila-czas { display: inline-flex; align-items: center; gap: 4px; min-width: 62px; font-size: 12px; font-weight: 600; color: var(--text-sub); font-variant-numeric: tabular-nums; padding-top: 3px; }
+.mood-log-chwila-pusta { font-size: 12px; color: var(--text-muted); padding-top: 3px; }
+/* Wąski ekran: etykieta skali nad kółkami 1–5 zamiast na nie wchodzić */
+.mood-row { flex-wrap: wrap; row-gap: 6px; }
+.mood-row > span { flex: 1 1 110px; }
+
+/* ── Analiza nastroju: wnioski zwykłym językiem ─────────────────────────── */
+.wn-head { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--border); }
+.wn-head-face { width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+  background: color-mix(in oklab, var(--c, var(--accent)) 22%, var(--surface)); box-shadow: inset 0 0 0 2px var(--c, var(--accent)); }
+.wn-head-main { margin: 0; font-size: 17px; }
+.wn-head-sub { margin: 3px 0 0; font-size: 13px; color: var(--text-sub); line-height: 1.45; }
+.wn-head b.plus, .wn-head b.minus { font-weight: 700; color: var(--text); }
+.wn-head b.plus::before { content: '↑ '; color: var(--income); }
+.wn-head b.minus::before { content: '↓ '; color: var(--expense); }
+.wn-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 700px) { .wn-grid { grid-template-columns: 1fr 1fr; } }
+.wn-karta { padding: 14px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--border); }
+.wn-karta h4 { margin: 0 0 10px; font-size: 14.5px; }
+.wn-karta.plus h4 { color: var(--income); }
+.wn-karta.minus h4 { color: var(--expense); }
+.wn-karta ul, .wn-emocje { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.wn-karta li { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+.wn-karta .wn-pasek { grid-column: 1 / -1; }
+.wn-nazwa { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; color: var(--text); }
+.wn-nazwa i { width: 9px; height: 9px; border-radius: 99px; flex-shrink: 0; }
+.wn-liczba { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.wn-pasek { display: block; height: 6px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.wn-pasek > span { display: block; height: 100%; border-radius: 4px; }
+.wn-karta.plus .wn-pasek > span { background: var(--income); }
+.wn-karta.minus .wn-pasek > span { background: var(--expense); }
+.wn-pusto { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+.wn-emocje li { display: grid; grid-template-columns: minmax(90px, 30%) 1fr 40px; gap: 10px; align-items: center; }
+.wn-emocje .wn-liczba { text-align: right; font-size: 12.5px; color: var(--text-sub); }
+.wn-zdania { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--border); }
+.wn-zdania p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-sub); display: flex; gap: 10px; }
+.wn-zdania p i { width: 8px; height: 8px; border-radius: 99px; flex-shrink: 0; margin-top: 7px; }
+.wn-zdania b { color: var(--text); }
+.wn-stopka { margin: -2px 2px 0; }
+/* Nazwy emocji i czynników nie łamią się w połowie słowa */
+.wn-nazwa { overflow-wrap: normal; }
+.wn-emocje li { grid-template-columns: minmax(118px, 38%) 1fr 40px; }

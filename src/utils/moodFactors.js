@@ -96,3 +96,53 @@ export function nastrojWGrupach(nastroj, grupaDnia, kolejnosc = []) {
   const grupy = [...new Set([...kolejnosc, ...sumy.keys()])]
   return grupy.filter(g => sumy.has(g)).map(g => ({ grupa: g, srednia: sumy.get(g)[0] / sumy.get(g)[1], dni: sumy.get(g)[1] }))
 }
+
+/**
+ * Jej własne oceny czynników ze wpisów („praca ↓", „spotkanie ↑"):
+ * Map 'f:<czynnik>' → { lepiej, gorzej }. Uzupełnia porównanie średnich —
+ * gdy praca i spotkanie wypadają tego samego dnia, średnie ich nie rozdzielą,
+ * a ocena tak.
+ */
+export function ocenyCzynnikow(logi) {
+  const out = new Map()
+  for (const l of logi) {
+    for (const [id, v] of Object.entries(l.factorEffects || {})) {
+      if (v !== 1 && v !== -1) continue
+      const k = `f:${id}`
+      const a = out.get(k) || { lepiej: 0, gorzej: 0 }
+      if (v === 1) a.lepiej++
+      else a.gorzej++
+      out.set(k, a)
+    }
+  }
+  return out
+}
+
+// Różnica (na skali 1–5), od której mówimy „pomaga” / „szkodzi”. Mniejsza
+// to szum — przy kilkunastu wpisach średnie zawsze trochę się różnią.
+export const PROG_WPLYWU = 0.25
+
+/**
+ * Wnioski do pokazania zwykłym językiem: co pomaga, co szkodzi (tylko wyniki
+ * pewne, czyli z dość licznych porównań), po `ile` najmocniejszych z każdej strony.
+ */
+export function pomagaSzkodzi(wplyw, ile = 3) {
+  const pewne = wplyw.filter(w => w.pewne && w.roznica !== null)
+  return {
+    pomaga: pewne.filter(w => w.roznica >= PROG_WPLYWU).sort((a, b) => b.roznica - a.roznica).slice(0, ile),
+    szkodzi: pewne.filter(w => w.roznica <= -PROG_WPLYWU).sort((a, b) => a.roznica - b.roznica).slice(0, ile),
+  }
+}
+
+/**
+ * Najlepsza i najgorsza grupa (np. faza cyklu, długość snu) — tylko z grup
+ * z co najmniej MIN_DNI dniami i gdy różnica jest zauważalna. Inaczej null.
+ */
+export function skrajneGrupy(grupy) {
+  const t = grupy.filter(g => g.dni >= MIN_DNI)
+  if (t.length < 2) return null
+  const pos = [...t].sort((a, b) => b.srednia - a.srednia)
+  const najlepsza = pos[0], najgorsza = pos[pos.length - 1]
+  if (najlepsza.srednia - najgorsza.srednia < PROG_WPLYWU) return null
+  return { najlepsza, najgorsza }
+}
