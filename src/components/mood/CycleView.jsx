@@ -3,13 +3,13 @@ import { collection, addDoc, deleteDoc, updateDoc, doc, Timestamp } from 'fireba
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { db } from '../../firebase/config'
-import StatTiles from '../StatTiles'
+import { Rozwijana } from '../Analityka'
 import { IconTrash, IconClose } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
 import { statystykiCyklu, dzienCyklu, fazaCyklu, prognozaCyklu, zakresyFaz, posortowane, fazaDnia, roznicaDni,
   FAZY, KOLEJNOSC_FAZ } from '../../utils/cycleLogic'
 import { nastrojDni, nastrojWGrupach, MIN_DNI } from '../../utils/moodFactors'
-import { kicker, fmt10, TODAY } from './wspolne'
+import { fmt10, TODAY } from './wspolne'
 
 const dzienSlownie = (k) => format(new Date(k + 'T12:00:00'), 'd MMMM', { locale: pl })
 const dni = (n) => (n === 1 ? 'dzień' : 'dni')
@@ -51,70 +51,47 @@ export default function CycleView({ user, okresy, moodLogs, formularz, setFormul
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div className="card cycle-hero">
-        {dzien ? (
-          <>
-            <div className="cycle-day"><span>{dzien}</span><small>dzień cyklu</small></div>
-            <div className="cycle-hero-txt">
-              <strong><i style={{ background: f.kolor }} />{f.nazwa}</strong>
-              <span>{prog.dniDo > 0 ? `Następny okres za ok. ${prog.dniDo} ${dni(prog.dniDo)} · ${dzienSlownie(prog.nastepny)}`
-                : prog.dniDo === 0 ? 'Okres spodziewany dzisiaj'
-                : `Okres spóźnia się ${-prog.dniDo} ${dni(-prog.dniDo)}`}</span>
-            </div>
-          </>
-        ) : (
-          <div className="cycle-hero-txt">
-            <strong>Brak aktualnych danych</strong>
-            <span>Ostatni zapisany okres był ponad dwa miesiące temu. Zaznacz nowy, żeby wznowić liczenie.</span>
-          </div>
-        )}
-      </div>
-
-      {dzien && (
-        <div className="card" style={{ padding: 16 }}>
-          {kicker('Gdzie jesteś w cyklu', { marginBottom: 12 })}
-          <div className="cycle-bar" role="img" aria-label={`Dzień ${dzien} z ${stat.dlugoscCyklu}, ${f.nazwa}`}>
-            {zakresy.map(z => (
-              <div key={z.faza} style={{ flex: z.do - z.od + 1, background: FAZY[z.faza].kolor, opacity: z.faza === faza ? 1 : 0.4 }} />
-            ))}
-            <span className="cycle-marker" style={{ left: `${Math.min(100, ((dzien - 0.5) / stat.dlugoscCyklu) * 100)}%` }} />
-          </div>
-          <div className="cycle-legend">
-            {zakresy.map(z => (
-              <span key={z.faza} className={z.faza === faza ? 'on' : ''}><i style={{ background: FAZY[z.faza].kolor }} />{FAZY[z.faza].nazwa} <small>{z.od === z.do ? z.od : `${z.od}–${z.do}`}</small></span>
-            ))}
-          </div>
+      {/* Pierścień cyklu: łuki faz, kropka = dziś, w środku dzień cyklu */}
+      <section className="card cycle-hero">
+        <CycleRing dzien={dzien} dlugosc={stat.dlugoscCyklu} zakresy={zakresy} faza={faza} />
+        <div className="cycle-hero-txt">
+          {f ? <strong><i style={{ background: f.kolor }} />{f.nazwa}</strong> : <strong>Brak aktualnych danych</strong>}
+          <span>{!dzien ? 'Ostatni okres był ponad dwa miesiące temu — zaznacz nowy.'
+            : prog.dniDo > 0 ? <>Okres za <b>{prog.dniDo} {dni(prog.dniDo)}</b> · {dzienSlownie(prog.nastepny)}</>
+            : prog.dniDo === 0 ? 'Okres spodziewany dzisiaj'
+            : <>Okres spóźnia się <b>{-prog.dniDo} {dni(-prog.dniDo)}</b></>}</span>
+          <span className="cycle-mini">cykl ~{stat.dlugoscCyklu} dni{stat.zDanych ? '' : ' (domyślnie)'} · okres ~{stat.dlugoscOkresu} dni</span>
+          {trwa
+            ? <button type="button" className="mood-btn-ghost sm" onClick={() => zakoncz(trwa)}>Okres skończył się dziś</button>
+            : <button type="button" className="mood-btn-ghost sm" onClick={() => setFormularz(true)}>Okres się zaczął</button>}
         </div>
-      )}
+      </section>
 
       {f && (
-        <div className="card" style={{ padding: 16 }}>
-          {kicker('Czego się dziś spodziewać', { marginBottom: 10 })}
+        <section className="card cycle-today">
+          <div className="cycle-today-head"><i style={{ background: f.kolor }} />Czego się dziś spodziewać</div>
           <p className="cycle-opis">{f.opis}</p>
           {mojaFaza && mojaFaza.dni >= MIN_DNI && (
-            <p className="cycle-opis moje">U Ciebie w tej fazie średni nastrój to <strong>{fmt10(mojaFaza.srednia)}/10</strong> (z {mojaFaza.dni} dni z wpisem).</p>
+            <p className="cycle-opis moje">Twój średni nastrój w tej fazie: <strong>{fmt10(mojaFaza.srednia)}/10</strong> <small>({mojaFaza.dni} dni)</small></p>
           )}
+        </section>
+      )}
+
+      {dzien && (
+        <div className="cycle-legend">
+          {zakresy.map(z => (
+            <span key={z.faza} className={z.faza === faza ? 'on' : ''}><i style={{ background: FAZY[z.faza].kolor }} />{FAZY[z.faza].nazwa} <small>{z.od === z.do ? z.od : `${z.od}–${z.do}`}</small></span>
+          ))}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        {trwa
-          ? <button type="button" className="mood-btn-ghost" onClick={() => zakoncz(trwa)}>Okres skończył się dziś</button>
-          : <button type="button" className="mood-btn-ghost" onClick={() => setFormularz(true)}>Okres się zaczął</button>}
-        {trwa && <button type="button" className="mood-btn-ghost" onClick={() => setFormularz(true)}>Dodaj inny okres</button>}
-      </div>
-
-      <StatTiles tiles={[
-        { label: stat.zDanych ? 'Średni cykl' : 'Cykl (domyślnie)', value: `${stat.dlugoscCyklu} dni` },
-        { label: 'Średni okres', value: `${stat.dlugoscOkresu} dni` },
-        { label: 'Zapisane cykle', value: stat.liczbaCykli },
-      ]} />
       {stat.zDanych && stat.najkrotszy !== stat.najdluzszy && (
-        <p className="mood-note">Ostatnie cykle trwały od {stat.najkrotszy} do {stat.najdluzszy} dni — prognoza może się o tyle przesunąć.</p>
+        <p className="mood-note" style={{ margin: 0 }}>Ostatnie cykle: od {stat.najkrotszy} do {stat.najdluzszy} dni — o tyle może przesunąć się prognoza.</p>
       )}
 
+      <Rozwijana id="cykl-historia" tytul="Historia" podsumowanie={`${historia.length} ${historia.length === 1 ? 'okres' : 'okresów'}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {kicker('Historia')}
+        {trwa && <button type="button" className="mood-btn-ghost sm" onClick={() => setFormularz(true)}>Dodaj inny okres</button>}
         {historia.map((o, i) => {
           const nast = historia[i - 1]
           return (
@@ -129,11 +106,38 @@ export default function CycleView({ user, okresy, moodLogs, formularz, setFormul
           )
         })}
       </div>
+      </Rozwijana>
 
       <p className="mood-note">To szacunek z kalendarza, oparty na Twoich zapisach i typowym przebiegu cyklu. Nie zastąpi lekarza i nie nadaje się do planowania ani zapobiegania ciąży.</p>
 
       {formularz && <CycleForm user={user} okresy={okresy} onClose={() => setFormularz(false)} />}
     </div>
+  )
+}
+
+// Pierścień cyklu. Łuki faz od góry zgodnie z ruchem wskazówek; bieżąca faza
+// pełnym kolorem, pozostałe przygaszone, kropka na dzisiejszym dniu.
+function CycleRing({ dzien, dlugosc, zakresy, faza, size = 116 }) {
+  const r = 44, sw = 10, C = 2 * Math.PI * r
+  const przerwa = 1.6
+  const kat = (d) => ((d - 1) / dlugosc) * 2 * Math.PI - Math.PI / 2
+  const kd = dzien ? kat(Math.min(dzien, dlugosc) + 0.5) : null
+  return (
+    <svg className="cycle-ring" width={size} height={size} viewBox="0 0 120 120" role="img"
+      aria-label={dzien ? `Dzień ${dzien} z ${dlugosc}` : 'Brak danych o cyklu'}>
+      <g transform="rotate(-90 60 60)">
+        {zakresy.map(z => {
+          const dl = ((z.do - z.od + 1) / dlugosc) * C
+          const off = ((z.od - 1) / dlugosc) * C
+          return <circle key={z.faza} cx="60" cy="60" r={r} fill="none" stroke={FAZY[z.faza].kolor} strokeWidth={sw}
+            strokeDasharray={`${Math.max(0.1, dl - przerwa)} ${C}`} strokeDashoffset={-off}
+            opacity={!dzien || z.faza === faza ? 1 : 0.32} />
+        })}
+      </g>
+      {kd !== null && <circle cx={60 + Math.cos(kd) * r} cy={60 + Math.sin(kd) * r} r="7.5" fill="var(--text)" stroke="var(--surface)" strokeWidth="3" />}
+      <text x="60" y="57" textAnchor="middle" fontSize="30" fontWeight="700" fill="var(--text)">{dzien || '–'}</text>
+      <text x="60" y="76" textAnchor="middle" fontSize="9.5" fill="var(--text-muted)">{dzien ? `z ${dlugosc} dni` : 'cykl'}</text>
+    </svg>
   )
 }
 

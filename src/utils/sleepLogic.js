@@ -65,3 +65,25 @@ export function kubelekSnu(min) {
   if (min < 480) return KUBELKI_SNU[2]
   return KUBELKI_SNU[3]
 }
+
+// Oś nocy od 20:00 do 12:00 następnego dnia (w minutach od północy dnia zaśnięcia).
+export const OS_OD = 20 * 60
+export const OS_DO = 36 * 60
+
+/**
+ * Pozycja snu na osi nocy jako ułamki [od, do] w zakresie 0–1, albo null.
+ * Zaśnięcie po północy (np. 00:30) przesuwamy na „następny dzień" osi,
+ * żeby stało za 23:00, a nie na jej początku.
+ */
+export function naOsi(start, end) {
+  const a = /^(\d{1,2}):(\d{2})$/.exec(start || ''), b = /^(\d{1,2}):(\d{2})$/.exec(end || '')
+  if (!a || !b) return null
+  let s = Number(a[1]) * 60 + Number(a[2])
+  if (s < 12 * 60) s += 1440
+  let e = Number(b[1]) * 60 + Number(b[2])
+  while (e <= s) e += 1440
+  const od = Math.max(OS_OD, Math.min(OS_DO, s)), doo = Math.max(OS_OD, Math.min(OS_DO, e))
+  if (doo <= od) return null
+  const dl = OS_DO - OS_OD
+  return [(od - OS_OD) / dl, (doo - OS_OD) / dl]
+}

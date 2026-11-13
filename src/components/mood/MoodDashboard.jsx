@@ -7,7 +7,7 @@ import StatTiles from '../StatTiles'
 import { format, startOfMonth, getDaysInMonth, addDays, subMonths, addMonths } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { LineAreaSVG, DonutStat, BarChartSVG } from '../ChartPrimitives'
-import { IconTrash, IconChevronLeft, IconChevronRight, IconPlus, IconClose, IconChart } from '../Icons'
+import { IconTrash, IconChevronLeft, IconChevronRight, IconPlus, IconClose, IconChart, IcMoon } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
 import SegTabs from '../SegTabs'
 import PersonBubble from '../PersonBubble'
@@ -42,6 +42,7 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
   const [loading, setLoading] = useState(true)
   const [tab, setTab]             = useState('mood') // mood | sleep | cycle
   const [entryDate, setEntryDate] = useState(null) // otwiera modal wpisu dla danego dnia
+  const [entryMood, setEntryMood] = useState(null) // nastrój wybrany buźką na karcie „dziś”
   const [selDate, setSelDate]     = useState(TODAY()) // wybrany dzień (kalendarz) — dzielony z „+" w rogu
   const [view, setView]           = useState('main') // main | stats (analiza pod ikoną w belce)
   const [senForm, setSenForm]     = useState(null)
@@ -61,7 +62,7 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
     const dodaj = () => {
       if (tab === 'sleep') setSenForm({ type: 'night' })
       else if (tab === 'cycle') setCyklForm(true)
-      else setEntryDate(selDate <= TODAY() ? selDate : TODAY())
+      else { setEntryMood(null); setEntryDate(selDate <= TODAY() ? selDate : TODAY()) }
     }
     setHeaderExtras?.(
       <>
@@ -104,8 +105,8 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
 
       {(view === 'stats' || tab === 'mood') && (
         <MoodPage logs={logs} sleepLogs={sleepLogs} okresy={okresy} people={osoby} ust={ust} zapiszUst={zapiszUst}
-          onDelete={handleDelete} selDate={selDate} setSelDate={setSelDate} view={view} onCycle={() => setTab('cycle')}
-          onAddEntry={(d) => setEntryDate(d <= TODAY() ? d : TODAY())} />
+          onDelete={handleDelete} selDate={selDate} setSelDate={setSelDate} view={view} onCycle={() => setTab('cycle')} onSleep={() => setTab('sleep')}
+          onAddEntry={(d, m = null) => { setEntryMood(m); setEntryDate(d <= TODAY() ? d : TODAY()) }} />
       )}
       {view === 'main' && tab === 'sleep' && <SleepView user={user} logs={sleepLogs} formularz={senForm} setFormularz={setSenForm} />}
       {view === 'main' && tab === 'cycle' && <CycleView user={user} okresy={okresy} moodLogs={logs} formularz={cyklForm} setFormularz={setCyklForm} />}
@@ -118,7 +119,7 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
               <h3 style={{ textTransform: 'capitalize' }}>{entryDate === TODAY() ? 'Nowy wpis · dziś' : `Wpis · ${entryLabel}`}</h3>
               <button className="modal-close" aria-label="Zamknij" onClick={() => setEntryDate(null)}><IconClose size={16} /></button>
             </div>
-            <MoodEntryForm key={entryDate} user={user} date={entryDate} ust={ust} zapiszUst={zapiszUst} people={osoby}
+            <MoodEntryForm key={entryDate + (entryMood || '')} user={user} date={entryDate} initialMood={entryMood} ust={ust} zapiszUst={zapiszUst} people={osoby}
               onSaved={() => setEntryDate(null)} />
           </div>
         </div>
@@ -130,7 +131,7 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
 /* ============================================================
    JEDEN WIDOK — wykres + średnia + emocje + wpis + kalendarz
    ============================================================ */
-function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, selDate, setSelDate, onAddEntry, onCycle, view = 'main' }) {
+function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, selDate, setSelDate, onAddEntry, onCycle, onSleep, view = 'main' }) {
   const [viewMode, setViewMode] = useState('month') // month | year | all
   const [month, setMonth]     = useState(new Date())
   const today = TODAY()
@@ -238,81 +239,111 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
     />
   )
 
-  // ── WIDOK GŁÓWNY: kalendarz miesiąca + wpisy wybranego dnia ──────────────────
+  // ── WIDOK GŁÓWNY: karta „dziś", kalendarz miesiąca i wpisy wybranego dnia ──
   if (view === 'main') {
+    const dzisLogs = logs.filter(l => l.date === today && l.moodValue)
+    const dzisSrednia = dzisLogs.length ? dzisLogs.reduce((s, l) => s + l.moodValue, 0) / dzisLogs.length : null
+    const dzisMood = dzisSrednia ? moodDla(dzisSrednia) : null
+    const senDzis = senDnia(sleepLogs, today)
+    const dzisLbl = format(new Date(), 'EEEE, d MMMM', { locale: pl })
+    const ileWpisow = (n) => `${n} ${n === 1 ? 'wpis' : n < 5 ? 'wpisy' : 'wpisów'}`
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {/* Cykl na dziś — skrót do zakładki Cykl */}
-        {faza && (
-          <button type="button" className="cycle-banner" onClick={onCycle}>
-            <i style={{ background: FAZY[faza].kolor }} />
-            <span><strong>Dzień {dzienC} cyklu · {FAZY[faza].nazwa.toLowerCase()}</strong>
-              <small>{prog && prog.dniDo > 0 ? `okres za ok. ${prog.dniDo} dni · ` : ''}zobacz, czego się spodziewać</small></span>
-            <IconChevronRight size={15} />
-          </button>
-        )}
-
-        {/* Nawigacja miesiąca (nazwa nad kalendarzem) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <button className="month-btn" style={{ width: 32, height: 32 }} onClick={() => setMonth(m => addMonths(m, -1))}><IconChevronLeft size={15} /></button>
-          <span style={{ fontSize: 15, fontWeight: 700, textTransform: 'capitalize' }}>{monthLbl} {year}</span>
-          <button className="month-btn" style={{ width: 32, height: 32 }} onClick={() => setMonth(m => addMonths(m, 1))}><IconChevronRight size={15} /></button>
-        </div>
-
-        {tiles}
-
-        {/* Na komputerze kalendarz i wpisy stoją obok siebie — rozciągnięty na całą
-            szerokość kalendarz miał kafle dnia po ~200 px. */}
-        <div className="mood-main-grid">
-        {/* Kalendarz miesiąca (kolor = nastrój dnia; klik wybiera dzień) */}
-        <div className="card card-hover-glow mood-cal-card" style={{ padding: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 6 }}>
-            {['P', 'W', 'Ś', 'C', 'P', 'S', 'N'].map((d, i) => <div key={i} style={{ textAlign: 'center', fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>{d}</div>)}
+      <div className="mood-main">
+        {/* Dziś: nastrój, szybki wybór buźki, cykl i sen w jednej karcie */}
+        <section className="mood-today-card">
+          <div className="mood-today-top">
+            <div className={`mood-today-face${dzisMood ? '' : ' empty'}`} style={dzisMood ? { '--c': dzisMood.color } : undefined}>
+              {dzisMood ? <MoodFace mood={dzisMood} size={34} active /> : <span>?</span>}
+            </div>
+            <div className="mood-today-txt">
+              <small>{dzisLbl}</small>
+              <strong>{dzisMood ? dzisMood.label : 'Jak się dziś masz?'}</strong>
+              {dzisMood && <span>{ileWpisow(dzisLogs.length)} · {fmt10(dzisSrednia)}/10</span>}
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
-            {Array.from({ length: firstDow }, (_, i) => <div key={'e' + i} />)}
-            {calDays.map(({ date, dayNum, count, color, okres, prognoza }) => {
-              const isSel = date === selDate
-              const isTd = date === today
-              return (
-                <button key={date} onClick={() => setSelDate(date)} aria-pressed={isSel}
-                  aria-label={`${dayNum}${count ? `, wpisów: ${count}` : ''}${okres ? ', okres' : prognoza ? ', spodziewany okres' : ''}`} style={{
-                  position: 'relative',
-                  aspectRatio: '1 / 1', borderRadius: 8, display: 'grid', placeItems: 'center', cursor: 'pointer',
-                  background: color ? color + '33' : 'var(--surface2)',
-                  border: `1.5px solid ${isSel ? (color || 'var(--accent)') : isTd ? 'var(--accent)' : 'transparent'}`,
-                  fontSize: 12, fontWeight: isTd ? 700 : 500, color: color ? 'var(--text)' : 'var(--text-muted)', transition: 'all .15s',
-                }}>{dayNum}{(okres || prognoza) && <span className={`cal-okres${okres ? '' : ' prog'}`} />}</button>
-              )
-            })}
-          </div>
-          {okresy.length > 0 && (
-            <div className="cal-legenda"><span><i className="cal-okres" />okres</span><span><i className="cal-okres prog" />spodziewany</span></div>
-          )}
-        </div>
-
-        {/* Wpisy wybranego dnia + dodawanie */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            {kicker(selDate === today ? 'Wpisy dziś' : `Wpisy · ${selLabel}`)}
-            {canAdd && (
-              <button className="t-btn" onClick={() => onAddEntry?.(selDate)}
-                style={{ width: 'auto', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600 }}>
-                <IconPlus size={13} /> Dodaj wpis
+          <div className="mood-quick" role="group" aria-label="Szybki wpis nastroju">
+            {MOODS.map(m => (
+              <button key={m.id} type="button" style={{ '--c': m.color }} aria-label={`Dodaj wpis: ${m.label}`}
+                onClick={() => onAddEntry?.(today, m.id)}>
+                <MoodFace mood={m} size={24} active />
               </button>
-            )}
+            ))}
           </div>
-          {senWybranego.razem > 0 && (
-            <p className="mood-note" style={{ margin: 0 }}>Sen: {senWybranego.maNoc ? `noc ${fmtCzas(senWybranego.noc)}` : ''}{senWybranego.maNoc && senWybranego.pobudki ? ` · pobudki: ${senWybranego.pobudki}` : ''}{senWybranego.liczbaDrzemek ? `${senWybranego.maNoc ? ' · ' : ''}drzemki ${fmtCzas(senWybranego.drzemki)}` : ''}</p>
+          {(faza || senDzis.razem > 0) && (
+            <div className="mood-today-chips">
+              {faza && (
+                <button type="button" onClick={onCycle}>
+                  <i style={{ background: FAZY[faza].kolor }} />dzień {dzienC} · {FAZY[faza].nazwa.toLowerCase()}
+                  {prog && prog.dniDo > 0 && <em>okres za {prog.dniDo} d</em>}
+                </button>
+              )}
+              {senDzis.razem > 0 && (
+                <button type="button" onClick={onSleep}>
+                  <IcMoon size={13} />{senDzis.maNoc ? fmtCzas(senDzis.noc) : `drzemka ${fmtCzas(senDzis.drzemki)}`}
+                  {senDzis.pobudki > 0 && <em>{senDzis.pobudki}× pobudka</em>}
+                </button>
+              )}
+            </div>
           )}
-          {dayLogs.length > 0 ? (
-            dayLogs.map(log => <LogEntry key={log.id} log={log} onDelete={() => onDelete(log)} people={people} ust={ust} />)
-          ) : (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0', margin: 0 }}>
-              {canAdd ? 'Brak wpisów tego dnia' : 'Nie można dodać wpisu z przyszłości'}
-            </p>
-          )}
-        </div>
+        </section>
+
+        {/* Na komputerze kalendarz i wpisy stoją obok siebie. */}
+        <div className="mood-main-grid">
+          <section className="mood-cal">
+            <div className="mood-cal-head">
+              <button type="button" className="mood-cal-nav" aria-label="Poprzedni miesiąc" onClick={() => setMonth(m => addMonths(m, -1))}><IconChevronLeft size={15} /></button>
+              <div className="mood-cal-title">
+                <strong>{monthLbl} {year}</strong>
+                <small>{tileStats.srednia ? <>śr. <b style={{ color: tileColor }}>{fmt10(tileStats.srednia)}</b> · {tileStats.dni} {tileStats.dni === 1 ? 'dzień' : 'dni'}</> : 'brak wpisów'}</small>
+              </div>
+              <button type="button" className="mood-cal-nav" aria-label="Następny miesiąc" onClick={() => setMonth(m => addMonths(m, 1))}><IconChevronRight size={15} /></button>
+            </div>
+            <div className="mood-cal-grid">
+              {['pn', 'wt', 'śr', 'cz', 'pt', 'so', 'nd'].map(d => <span key={d} className="mood-cal-dow">{d}</span>)}
+              {Array.from({ length: firstDow }, (_, i) => <span key={'e' + i} />)}
+              {calDays.map(({ date, dayNum, count, color, okres, prognoza }) => {
+                const isSel = date === selDate
+                const isTd = date === today
+                return (
+                  <button key={date} type="button" onClick={() => setSelDate(date)} aria-pressed={isSel}
+                    className={`mood-cal-day${color ? ' has' : ''}${isSel ? ' sel' : ''}${isTd ? ' today' : ''}${date > today ? ' future' : ''}`}
+                    style={color ? { '--c': color } : undefined}
+                    aria-label={`${dayNum}${count ? `, wpisów: ${count}` : ''}${okres ? ', okres' : prognoza ? ', spodziewany okres' : ''}`}>
+                    {dayNum}
+                    {(okres || prognoza) && <i className={`cal-okres${okres ? '' : ' prog'}`} />}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mood-cal-legend">
+              {MOODS.map(m => <span key={m.id}><i style={{ background: m.color }} />{m.label}</span>)}
+              {okresy.length > 0 && <span><i className="cal-okres" />okres</span>}
+            </div>
+          </section>
+
+          {/* Wpisy wybranego dnia */}
+          <section className="mood-day">
+            <div className="mood-day-head">
+              <strong>{selDate === today ? 'Dziś' : selLabel}</strong>
+              {canAdd && (
+                <button type="button" className="mood-day-add" onClick={() => onAddEntry?.(selDate)}>
+                  <IconPlus size={13} /> wpis
+                </button>
+              )}
+            </div>
+            {senWybranego.razem > 0 && selDate !== today && (
+              <div className="mood-day-sleep"><IcMoon size={13} />
+                {senWybranego.maNoc ? `noc ${fmtCzas(senWybranego.noc)}` : ''}
+                {senWybranego.maNoc && senWybranego.pobudki ? ` · ${senWybranego.pobudki}× pobudka` : ''}
+                {senWybranego.liczbaDrzemek ? `${senWybranego.maNoc ? ' · ' : ''}drzemki ${fmtCzas(senWybranego.drzemki)}` : ''}
+              </div>
+            )}
+            {dayLogs.length > 0 ? (
+              dayLogs.map(log => <LogEntry key={log.id} log={log} onDelete={() => onDelete(log)} people={people} ust={ust} />)
+            ) : (
+              <p className="mood-day-empty">{canAdd ? 'Brak wpisów tego dnia' : 'Nie można dodać wpisu z przyszłości'}</p>
+            )}
+          </section>
         </div>
       </div>
     )
@@ -459,54 +490,38 @@ function LogEntry({ log, onDelete, people, ust }) {
   const moodObj = log.mood ? MOODS.find(m => m.id === log.mood) : null
   const ratingEntries = Object.entries(log.ratings || {}).filter(([, v]) => v > 0).map(([id, v]) => ({ ...findRatingCat(id, ust.ratingCats), value: v }))
   const osoby = (log.peopleIds || []).map(id => people.find(p => p.id === id)).filter(Boolean)
+  const emocje = (log.emotions || []).map(id => findEmotion(id, ust.emotions))
+  const czynniki = (log.factors || []).map(id => findFactor(id, ust.factors))
   return (
-    <div style={{
-      background: 'var(--surface)',
-      border: `1px solid ${moodObj ? moodObj.color + '44' : 'var(--border)'}`,
-      borderLeft: `3px solid ${moodObj?.color || 'var(--border)'}`,
-      borderRadius: 'var(--r)', padding: '12px 14px',
-      display: 'flex', flexDirection: 'column', gap: 8,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {moodObj && <MoodFace mood={moodObj} size={20} active />}
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{log.moodLabel}</span>
-          {log.time && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{log.time}</span>}
+    <article className="mood-log" style={moodObj ? { '--c': moodObj.color } : undefined}>
+      <div className="mood-log-face">{moodObj && <MoodFace mood={moodObj} size={24} active />}</div>
+      <div className="mood-log-body">
+        <div className="mood-log-head">
+          <strong>{log.moodLabel}</strong>
+          {log.time && <span>{log.time}</span>}
+          <button onClick={onDelete} className="t-btn delete" aria-label="Usuń wpis"><IconTrash size={12} /></button>
         </div>
-        <button onClick={onDelete} className="t-btn delete" aria-label="Usuń wpis"><IconTrash size={12} /></button>
+        {(emocje.length > 0 || czynniki.length > 0 || osoby.length > 0) && (
+          <div className="mood-tags">
+            {emocje.map(em => <span key={em.id} className="mood-tag" style={{ '--c': em.color }}><i />{em.label.toLowerCase()}</span>)}
+            {czynniki.map(f => <span key={f.id} className="mood-tag sq" style={{ '--c': f.color }}><i />{f.label}</span>)}
+            {osoby.map(o => <span key={o.id} className="mood-tag person"><PersonBubble person={o} size={16} />{o.name}</span>)}
+          </div>
+        )}
+        {ratingEntries.length > 0 && (
+          <div className="mood-log-ratings">
+            {ratingEntries.map(c => (
+              <span key={c.id}>{c.label}
+                <b aria-label={`${c.value} na 5`}>{[1, 2, 3, 4, 5].map(v => <i key={v} style={v <= c.value ? { background: c.color } : undefined} />)}</b>
+              </span>
+            ))}
+          </div>
+        )}
+        {log.note && <p className="mood-log-note">„{log.note}”</p>}
       </div>
-      {log.emotions?.length > 0 && (
-        <div className="mood-tags">
-          {log.emotions.map(id => {
-            const em = findEmotion(id, ust.emotions)
-            return <span key={id} className="mood-tag" style={{ '--c': em.color }}><i />{em.label.toLowerCase()}</span>
-          })}
-        </div>
-      )}
-      {(log.factors?.length > 0 || osoby.length > 0) && (
-        <div className="mood-tags">
-          {(log.factors || []).map(id => {
-            const f = findFactor(id, ust.factors)
-            return <span key={id} className="mood-tag sq" style={{ '--c': f.color }}><i />{f.label}</span>
-          })}
-          {osoby.map(o => <span key={o.id} className="mood-tag person"><PersonBubble person={o} size={16} />{o.name}</span>)}
-        </div>
-      )}
-      {ratingEntries.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {ratingEntries.map(c => (
-            <span key={c.id} style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {c.label} <strong style={{ color: 'var(--text)' }}>{c.value}/5</strong>
-            </span>
-          ))}
-        </div>
-      )}
-      {log.note && <p style={{ margin: 0, fontSize: 12, color: 'var(--text-sub)', fontStyle: 'italic', lineHeight: 1.5 }}>„{log.note}"</p>}
-    </div>
+    </article>
   )
 }
-
-
 
 // Pojedynczy wpis w miesiącu — zamiast samotnej kropki na wykresie pokaż czytelną kartę
 function SingleMoodPreview({ point }) {
