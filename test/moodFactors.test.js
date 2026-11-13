@@ -64,3 +64,26 @@ test('ocenyCzynnikow — zliczenie „lepiej / gorzej” z wpisów', async () =>
   assert.deepEqual(o.get('f:spotkanie'), { lepiej: 1, gorzej: 0 })
   assert.equal(o.has('f:sport'), false)
 })
+
+test('pomagaSzkodzi — tylko pewne i zauważalne, najmocniejsze na górze', async () => {
+  const { pomagaSzkodzi } = await import('../src/utils/moodFactors.js')
+  const w = [
+    { klucz: 'f:sport', roznica: 1.2, pewne: true },
+    { klucz: 'f:spotkanie', roznica: 0.6, pewne: true },
+    { klucz: 'f:dom', roznica: 0.1, pewne: true },        // szum
+    { klucz: 'f:praca', roznica: -0.9, pewne: true },
+    { klucz: 'p:x', roznica: 2, pewne: false },           // za mało danych
+  ]
+  const { pomaga, szkodzi } = pomagaSzkodzi(w)
+  assert.deepEqual(pomaga.map(x => x.klucz), ['f:sport', 'f:spotkanie'])
+  assert.deepEqual(szkodzi.map(x => x.klucz), ['f:praca'])
+})
+
+test('skrajneGrupy — najlepsza i najgorsza, ale nie z garstki dni', async () => {
+  const { skrajneGrupy } = await import('../src/utils/moodFactors.js')
+  const g = [{ grupa: 'a', srednia: 4, dni: 5 }, { grupa: 'b', srednia: 2.5, dni: 4 }, { grupa: 'c', srednia: 1, dni: 1 }]
+  const s = skrajneGrupy(g)
+  assert.equal(s.najlepsza.grupa, 'a')
+  assert.equal(s.najgorsza.grupa, 'b')
+  assert.equal(skrajneGrupy([{ grupa: 'a', srednia: 3, dni: 5 }, { grupa: 'b', srednia: 3.1, dni: 5 }]), null)
+})

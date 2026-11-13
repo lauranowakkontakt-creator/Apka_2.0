@@ -117,3 +117,32 @@ export function ocenyCzynnikow(logi) {
   }
   return out
 }
+
+// Różnica (na skali 1–5), od której mówimy „pomaga” / „szkodzi”. Mniejsza
+// to szum — przy kilkunastu wpisach średnie zawsze trochę się różnią.
+export const PROG_WPLYWU = 0.25
+
+/**
+ * Wnioski do pokazania zwykłym językiem: co pomaga, co szkodzi (tylko wyniki
+ * pewne, czyli z dość licznych porównań), po `ile` najmocniejszych z każdej strony.
+ */
+export function pomagaSzkodzi(wplyw, ile = 3) {
+  const pewne = wplyw.filter(w => w.pewne && w.roznica !== null)
+  return {
+    pomaga: pewne.filter(w => w.roznica >= PROG_WPLYWU).sort((a, b) => b.roznica - a.roznica).slice(0, ile),
+    szkodzi: pewne.filter(w => w.roznica <= -PROG_WPLYWU).sort((a, b) => a.roznica - b.roznica).slice(0, ile),
+  }
+}
+
+/**
+ * Najlepsza i najgorsza grupa (np. faza cyklu, długość snu) — tylko z grup
+ * z co najmniej MIN_DNI dniami i gdy różnica jest zauważalna. Inaczej null.
+ */
+export function skrajneGrupy(grupy) {
+  const t = grupy.filter(g => g.dni >= MIN_DNI)
+  if (t.length < 2) return null
+  const pos = [...t].sort((a, b) => b.srednia - a.srednia)
+  const najlepsza = pos[0], najgorsza = pos[pos.length - 1]
+  if (najlepsza.srednia - najgorsza.srednia < PROG_WPLYWU) return null
+  return { najlepsza, najgorsza }
+}

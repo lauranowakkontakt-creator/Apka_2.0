@@ -4,10 +4,11 @@ import { pl } from 'date-fns/locale'
 import { Rozwijana } from '../Analityka'
 import { IconTrash } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
-import { nastrojDni, znacznikiDni, wplywZnacznikow, nastrojWGrupach, ocenyCzynnikow, MIN_DNI } from '../../utils/moodFactors'
+import { nastrojDni, znacznikiDni, wplywZnacznikow, nastrojWGrupach, ocenyCzynnikow, pomagaSzkodzi, skrajneGrupy, MIN_DNI } from '../../utils/moodFactors'
+import { chwileDoAnalizy } from '../../utils/moodEntry'
 import { senDnia, kubelekSnu, KUBELKI_SNU } from '../../utils/sleepLogic'
 import { statystykiCyklu, fazaDnia, FAZY, KOLEJNOSC_FAZ } from '../../utils/cycleLogic'
-import { findFactor, to10, fmt10, CUSTOM_COLORS, TODAY } from './wspolne'
+import { findFactor, fmt10, CUSTOM_COLORS, TODAY } from './wspolne'
 
 // „Co wpływa na nastrój" — porównanie dni z czynnikiem i bez niego, liczone
 // z całej historii (miesiąc to za mało dni, żeby cokolwiek porównywać).
@@ -38,7 +39,7 @@ function ListaWplywu({ pozycje, pusty }) {
                 borderRadius: lepiej ? '0 4px 4px 0' : '4px 0 0 4px' }} />}
             </div>
             <div className="wplyw-sub">
-              {p.dni} {p.dni === 1 ? 'dzień' : 'dni'} · średnio {fmt10(p.z)}
+              {p.dni}× · średnio {fmt10(p.z)}
               {p.bez !== null && <> · bez: {fmt10(p.bez)}</>}
             </div>
             {p.ocena && (
@@ -53,26 +54,7 @@ function ListaWplywu({ pozycje, pusty }) {
       {pozycje.length > 6 && (
         <button type="button" className="an-more" onClick={() => setWszystko(v => !v)}>{wszystko ? 'Pokaż mniej' : `Pokaż wszystkie (${pozycje.length})`}</button>
       )}
-      <p className="mood-note">Liczba po prawej to różnica średniego nastroju (skala 1–10) między dniami z tym czynnikiem a pozostałymi. Wynik pojawia się od {MIN_DNI} dni po każdej stronie.</p>
-    </div>
-  )
-}
-
-// Średni nastrój w rozłącznych grupach (fazy cyklu, długość snu).
-function ListaGrup({ grupy, kolor, pusty }) {
-  if (!grupy.length) return <div className="an-pusty">{pusty}</div>
-  return (
-    <div className="wplyw">
-      {grupy.map(g => (
-        <div key={g.grupa} className={`wplyw-row${g.dni >= MIN_DNI ? '' : ' slabe'}`}>
-          <div className="wplyw-top">
-            <span className="wplyw-name"><i style={{ background: kolor(g.grupa) }} />{g.nazwa || g.grupa}</span>
-            <span className="wplyw-delta">{fmt10(g.srednia)}</span>
-          </div>
-          <div className="wplyw-track plain" aria-hidden="true"><div style={{ width: `${(to10(g.srednia) / 10) * 100}%`, left: 0, background: kolor(g.grupa), borderRadius: 4 }} /></div>
-          <div className="wplyw-sub">{g.dni} {g.dni === 1 ? 'dzień' : 'dni'} z wpisem{g.dni < MIN_DNI ? ' · za mało, żeby porównywać' : ''}</div>
-        </div>
-      ))}
+      <p className="mood-note">Liczba po prawej to różnica nastroju (skala 1–10) między chwilami z tym czynnikiem a pozostałymi — dlatego praca i spotkanie tego samego dnia się nie zlewają. Wynik pojawia się od {MIN_DNI} chwil po każdej stronie.</p>
     </div>
   )
 }
@@ -81,7 +63,13 @@ export default function MoodInsights({ logs, sleepLogs, okresy, people, ust, zap
   const okresyZycia = useMemo(() => ust.okresy || [], [ust.okresy])
   const dane = useMemo(() => {
     const nastroj = nastrojDni(logs)
-    const wplyw = wplywZnacznikow(nastroj, znacznikiDni(logs, okresyZycia))
+    // Czynniki i osoby porównujemy CHWILAMI (każda ma swój nastrój), okresy
+    // życia — dniami, bo trwają całymi dniami.
+    const chw = chwileDoAnalizy(logs)
+    const wplyw = [
+      ...wplywZnacznikow(nastrojDni(chw), znacznikiDni(chw)),
+      ...wplywZnacznikow(nastroj, znacznikiDni(logs, okresyZycia)).filter(w => w.klucz[0] === 'o'),
+    ]
     const opisz = (w) => {
       const [typ, id] = [w.klucz[0], w.klucz.slice(2)]
       if (typ === 'p') { const o = people.find(p => p.id === id); return o ? { ...w, nazwa: o.name, kolor: o.color || '#8b5cf6' } : null }
@@ -93,6 +81,9 @@ export default function MoodInsights({ logs, sleepLogs, okresy, people, ust, zap
     const stat = statystykiCyklu(okresy)
     return {
       dniZNastrojem: nastroj.size,
+      chwil: chw.length,
+      ...pomagaSzkodzi(opisane),
+      wszystkie: opisane,
       czynniki: opisane.filter(w => w.klucz[0] !== 'p'),
       osoby: opisane.filter(w => w.klucz[0] === 'p'),
       sen: nastrojWGrupach(nastroj, d => kubelekSnu(senDnia(sleepLogs, d).noc), KUBELKI_SNU),
@@ -100,28 +91,55 @@ export default function MoodInsights({ logs, sleepLogs, okresy, people, ust, zap
     }
   }, [logs, sleepLogs, okresy, people, ust.factors, okresyZycia])
 
-  const KOLORY_SNU = ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD']
+  const sen = skrajneGrupy(dane.sen)
+  const cykl = skrajneGrupy(dane.cykl)
+  const nazwaSnu = (g) => g.grupa === 'poniżej 6 h' ? 'krótszej niż 6 h' : g.grupa === '8 h i więcej' ? 'co najmniej 8 h' : `${g.grupa}`
 
   return (
     <>
-      <Rozwijana id="nastroj-czynniki" tytul="Co wpływa na nastrój" domyslnie podsumowanie={`${dane.czynniki.length} czynników`}>
-        <ListaWplywu pozycje={dane.czynniki} pusty="Zaznaczaj we wpisach, co się działo (praca, studia, kościół, spotkanie…), a tu pojawi się porównanie." />
-      </Rozwijana>
-      <Rozwijana id="nastroj-osoby" tytul="Ludzie a nastrój" domyslnie podsumowanie={`${dane.osoby.length} osób`}>
-        <ListaWplywu pozycje={dane.osoby} pusty="Zaznaczaj we wpisach, z kim byłaś, a zobaczysz, przy kim czujesz się lepiej." />
-      </Rozwijana>
-      <Rozwijana id="nastroj-sen" tytul="Sen a nastrój" podsumowanie={dane.sen.length ? `${dane.sen.reduce((s, g) => s + g.dni, 0)} dni` : 'brak danych'}>
-        <ListaGrup grupy={dane.sen} kolor={g => KOLORY_SNU[KUBELKI_SNU.indexOf(g)] || 'var(--info)'}
-          pusty="Zapisuj noce w zakładce Sen — porównamy nastrój po krótkich i długich nocach." />
-      </Rozwijana>
-      <Rozwijana id="nastroj-cykl" tytul="Cykl a nastrój" podsumowanie={dane.cykl.length ? `${dane.cykl.length} faz` : 'brak danych'}>
-        <ListaGrup grupy={dane.cykl} kolor={g => FAZY[g]?.kolor || 'var(--accent)'}
-          pusty="Zaznacz okres w zakładce Cykl — zobaczysz średni nastrój w każdej fazie." />
+      <section className="wn-grid">
+        <WnKarta tytul="Co Ci pomaga" ton="plus" pozycje={dane.pomaga}
+          pusto="Jeszcze nic wyraźnego. Zaznaczaj w chwilach, co się działo i z kim — po kilku razach tu się pojawi." />
+        <WnKarta tytul="Co Ci szkodzi" ton="minus" pozycje={dane.szkodzi}
+          pusto="Nic nie odstaje w dół — albo jest jeszcze za mało wpisów, żeby to zobaczyć." />
+      </section>
+
+      {(sen || cykl) && (
+        <section className="wn-zdania">
+          {sen && <p><i style={{ background: 'var(--info)' }} />Po nocy <b>{nazwaSnu(sen.najlepsza)}</b> masz średnio <b>{fmt10(sen.najlepsza.srednia)}</b>, a po nocy {nazwaSnu(sen.najgorsza)} — <b>{fmt10(sen.najgorsza.srednia)}</b>.</p>}
+          {cykl && <p><i style={{ background: FAZY[cykl.najgorsza.grupa].kolor }} />Najtrudniej jest Ci w fazie <b>{FAZY[cykl.najgorsza.grupa].nazwa.toLowerCase()}</b> ({fmt10(cykl.najgorsza.srednia)}), najlepiej — <b>{FAZY[cykl.najlepsza.grupa].nazwa.toLowerCase()}</b> ({fmt10(cykl.najlepsza.srednia)}).</p>}
+        </section>
+      )}
+      <p className="mood-note wn-stopka">Wnioski z wszystkich Twoich wpisów ({dane.chwil} {dane.chwil === 1 ? 'chwila' : dane.chwil < 5 ? 'chwile' : 'chwil'}). Liczba przy czynniku to o ile wyższy lub niższy jest nastrój (skala 1–10), gdy to się działo.</p>
+
+      <Rozwijana id="nastroj-szczegoly" tytul="Szczegóły: wszystkie czynniki i osoby" podsumowanie={`${dane.wszystkie.length}`}>
+        <ListaWplywu pozycje={dane.wszystkie} pusty="Zaznaczaj w chwilach, co się działo i z kim, a tu pojawi się porównanie." />
       </Rozwijana>
       <Rozwijana id="nastroj-okresy" tytul="Okresy w życiu" podsumowanie={okresyZycia.length ? `${okresyZycia.length}` : 'np. żałoba, sesja'}>
         <OkresyZycia okresy={okresyZycia} zapisz={(lista) => zapiszUst({ okresy: lista })} />
       </Rozwijana>
     </>
+  )
+}
+
+// Karta „pomaga / szkodzi”: nazwa, różnica i pasek długości różnicy.
+function WnKarta({ tytul, ton, pozycje, pusto }) {
+  const max = Math.max(0.5, ...pozycje.map(p => Math.abs(p.roznica)))
+  return (
+    <div className={`wn-karta ${ton}`}>
+      <h4>{ton === 'plus' ? '↑' : '↓'} {tytul}</h4>
+      {pozycje.length ? (
+        <ul>
+          {pozycje.map(p => (
+            <li key={p.klucz}>
+              <span className="wn-nazwa"><i style={{ background: p.kolor }} />{p.nazwa}</span>
+              <span className="wn-liczba">{fmtRoznicy(p.roznica)}</span>
+              <span className="wn-pasek" aria-hidden="true"><span style={{ width: `${(Math.abs(p.roznica) / max) * 100}%` }} /></span>
+            </li>
+          ))}
+        </ul>
+      ) : <p className="wn-pusto">{pusto}</p>}
+    </div>
   )
 }
 

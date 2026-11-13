@@ -1,36 +1,41 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-const { chwilePoZapisie, wartoscDnia, czasyEmocji, chwileWpisu } = await import('../src/utils/moodEntry.js')
+const { chwileWpisu, podsumujDzien, posortujChwile, chwileDoAnalizy } = await import('../src/utils/moodEntry.js')
 
-test('chwilePoZapisie — rano źle, wieczorem dobrze to dwie chwile jednego dnia', () => {
-  let c = chwilePoZapisie([], 2, '08:15', true)
-  assert.deepEqual(c, [{ time: '08:15', value: 2 }])
-  c = chwilePoZapisie(c, 2, '12:00', true)
-  assert.equal(c.length, 1, 'ten sam nastrój nie dubluje chwili')
-  c = chwilePoZapisie(c, 4, '20:30', true)
-  assert.deepEqual(c, [{ time: '08:15', value: 2 }, { time: '20:30', value: 4 }])
+const dzien = [
+  { id: 'a', time: '18:00', value: 5, emotions: ['radość'], factors: ['spotkanie'], peopleIds: ['ola'] },
+  { id: 'b', time: '10:00', value: 2, emotions: ['złość', 'stres'], factors: ['praca'], peopleIds: [] },
+  { id: 'c', time: '21:00', value: 4, emotions: ['radość', 'spokój'], factors: ['dom'], peopleIds: ['ola'] },
+]
+
+test('podsumujDzien — średnia, ostatnia chwila i suma emocji, czynników, osób', () => {
+  const p = podsumujDzien(dzien)
+  assert.equal(p.moodValue, 3.7)
+  assert.equal(p.ostatnia, 4)                   // 21:00, nie ostatnia na liście
+  assert.deepEqual(p.emotions, ['złość', 'stres', 'radość', 'spokój'])
+  assert.deepEqual(p.factors, ['praca', 'spotkanie', 'dom'])
+  assert.deepEqual(p.peopleIds, ['ola'])
+  assert.deepEqual(p.emotionTimes, { złość: '10:00', stres: '10:00', radość: '18:00', spokój: '21:00' })
+  assert.equal(podsumujDzien([]), null)
 })
 
-test('chwilePoZapisie — poprawka wczorajszego dnia zmienia ostatnią chwilę', () => {
-  const c = chwilePoZapisie([{ time: null, value: 3 }], 5, '10:00', false)
-  assert.deepEqual(c, [{ time: null, value: 5 }])
-  assert.deepEqual(chwilePoZapisie(undefined, 3, '10:00', false), [{ time: null, value: 3 }])
+test('posortujChwile — po godzinie, bez godziny na początku', () => {
+  assert.deepEqual(posortujChwile([{ time: '12:00' }, { time: null }, { time: '08:00' }]).map(c => c.time), [null, '08:00', '12:00'])
 })
 
-test('wartoscDnia — średnia chwil', () => {
-  assert.equal(wartoscDnia([{ value: 2 }, { value: 4 }, { value: 4 }]), 3.3)
-  assert.equal(wartoscDnia([]), null)
-})
-
-test('czasyEmocji — nowe dostają godzinę, stare zachowują pierwszą', () => {
-  const t = czasyEmocji({ smutek: '08:15', lęk: '09:00' }, ['smutek', 'złość'], '20:30', true)
-  assert.deepEqual(t, { smutek: '08:15', złość: '20:30' })
-  assert.deepEqual(czasyEmocji({}, ['złość'], '20:30', false), {})
-})
-
-test('chwileWpisu — stary wpis bez chwil dostaje jedną z jego oceny', () => {
-  assert.deepEqual(chwileWpisu({ moodValue: 4, time: '08:00' }), [{ time: '08:00', value: 4 }])
-  assert.deepEqual(chwileWpisu({ moments: [{ time: '1', value: 2 }], moodValue: 2 }), [{ time: '1', value: 2 }])
+test('chwileWpisu — stary wpis bez chwil staje się jedną chwilą', () => {
+  const c = chwileWpisu({ moodValue: 4, time: '08:00', emotions: ['lęk'], factors: ['praca'], peopleIds: ['x'] })
+  assert.equal(c.length, 1)
+  assert.deepEqual(c[0], { id: 'm0', time: '08:00', value: 4, emotions: ['lęk'], factors: ['praca'], peopleIds: ['x'] })
   assert.deepEqual(chwileWpisu({}), [])
+  assert.equal(chwileWpisu({ moments: dzien }).length, 3)
+})
+
+test('chwileDoAnalizy — każda chwila osobno, z własnym nastrojem', () => {
+  const a = chwileDoAnalizy([{ date: '2026-11-13', moments: dzien }, { date: '2026-11-12', moodValue: 3, factors: ['praca'] }])
+  assert.equal(a.length, 4)
+  const praca = a.filter(x => x.factors.includes('praca')).map(x => x.moodValue)
+  assert.deepEqual(praca, [2, 3])
+  assert.equal(new Set(a.map(x => x.date)).size, 4, 'klucze chwil są unikalne')
 })

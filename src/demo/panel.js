@@ -58,6 +58,7 @@ function btn(label, onClick) {
 
 function mount() {
   badge = document.createElement('button')
+  badge.className = 'demo-badge'
   badge.innerHTML = 'DEMO<span class="demo-count"></span>'
   badge.title = 'Tryb demo — losowe dane'
   badge.style.cssText = 'position:fixed;z-index:2147483000;right:8px;bottom:calc(env(safe-area-inset-bottom, 0px) + 78px);padding:4px 9px;border-radius:999px;border:0;color:#fff;font:700 11px system-ui;letter-spacing:.05em;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;opacity:.9'
