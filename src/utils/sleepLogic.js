@@ -87,3 +87,58 @@ export function naOsi(start, end) {
   const dl = OS_DO - OS_OD
   return [(od - OS_OD) / dl, (doo - OS_OD) / dl]
 }
+
+// ── Pobudki na osi nocy ──────────────────────────────────────────────────────
+// Wpis nocy może mieć `wakeTimes`: listę godzin pobudek ('HH:mm') albo null
+// tam, gdzie godzina jest nieznana („nie wiem”). Starsze wpisy mają samo
+// `wakeups` (liczbę) — wszystkie ich pobudki traktujemy jak nieznane.
+
+// Stała „losowość”: ta sama pobudka zawsze ląduje w tym samym miejscu, żeby
+// kreski nie skakały przy każdym odświeżeniu ekranu.
+function losowaStala(ziarno) {
+  let h = 2166136261
+  for (let i = 0; i < ziarno.length; i++) { h ^= ziarno.charCodeAt(i); h = Math.imul(h, 16777619) }
+  h ^= h >>> 15; h = Math.imul(h, 2246822507); h ^= h >>> 13
+  return ((h >>> 0) % 10000) / 10000
+}
+
+/**
+ * Położenie pobudek na pasku nocy: lista { u, znana, godzina }, gdzie `u` to
+ * ułamek 0–1 długości snu (0 = zaśnięcie, 1 = wstanie).
+ * - godzina podana i mieści się w czasie snu → dokładnie w tym miejscu,
+ * - „nie wiem” (albo godzina spoza snu) → stałe losowe miejsce w środku nocy.
+ */
+export function pozycjePobudek(log, max = 8) {
+  const ile = Math.min(Math.max(log?.wakeups || 0, (log?.wakeTimes || []).length), max)
+  if (!ile) return []
+  const s0 = naMinuty(log.start), e0 = naMinuty(log.end)
+  const dlugosc = s0 === null || e0 === null ? 0 : (e0 - s0 + 1440) % 1440 || 1440
+  const out = []
+  for (let i = 0; i < ile; i++) {
+    const godzina = log.wakeTimes?.[i] || null
+    const t = naMinuty(godzina)
+    if (t !== null && dlugosc) {
+      const odStartu = (t - s0 + 1440) % 1440
+      if (odStartu > 0 && odStartu < dlugosc) { out.push({ u: odStartu / dlugosc, znana: true, godzina }); continue }
+    }
+    const los = losowaStala(`${log.id || log.date || ''}|${log.start}|${log.end}|${i}`)
+    out.push({ u: 0.08 + los * 0.84, znana: false, godzina: null })
+  }
+  return out
+}
+
+/** Czy godzina pobudki mieści się między zaśnięciem a wstaniem. */
+export function pobudkaWCzasieSnu(start, end, godzina) {
+  const s = naMinuty(start), e = naMinuty(end), t = naMinuty(godzina)
+  if (s === null || e === null || t === null) return false
+  const dl = (e - s + 1440) % 1440 || 1440, od = (t - s + 1440) % 1440
+  return od > 0 && od < dl
+}
+
+/** Opis pobudek do listy: „pobudki: 2 (02:30, 04:10)” albo „pobudki: 2”. */
+export function opisPobudek(log) {
+  const n = log?.wakeups || 0
+  if (!n) return ''
+  const znane = (log.wakeTimes || []).filter(Boolean)
+  return `pobudki: ${n}${znane.length ? ` (${znane.join(', ')})` : ''}`
+}

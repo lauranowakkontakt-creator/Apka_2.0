@@ -76,8 +76,8 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
     return (
       <div style={{
         background: prayedToday ? 'rgba(39,174,96,0.12)' : 'var(--surface)',
-        border: `1px solid ${prayedToday ? '#27AE60' : 'var(--border)'}`,
-        borderLeft: `5px solid ${prio.color}`,
+        borderStyle: 'solid', borderWidth: '1px 1px 1px 5px',
+        borderColor: `${prayedToday ? '#27AE60' : 'var(--border)'} ${prayedToday ? '#27AE60' : 'var(--border)'} ${prayedToday ? '#27AE60' : 'var(--border)'} ${prio.color}`,
         borderRadius: 16, padding: '16px 14px',
         display: 'flex', flexDirection: 'column', gap: 12,
       }}>
@@ -127,8 +127,8 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
   return (
     <div style={{
       background: isNeglected ? neglect.color + '08' : 'var(--surface)',
-      border: `1px solid ${isNeglected ? neglect.color + '44' : 'var(--border)'}`,
-      borderLeft: `3px solid ${prio.color}`,
+      borderStyle: 'solid', borderWidth: '1px 1px 1px 3px',
+      borderColor: `${isNeglected ? neglect.color + '44' : 'var(--border)'} ${isNeglected ? neglect.color + '44' : 'var(--border)'} ${isNeglected ? neglect.color + '44' : 'var(--border)'} ${prio.color}`,
       borderRadius: 12, padding: pad
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>

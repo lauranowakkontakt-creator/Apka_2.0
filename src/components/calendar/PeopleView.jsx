@@ -55,7 +55,7 @@ export default function PeopleView({ calPeople, events, categories, onManage, on
         {!archived && (upcoming.length > 0 ? (
           <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
             {upcoming.map(e => (
-              <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 10px', borderRadius: 9, background: 'var(--surface2)' }}>
+              <div key={`${e.id}-${e.date}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 10px', borderRadius: 9, background: 'var(--surface2)' }}>
                 <div style={{ flexShrink: 0, paddingTop: 1 }}>
                   <div style={{ fontSize: 11, color: person.color, fontWeight: 700, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
                     {format(parseISO(e.date), 'd MMM', { locale: pl })}
@@ -119,7 +119,7 @@ export default function PeopleView({ calPeople, events, categories, onManage, on
           </div>
           <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {noPerson.map(e => (
-              <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
+              <div key={`${e.id}-${e.date}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{format(parseISO(e.date), 'd MMM', { locale: pl })}</span>
                 <span style={{ fontSize: 13, flex: 1, minWidth: 0 }}>{e.title}</span>
                 <button aria-label="Edytuj" className="t-btn" onClick={() => onEdit(e)}><IconEdit size={11} /></button>

@@ -3835,3 +3835,18 @@ textarea:focus-visible, a:focus-visible, summary:focus-visible,
 /* Kwoty na listach: cyfry równej szerokości, żeby nie „skakały” przy zmianie
    wartości i równo stały w kolumnach. */
 .t-amount, .rev-row, .account-item { font-variant-numeric: tabular-nums; }
+
+/* ===== SEN: godziny pobudek ===== */
+.sleep-wakes { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); }
+.sleep-wake { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.sleep-wake label { font-size: 13px; color: var(--text-sub); white-space: nowrap; margin: 0; }
+.sleep-wake .form-input { margin: 0; min-width: 0; }
+.sleep-wake small { grid-column: 1 / -1; font-size: 11.5px; color: var(--warn); }
+.sleep-wake-nw { min-height: 40px; padding: 8px 12px; border-radius: 99px; font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap;
+  background: transparent; border: 1.5px solid var(--border-strong); color: var(--text-sub); transition: background-color .15s, border-color .15s, color .15s; }
+.sleep-wake-nw.on { background: color-mix(in oklab, var(--warn) 20%, transparent); border-color: var(--warn); color: var(--text); }
+.sleep-wakes-hint { margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--text-muted); }
+/* Pobudka bez godziny: bledsza kreska (stoi w losowym miejscu) */
+.sleep-night-bar i.nieznana { opacity: .5; }
+.sleep-week-legend i.tick.nieznana { opacity: .5; }
+.sleep-week-legend { flex-wrap: wrap; row-gap: 4px; }
