@@ -84,8 +84,8 @@ export default function Debtors({ user, onClose }) {
             title={debt.settled ? 'Przywróć do aktywnych' : 'Oznacz jako rozliczone'}>
             <IconCheck size={13} /> {debt.settled ? 'Przywróć' : 'Rozlicz'}
           </button>
-          <button className="t-btn" onClick={() => { setEditDebt(debt); setShowForm(true) }}><IconEdit size={13} /></button>
-          <button className="t-btn delete" onClick={() => handleDelete(debt.id)}><IconTrash size={13} /></button>
+          <button aria-label="Edytuj" className="t-btn" onClick={() => { setEditDebt(debt); setShowForm(true) }}><IconEdit size={13} /></button>
+          <button aria-label="Usuń" className="t-btn delete" onClick={() => handleDelete(debt.id)}><IconTrash size={13} /></button>
         </div>
       </div>
     )
@@ -97,7 +97,7 @@ export default function Debtors({ user, onClose }) {
         <div className="modal modal-tall">
           <div className="modal-header">
             <h3><IconUsers size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />Dłużnicy</h3>
-            <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+            <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
           </div>
 
           {loading ? <div className="list-loading">Ładowanie...</div> : (
@@ -206,7 +206,7 @@ function DebtForm({ user, editData, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3>{editData ? 'Edytuj wpis' : 'Nowy wpis'}</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="form">
 

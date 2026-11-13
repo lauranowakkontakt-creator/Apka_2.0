@@ -161,8 +161,8 @@ export default function AccountsView({ user, privateMode }) {
             <button className="t-btn" title={excluded ? 'Uwzględnij w sumie' : 'Wyklucz z sumy'} onClick={(e) => toggleExcluded(acc.id, e)}>
               {excluded ? <IconEyeOff size={13} /> : <IconEye size={13} />}
             </button>
-            <button className="t-btn" onClick={(e) => { e.stopPropagation(); setEditAccount(acc); setShowForm(true) }}><IconEdit size={13} /></button>
-            <button className="t-btn delete" onClick={(e) => handleDelete(acc.id, e)}><IconTrash size={13} /></button>
+            <button aria-label="Edytuj" className="t-btn" onClick={(e) => { e.stopPropagation(); setEditAccount(acc); setShowForm(true) }}><IconEdit size={13} /></button>
+            <button aria-label="Usuń" className="t-btn delete" onClick={(e) => handleDelete(acc.id, e)}><IconTrash size={13} /></button>
           </div>
         </div>
         {footer}
@@ -286,12 +286,12 @@ function InvestmentDetail({ user, account, privateMode, onBack, onEdit }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button className="t-btn" onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center' }}><IconChevronLeft size={18} /></button>
+        <button aria-label="Wróć" className="t-btn" onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center' }}><IconChevronLeft size={18} /></button>
         <div style={{ flex: 1 }}>
           <p style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{account.name}</p>
           <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>{account.typeName || 'Inwestycje'}</p>
         </div>
-        <button className="t-btn" onClick={onEdit}><IconEdit size={16} /></button>
+        <button aria-label="Edytuj" className="t-btn" onClick={onEdit}><IconEdit size={16} /></button>
       </div>
 
       {/* Karta wartość / zysk */}
@@ -386,7 +386,7 @@ function InvestmentUpdateModal({ account, onSave, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3>Aktualizuj wartość</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={submit} className="form">
           <div className="form-group">
@@ -454,7 +454,7 @@ function AccountHistory({ user, account, accounts = [], privateMode, onBack, onE
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button className="t-btn" onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center' }}><IconChevronLeft size={18} /></button>
+        <button aria-label="Wróć" className="t-btn" onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center' }}><IconChevronLeft size={18} /></button>
         <div style={{ flex: 1 }}>
           <p style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{account.name}</p>
           <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>{account.typeName}</p>
@@ -462,7 +462,7 @@ function AccountHistory({ user, account, accounts = [], privateMode, onBack, onE
         <div style={{ textAlign: 'right' }}>
           <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{privateMode ? '••••' : fmtAcc(account.balance || 0, cur)}</p>
         </div>
-        <button className="t-btn" onClick={onEdit}><IconEdit size={16} /></button>
+        <button aria-label="Edytuj" className="t-btn" onClick={onEdit}><IconEdit size={16} /></button>
       </div>
 
       {/* Dodawanie transakcji bezpośrednio na to konto (bez wchodzenia w pulpit) */}

@@ -39,7 +39,7 @@ export default function Reminders({ user, onClose }) {
       <div className="modal modal-tall">
         <div className="modal-header">
           <h3><IconBell size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Przypomnienia płatności</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         {loading ? <div className="list-loading">Ładowanie...</div> : (

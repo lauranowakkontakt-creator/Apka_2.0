@@ -40,7 +40,7 @@ export default function ListForm({ user, onClose, editData }) {
       <div className="modal">
         <div className="modal-header">
           <h3>{editData ? 'Edytuj listę' : 'Nowa lista'}</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-group">

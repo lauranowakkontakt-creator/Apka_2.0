@@ -406,14 +406,14 @@ export default function Dashboard({ user, setHeaderExtras }) {
         <>
           {/* Nawigator miesiąca — przewijanie do poprzednich miesięcy */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 14 }}>
-            <button className="month-btn" onClick={prevMonth} style={{ width: 32, height: 32 }} title="Poprzedni miesiąc">‹</button>
+            <button className="month-btn" onClick={prevMonth} style={{ width: 32, height: 32 }} title="Poprzedni miesiąc"><IconChevronLeft size={16} /></button>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'capitalize' }}>{monthLabel}</div>
               {isCurrentMonth
                 ? <div style={{ fontSize: 10, color: 'var(--accent)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>Bieżący miesiąc</div>
                 : <button onClick={() => setCurrentMonth(new Date())} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', marginTop: 2, cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>← wróć do bieżącego</button>}
             </div>
-            <button className="month-btn" onClick={nextMonth} disabled={isCurrentMonth} style={{ width: 32, height: 32, opacity: isCurrentMonth ? 0.3 : 1 }} title="Następny miesiąc">›</button>
+            <button className="month-btn" onClick={nextMonth} disabled={isCurrentMonth} style={{ width: 32, height: 32, opacity: isCurrentMonth ? 0.3 : 1 }} title="Następny miesiąc"><IconChevronRight size={16} /></button>
           </div>
 
           {/* Balance hero — mobile */}
@@ -498,7 +498,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
       {activeTab === 'shopping'  && <ShoppingList user={user} />}
 
       {activeTab === 'transactions' && (
-        <button className="btn-add" onClick={() => setShowForm(true)}><IconPlus size={22} /></button>
+        <button aria-label="Dodaj" className="btn-add" onClick={() => setShowForm(true)}><IconPlus size={22} /></button>
       )}
 
       {modal === 'transfer'    && <TransferForm   user={user} onClose={() => setModal(null)} />}

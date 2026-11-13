@@ -136,7 +136,7 @@ export default function TransferForm({ user, onClose }) {
           <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <IconTransfer size={18} /> {isExchange ? 'Przewalutowanie' : 'Przelew między kontami'}
           </h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         {accounts.length < 2 ? (
           <p style={{ color: 'var(--text-muted)', padding: '20px', textAlign: 'center' }}>

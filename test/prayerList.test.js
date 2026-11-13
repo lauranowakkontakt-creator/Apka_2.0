@@ -91,3 +91,11 @@ test('hasChecklist — tylko tryb listy z punktami', () => {
   assert.ok(!hasChecklist({}))
   assert.ok(!hasChecklist(null))
 })
+
+test('dniTemu: bez „1 dni temu”', async () => {
+  const { dniTemu } = await import('../src/utils/prayerList.js')
+  assert.equal(dniTemu(1), 'wczoraj')
+  assert.equal(dniTemu(3), '3 dni temu')
+  assert.equal(dniTemu(0), '')
+  assert.equal(dniTemu(null), '')
+})

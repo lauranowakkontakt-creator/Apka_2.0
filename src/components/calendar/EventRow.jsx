@@ -29,15 +29,15 @@ export default function EventRow({ e, categories, calPeople, onEdit, onDelete, m
           {e.prayer?.enabled && <IconPrayer size={12} style={{ color: '#a78bfa', flexShrink: 0 }} />}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          {person && <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, background: person.color + '22', color: person.color, fontWeight: 700 }}>{person.name}</span>}
+          {person && <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, background: person.color + '22', color: `color-mix(in oklab, ${person.color} 70%, white)`, fontWeight: 700 }}>{person.name}</span>}
           {!person && e.who && <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, background: 'var(--surface3)', color: 'var(--text)', fontWeight: 600 }}>{e.who}</span>}
           {cat    && <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 99, background: color + '18', color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>{cat.label}</span>}
         </div>
         {e.note && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>{e.note}</p>}
       </div>
       <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-        <button className="t-btn" onClick={() => onEdit(e)}><IconEdit size={13} /></button>
-        <button className="t-btn delete" onClick={() => onDelete(e.id)}><IconTrash size={13} /></button>
+        <button aria-label="Edytuj" className="t-btn" onClick={() => onEdit(e)}><IconEdit size={13} /></button>
+        <button aria-label="Usuń" className="t-btn delete" onClick={() => onDelete(e.id)}><IconTrash size={13} /></button>
       </div>
     </div>
   )

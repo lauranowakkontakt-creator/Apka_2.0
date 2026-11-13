@@ -117,7 +117,7 @@ export default function ShoppingList({ user }) {
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, padding: '5px 10px', background: 'rgba(39,174,96,0.15)', border: '1px solid #27AE6060', borderRadius: 8, color: '#27AE60', cursor: 'pointer', fontWeight: 700 }}>
                         Kup <IconCheck size={13} />
                       </button>
-                      <button className="t-btn delete" onClick={() => handleDelete(item.id)}><IconTrash size={13} /></button>
+                      <button aria-label="Usuń" className="t-btn delete" onClick={() => handleDelete(item.id)}><IconTrash size={13} /></button>
                     </div>
                   </div>
                 )
@@ -154,7 +154,7 @@ export default function ShoppingList({ user }) {
                       {item.boughtDate} · zapłacono {fmt(item.boughtPrice || 0)}
                     </p>
                   </div>
-                  <button className="t-btn delete" onClick={() => handleDelete(item.id)}><IconTrash size={13} /></button>
+                  <button aria-label="Usuń" className="t-btn delete" onClick={() => handleDelete(item.id)}><IconTrash size={13} /></button>
                 </div>
               )
             })}
@@ -200,7 +200,7 @@ function ShopCategoryManager({ user, categories, onClose }) {
       <div className="modal modal-tall">
         <div className="modal-header">
           <h3><IconTag size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Kategorie zakupów</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -215,7 +215,7 @@ function ShopCategoryManager({ user, categories, onClose }) {
                   {cat.icon ? <CatIcon categoryId={null} emoji={cat.icon} size={18} /> : <IconTag size={18} />}
                 </div>
                 <span style={{ flex: 1, fontSize: 14 }}>{cat.label}</span>
-                <button className="t-btn delete" onClick={() => handleDelete(cat.id)}><IconTrash size={13} /></button>
+                <button aria-label="Usuń" className="t-btn delete" onClick={() => handleDelete(cat.id)}><IconTrash size={13} /></button>
               </div>
             ))}
           </div>
@@ -311,7 +311,7 @@ function AddItemModal({ user, categories, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3>Dodaj do listy</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={handleAdd} className="form">
           <div className="form-group">
@@ -403,7 +403,7 @@ function BuyModal({ item, user, categories, onBuy, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><IconCheck size={16} /> Kupione: {item.name}</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <div className="form">
           <div className="form-group">

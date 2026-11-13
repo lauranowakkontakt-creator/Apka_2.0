@@ -213,7 +213,7 @@ function Shell({ children, onClose, onBack, onSettings, title }) {
             {onSettings && (
               <button className="t-btn" onClick={onSettings} title="Ustawienia"><IconSettings size={15} /></button>
             )}
-            <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+            <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
           </div>
         </div>
         {children}

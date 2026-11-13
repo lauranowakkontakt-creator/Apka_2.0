@@ -36,7 +36,7 @@ export default function AmountSheet({ habit, dateStr, onSet, onClose }) {
       <div className="modal" style={{ maxWidth: 360 }}>
         <div className="modal-header">
           <h3 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{habit.name}</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <div className="form">

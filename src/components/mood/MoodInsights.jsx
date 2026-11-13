@@ -106,8 +106,8 @@ export default function MoodInsights({ logs, sleepLogs, okresy, people, ust, zap
 
       {(sen || cykl) && (
         <section className="wn-zdania">
-          {sen && <p><i style={{ background: 'var(--info)' }} />Po nocy <b>{nazwaSnu(sen.najlepsza)}</b> masz średnio <b>{fmt10(sen.najlepsza.srednia)}</b>, a po nocy {nazwaSnu(sen.najgorsza)} — <b>{fmt10(sen.najgorsza.srednia)}</b>.</p>}
-          {cykl && <p><i style={{ background: FAZY[cykl.najgorsza.grupa].kolor }} />Najtrudniej jest Ci w fazie <b>{FAZY[cykl.najgorsza.grupa].nazwa.toLowerCase()}</b> ({fmt10(cykl.najgorsza.srednia)}), najlepiej — <b>{FAZY[cykl.najlepsza.grupa].nazwa.toLowerCase()}</b> ({fmt10(cykl.najlepsza.srednia)}).</p>}
+          {sen && <p><i style={{ background: 'var(--info)' }} /><span>Po nocy <b>{nazwaSnu(sen.najlepsza)}</b> masz średnio <b>{fmt10(sen.najlepsza.srednia)}</b>, a po nocy {nazwaSnu(sen.najgorsza)} — <b>{fmt10(sen.najgorsza.srednia)}</b>.</span></p>}
+          {cykl && <p><i style={{ background: FAZY[cykl.najgorsza.grupa].kolor }} /><span>Najtrudniej jest Ci w fazie <b>{FAZY[cykl.najgorsza.grupa].nazwa.toLowerCase()}</b> ({fmt10(cykl.najgorsza.srednia)}), najlepiej — <b>{FAZY[cykl.najlepsza.grupa].nazwa.toLowerCase()}</b> ({fmt10(cykl.najlepsza.srednia)}).</span></p>}
         </section>
       )}
       <p className="mood-note wn-stopka">Wnioski z wszystkich Twoich wpisów ({dane.chwil} {dane.chwil === 1 ? 'chwila' : dane.chwil < 5 ? 'chwile' : 'chwil'}). Liczba przy czynniku to o ile wyższy lub niższy jest nastrój (skala 1–10), gdy to się działo.</p>

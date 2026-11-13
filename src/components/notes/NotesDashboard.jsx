@@ -120,7 +120,7 @@ export default function NotesDashboard({ user }) {
         </div>
       )}
 
-      <button className="btn-add" onClick={() => setEditor('new')}><IconPlus size={22} /></button>
+      <button aria-label="Dodaj" className="btn-add" onClick={() => setEditor('new')}><IconPlus size={22} /></button>
 
       {editor && (
         <NoteEditor
@@ -185,7 +185,7 @@ function NoteEditor({ user, note, onClose, onDelete }) {
               <button className="t-btn delete" style={{ width: 30, height: 30 }} title="Usuń"
                 onClick={() => onDelete(note)}><IconTrash size={14} /></button>
             )}
-            <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+            <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
           </div>
         </div>
 

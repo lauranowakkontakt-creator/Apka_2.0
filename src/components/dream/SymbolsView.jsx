@@ -144,7 +144,7 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button className="t-btn" onClick={() => onSelectSymbol(null)} style={{ padding: '4px 8px' }}><IconChevronLeft size={18} /></button>
+          <button aria-label="Wróć" className="t-btn" onClick={() => onSelectSymbol(null)} style={{ padding: '4px 8px' }}><IconChevronLeft size={18} /></button>
           <SymbolChip symbol={selected} />
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>w {its.length} {its.length === 1 ? 'śnie' : 'snach'}</span>
           <button className="t-btn delete" title="Usuń symbol" onClick={() => remove(selected)} style={{ marginLeft: 'auto' }}><IconTrash size={14} /></button>
@@ -167,7 +167,7 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
         <div style={{ display: 'flex', gap: 8 }}>
           <input className="form-input" value={name} autoFocus placeholder="np. drzewo, dom, woda..."
             maxLength={40} onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') add(); if (e.key === 'Escape') { setAdding(false); setName('') } }}
+            onKeyDown={e => { if (e.key === 'Enter') add(); if (e.key === 'Escape') { e.stopPropagation(); setAdding(false); setName('') } }}
             style={{ flex: 1, minWidth: 0 }} />
           <button className="btn-save" style={{ width: 'auto', margin: 0, padding: '0 16px' }} onClick={add}>Dodaj</button>
         </div>
@@ -218,7 +218,7 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
-                <span style={{ opacity: 0.5 }}>#</span>{s.name}
+                <span aria-hidden="true" style={{ opacity: 0.7 }}>#</span>{s.name}
                 {(s.aliases || []).length > 0 && <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-muted)' }}> · {(s.aliases || []).join(', ')}</span>}
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>

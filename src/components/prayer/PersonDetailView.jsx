@@ -78,7 +78,7 @@ export default function PersonDetailView({ user, person, intentions, carMode, on
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button className="t-btn" onClick={onBack} style={{ padding: carMode ? '8px 10px' : '4px 8px' }}><IconChevronLeft size={carMode ? 24 : 18} /></button>
+        <button aria-label="Wróć" className="t-btn" onClick={onBack} style={{ padding: carMode ? '8px 10px' : '4px 8px' }}><IconChevronLeft size={carMode ? 24 : 18} /></button>
         <div style={{ width: carMode ? 52 : 36, height: carMode ? 52 : 36, borderRadius: carMode ? 14 : 10, background: 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6', flexShrink: 0 }}>
           <CatIcon categoryId={null} emoji={person.icon || 'IcUsers'} size={carMode ? 28 : 20} />
         </div>
@@ -145,7 +145,7 @@ export default function PersonDetailView({ user, person, intentions, carMode, on
                       {item.autoArchived && ' · auto-zarchiwizowana'}
                     </p>
                   </div>
-                  <button className="t-btn delete" onClick={() => deleteItem(item.id)}><IconTrash size={13} /></button>
+                  <button aria-label="Usuń" className="t-btn delete" onClick={() => deleteItem(item.id)}><IconTrash size={13} /></button>
                 </div>
               ))}
             </div>

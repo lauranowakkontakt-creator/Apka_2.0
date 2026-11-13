@@ -77,8 +77,8 @@ export default function BibleNotes({ user }) {
               </div>
 
               <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-                <button className="t-btn" onClick={() => { setEditNote(n); setShowForm(true) }}><IconEdit size={13} /></button>
-                <button className="t-btn delete" onClick={() => handleDelete(n.id)}><IconTrash size={13} /></button>
+                <button aria-label="Edytuj" className="t-btn" onClick={() => { setEditNote(n); setShowForm(true) }}><IconEdit size={13} /></button>
+                <button aria-label="Usuń" className="t-btn delete" onClick={() => handleDelete(n.id)}><IconTrash size={13} /></button>
               </div>
             </div>
           ))}
@@ -149,7 +149,7 @@ function NoteForm({ user, editData, nextNumber, onClose }) {
           <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <IconBook size={17} /> {editData ? `Notatka #${editData.number}` : `Nowa notatka #${nextNumber}`}
           </h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="form">

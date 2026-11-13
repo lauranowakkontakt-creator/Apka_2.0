@@ -69,3 +69,9 @@ export function checklistSummary(items = [], doneIds = []) {
 // Czy prośba ma pokazać listę zamiast opisu.
 export const hasChecklist = (item) =>
   normalizeNoteMode(item?.noteMode) === 'list' && (item?.checklist || []).length > 0
+
+/** „wczoraj”, „3 dni temu” — bez „1 dni temu”. Dla 0 i braku danych: ''. */
+export function dniTemu(n) {
+  if (n == null || n <= 0) return ''
+  return n === 1 ? 'wczoraj' : `${n} dni temu`
+}

@@ -1,5 +1,6 @@
 import { WEEKDAYS, getEventColor } from './wspolne'
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, getDate, isSameDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns'
+import { pl } from 'date-fns/locale'
 
 // Siatka miesiąca z kropkami zajętości pod dniami.
 
@@ -69,7 +70,9 @@ export default function CalendarGrid({ currentMonth, selectedDay, categories, ca
                 key={day.toISOString()}
                 className={`cal-day${isSelected ? ' cal-day--sel' : ''}`}
                 onClick={() => onDayClick(day)}
-                style={{ opacity: inMonth ? 1 : 0.25 }}
+                aria-label={format(day, 'EEEE, d MMMM yyyy', { locale: pl })}
+                aria-pressed={!!isSelected}
+                style={{ opacity: inMonth ? 1 : 0.42 }}
               >
                 <div className={`cal-day-num${today ? ' today' : isSelected ? ' selected' : ''}`}>
                   {getDate(day)}

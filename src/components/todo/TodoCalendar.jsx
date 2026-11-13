@@ -31,11 +31,11 @@ export default function TodoCalendar({ todos, lists, onToggle, onEdit, onAddOnDa
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Month nav */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button className="icon-btn" onClick={() => setMonth(m => subMonths(m, 1))}><IconChevronLeft size={16} /></button>
+        <button aria-label="Poprzedni" className="icon-btn" onClick={() => setMonth(m => subMonths(m, 1))}><IconChevronLeft size={16} /></button>
         <span style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 700, textTransform: 'capitalize' }}>
           {format(month, 'LLLL yyyy', { locale: pl })}
         </span>
-        <button className="icon-btn" onClick={() => setMonth(m => addMonths(m, 1))}><IconChevronRight size={16} /></button>
+        <button aria-label="Następny" className="icon-btn" onClick={() => setMonth(m => addMonths(m, 1))}><IconChevronRight size={16} /></button>
       </div>
 
       {/* Grid */}
@@ -110,7 +110,7 @@ export default function TodoCalendar({ todos, lists, onToggle, onEdit, onAddOnDa
                   }}>{t.done && <IconCheck size={12} />}</button>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? 'var(--text-muted)' : 'var(--text)' }}>{t.title}</span>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: pc, flexShrink: 0 }} title={t.priority} />
-                  <button className="t-btn" onClick={() => onEdit(t)}><IconEdit size={13} /></button>
+                  <button aria-label="Edytuj" className="t-btn" onClick={() => onEdit(t)}><IconEdit size={13} /></button>
                 </div>
               )
             })}

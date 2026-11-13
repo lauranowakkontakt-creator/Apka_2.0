@@ -112,8 +112,8 @@ export default function TransactionList({
                       {privateMode ? hide : `${t.type === 'income' ? '+' : '-'}${fmt(t.amount, t.currency)}`}
                     </span>
                     <div className="t-actions">
-                      <button className="t-btn edit" onClick={() => onEdit(t)}><IconEdit size={13} /></button>
-                      <button className="t-btn delete" onClick={() => handleDelete(t)}><IconTrash size={13} /></button>
+                      <button aria-label="Edytuj" className="t-btn edit" onClick={() => onEdit(t)}><IconEdit size={13} /></button>
+                      <button aria-label="Usuń" className="t-btn delete" onClick={() => handleDelete(t)}><IconTrash size={13} /></button>
                     </div>
                   </div>
                 </div>

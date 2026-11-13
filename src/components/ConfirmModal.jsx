@@ -34,11 +34,11 @@ export function ConfirmProvider({ children }) {
     <ConfirmContext.Provider value={open}>
       {children}
       {dialog && (
-        <div className="modal-overlay" style={{ zIndex: 3000 }} onClick={(e) => e.target === e.currentTarget && cancel()}>
+        <div className="modal-overlay" data-own-esc style={{ zIndex: 3000 }} onClick={(e) => e.target === e.currentTarget && cancel()}>
           <div className="modal" style={{ maxWidth: 360, animation: 'modalIn .15s ease' }}>
             <div className="modal-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
               <h3 style={{ fontSize: 16 }}>{dialog.title}</h3>
-              <button className="modal-close" onClick={cancel}><IconClose size={16} /></button>
+              <button aria-label="Zamknij" className="modal-close" onClick={cancel}><IconClose size={16} /></button>
             </div>
             {dialog.message && (
               <p style={{ margin: '6px 20px 0', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>

@@ -1,5 +1,5 @@
 import { normalizeTags } from '../../utils/prayerFilters'
-import { checklistProgress, hasChecklist } from '../../utils/prayerList'
+import { checklistProgress, hasChecklist, dniTemu } from '../../utils/prayerList'
 import { daysSince, findPrio, getNeglect } from '../../utils/prayerStats'
 import { CatIcon, IconCalendar, IconCheck, IconEdit, IconPrayer, IconTrash } from '../Icons'
 import { TODAY } from './wspolne'
@@ -94,7 +94,7 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
               <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <IconPrayer size={13} /> ×{item.prayedDates.length}
                 {days === 0 && ' · dziś'}
-                {days !== null && days > 0 && ` · ${days} dni temu`}
+                {days !== null && days > 0 && ` · ${dniTemu(days)}`}
               </div>
             )}
           </div>
@@ -174,7 +174,7 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
               <span style={{ fontSize: fs.badge, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <IconPrayer size={10} /> ×{item.prayedDates.length}
                 {days === 0 && ' · dziś'}
-                {days !== null && days > 0 && ` · ${days} dni temu`}
+                {days !== null && days > 0 && ` · ${dniTemu(days)}`}
               </span>
             )}
             {item.notes?.length > 0 && (
@@ -186,8 +186,8 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
         </div>
         {!carMode && (
           <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-            <button className="t-btn" onClick={onEdit}><IconEdit size={13} /></button>
-            <button className="t-btn delete" onClick={() => onDelete(item.id)}><IconTrash size={13} /></button>
+            <button aria-label="Edytuj" className="t-btn" onClick={onEdit}><IconEdit size={13} /></button>
+            <button aria-label="Usuń" className="t-btn delete" onClick={() => onDelete(item.id)}><IconTrash size={13} /></button>
           </div>
         )}
       </div>
@@ -218,8 +218,8 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
                     <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--text-muted)' }}>{n.date}</p>
                   </div>
                   <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                    <button className="t-btn" onClick={() => { setEditingNoteId(n.id); setEditNoteText(n.text) }}><IconEdit size={12} /></button>
-                    <button className="t-btn delete" onClick={() => onDeleteNote(item, n)}><IconTrash size={12} /></button>
+                    <button aria-label="Edytuj" className="t-btn" onClick={() => { setEditingNoteId(n.id); setEditNoteText(n.text) }}><IconEdit size={12} /></button>
+                    <button aria-label="Usuń" className="t-btn delete" onClick={() => onDeleteNote(item, n)}><IconTrash size={12} /></button>
                   </div>
                 </div>
               )}
@@ -237,7 +237,7 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
         }}>
           {prayedToday ? <><IconCheck size={carMode ? 16 : 12} /> Modlono</> : <><IconPrayer size={carMode ? 16 : 12} /> Módl się</>}
         </button>
-        <button type="button" onClick={() => setAddingNote(v => !v)} style={{
+        <button aria-label="Edytuj" type="button" onClick={() => setAddingNote(v => !v)} style={{
           padding: carMode ? '13px 16px' : '8px 11px', borderRadius: 8, fontSize: carMode ? 18 : 13, cursor: 'pointer',
           border: `1px solid ${addingNote ? 'var(--accent)' : 'var(--border)'}`,
           background: addingNote ? 'rgba(201,75,40,0.1)' : 'transparent',

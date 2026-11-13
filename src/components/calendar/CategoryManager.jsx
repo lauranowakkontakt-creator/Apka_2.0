@@ -42,7 +42,7 @@ export default function CategoryManager({ user, categories, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3>Kategorie</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <div className="form">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 'min(56vh, 460px)', overflowY: 'auto' }}>
