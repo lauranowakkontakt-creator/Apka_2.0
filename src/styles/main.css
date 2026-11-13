@@ -3450,3 +3450,10 @@ body { overscroll-behavior-y: none; }
 .wplyw-track > div { position: absolute; top: 0; bottom: 0; }
 .wplyw-sub { font-size: 12px; color: var(--text-muted); }
 .mood-person { text-align: left; }
+
+/* Nastrój na komputerze: kalendarz w kolumnie ~400 px, wpisy dnia obok. */
+.mood-main-grid { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 900px) {
+  .mood-main-grid { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .mood-cal-card { position: sticky; top: 12px; }
+}
