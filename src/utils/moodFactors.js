@@ -96,3 +96,24 @@ export function nastrojWGrupach(nastroj, grupaDnia, kolejnosc = []) {
   const grupy = [...new Set([...kolejnosc, ...sumy.keys()])]
   return grupy.filter(g => sumy.has(g)).map(g => ({ grupa: g, srednia: sumy.get(g)[0] / sumy.get(g)[1], dni: sumy.get(g)[1] }))
 }
+
+/**
+ * Jej własne oceny czynników ze wpisów („praca ↓", „spotkanie ↑"):
+ * Map 'f:<czynnik>' → { lepiej, gorzej }. Uzupełnia porównanie średnich —
+ * gdy praca i spotkanie wypadają tego samego dnia, średnie ich nie rozdzielą,
+ * a ocena tak.
+ */
+export function ocenyCzynnikow(logi) {
+  const out = new Map()
+  for (const l of logi) {
+    for (const [id, v] of Object.entries(l.factorEffects || {})) {
+      if (v !== 1 && v !== -1) continue
+      const k = `f:${id}`
+      const a = out.get(k) || { lepiej: 0, gorzej: 0 }
+      if (v === 1) a.lepiej++
+      else a.gorzej++
+      out.set(k, a)
+    }
+  }
+  return out
+}

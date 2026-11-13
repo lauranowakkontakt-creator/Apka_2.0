@@ -3360,7 +3360,7 @@ body { overscroll-behavior-y: none; }
 .mood-person.on { border-color: var(--c); background: color-mix(in oklab, var(--c) 20%, transparent); color: var(--text); font-weight: 700; }
 .mood-note { font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 10px 0 0; }
 .mood-note.ok { color: var(--text); padding: 8px 12px; border-radius: 10px; background: color-mix(in oklab, var(--income) 14%, transparent); border: 1px solid color-mix(in oklab, var(--income) 40%, transparent); }
-.mood-save { margin: 0; position: sticky; bottom: 0; }
+.mood-save { margin: 0; }
 
 .mood-btn-main { min-height: 44px; padding: 10px 18px; border-radius: 12px; border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; background: var(--accent); color: #fff; flex-shrink: 0; }
 .mood-btn-ghost { flex: 1; min-height: 44px; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -3374,7 +3374,10 @@ body { overscroll-behavior-y: none; }
 
 /* Koło emocji */
 .emo-wheel svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; font-family: var(--font-sans); }
-.emo-wheel svg g:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.emo-wheel svg { -webkit-tap-highlight-color: transparent; }
+/* Safari rysował po dotknięciu płatka prostokątną ramkę fokusu wokół całego płatka */
+.emo-wheel svg g:focus { outline: none; }
+.emo-wheel svg g:focus-visible path:last-of-type { stroke: var(--text); }
 .emo-hint { text-align: center; font-size: 12.5px; color: var(--text-muted); margin: 8px 0 0; }
 .emo-panel { margin-top: 10px; padding: 12px; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
 .emo-panel-lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
@@ -3626,3 +3629,56 @@ body { overscroll-behavior-y: none; }
 .mood-cal-day .mcal-okres { top: 9%; right: 9%; width: 10px; height: 10px; }
 .emo-level-name { font-size: 12.5px; overflow-wrap: normal; word-break: keep-all; }
 @media (max-width: 360px) { .emo-level-name { font-size: 11.5px; } }
+
+/* Stopka formularza: przyklejona do dołu okna, z pełnym tłem okna — przycisk
+   (także wyszarzony) nie prześwituje już przez treść pod spodem. */
+.mood-form-foot { position: sticky; bottom: calc(-28px - env(safe-area-inset-bottom, 0px)); margin: 4px -24px calc(-28px - env(safe-area-inset-bottom, 0px));
+  padding: 12px 24px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--border); z-index: 2; }
+.mood-form-foot .btn-save:disabled { opacity: 1; background: var(--surface3); color: var(--text-muted); }
+
+/* Chwile dnia (rano źle → wieczorem dobrze) */
+.mood-chwile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px; }
+.mood-log .mood-chwile { margin-bottom: 0; }
+.mood-chwila { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 3px; border-radius: 99px; color: var(--text-sub); font-variant-numeric: tabular-nums;
+  background: color-mix(in oklab, var(--c) 14%, transparent); border: 1px solid color-mix(in oklab, var(--c) 40%, transparent); }
+.mood-chwila + .mood-chwila { position: relative; margin-left: 12px; }
+.mood-chwila + .mood-chwila::before { content: '→'; position: absolute; left: -15px; color: var(--text-muted); }
+.mood-tag small { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-left: 2px; font-variant-numeric: tabular-nums; }
+.mood-tag b { font-size: 11px; margin-left: 1px; }
+.mood-tag b.plus, .wplyw-ocena b.plus { color: var(--income); }
+.mood-tag b.minus, .wplyw-ocena b.minus { color: var(--expense); }
+.mood-log-open { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; padding: 0; background: none; border: none; cursor: pointer; font-family: inherit; color: var(--text); text-align: left; }
+.mood-log-open strong { font-size: 14px; }
+.mood-log-open span { font-size: 11.5px; color: var(--text-muted); }
+.mood-log-open svg { color: var(--text-muted); }
+.mood-log { cursor: default; }
+
+/* „Jak to na Ciebie wpłynęło?” przy czynnikach */
+.mood-wplyw { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.mood-wplyw-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.mood-wplyw-row > span { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+.mood-wplyw-row > span i { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.mood-wplyw-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.mood-wplyw-btns button { min-height: 34px; padding: 5px 11px; border-radius: 99px; cursor: pointer; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  background: transparent; border: 1.5px solid var(--border-strong); color: var(--text-muted); }
+.mood-wplyw-btns button.on.minus { border-color: var(--expense); background: color-mix(in oklab, var(--expense) 18%, transparent); color: var(--text); }
+.mood-wplyw-btns button.on.plus { border-color: var(--income); background: color-mix(in oklab, var(--income) 18%, transparent); color: var(--text); }
+.wplyw-ocena { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 3px; font-size: 12px; color: var(--text-muted); }
+.wplyw-ocena b { font-weight: 700; }
+
+/* Przełącznik „Wpisz do kalendarza” */
+.mood-kal { margin-top: 14px; padding: 10px 12px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--border); }
+.mood-switch { display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 14px; font-weight: 600; }
+.mood-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.mood-switch-ui { width: 42px; height: 24px; border-radius: 99px; background: var(--surface3); position: relative; flex-shrink: 0; transition: background .2s; }
+.mood-switch-ui::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s var(--spring); }
+.mood-switch input:checked + .mood-switch-ui { background: var(--income); }
+.mood-switch input:checked + .mood-switch-ui::after { transform: translateX(18px); }
+.mood-switch input:focus-visible + .mood-switch-ui { outline: 2px solid var(--text); outline-offset: 2px; }
+.mood-switch > span:last-child { display: flex; flex-direction: column; gap: 1px; }
+.mood-switch small { font-size: 11.5px; font-weight: 400; color: var(--text-muted); }
+
+/* Skale z opisem */
+.mood-row-lbl > span { display: flex; flex-direction: column; gap: 1px; color: var(--text); }
+.mood-row-lbl small { font-size: 10.5px; color: var(--text-muted); }
+.mood-row-lbl small { white-space: nowrap; }

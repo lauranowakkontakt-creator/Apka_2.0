@@ -29,15 +29,19 @@ export const MOODS = [
 export const moodDla = (v) => MOODS.reduce((p, c) => Math.abs(c.value - v) < Math.abs(p.value - v) ? c : p)
 
 // ── Oceny dnia 1–5 ────────────────────────────────────────────────────────────
-// „Relacje" ocenia się w sekcji Relacje formularza, „Sen" ma własną zakładkę —
-// obie zostają na liście, żeby stare wpisy nadal miały podpis i kolor.
+// W formularzu są trzy skale, które mówią coś innego niż sam nastrój i dobrze
+// się porównują z cyklem i snem: energia, stres i ciało (samopoczucie fizyczne).
+// „Relacje" ocenia się w sekcji Relacje, „Sen" ma własną zakładkę, a „Spokój"
+// zastąpił stres — wszystkie zostają na liście, żeby stare wpisy miały podpis.
 export const RATING_CATS = [
-  { id: 'sen',     label: 'Sen',     color: '#7C8AF0' },
-  { id: 'energia', label: 'Energia', color: '#E0B15A' },
-  { id: 'spokój',  label: 'Spokój',  color: '#5FBF98' },
+  { id: 'energia', label: 'Energia', color: '#E0B15A', opis: '1 brak sił · 5 pełno' },
+  { id: 'stres',   label: 'Stres',   color: '#D98B5F', opis: '1 spokój · 5 ogromny' },
+  { id: 'ciało',   label: 'Ciało',   color: '#14B8A6', opis: 'ból, choroba · 1 źle' },
   { id: 'relacje', label: 'Relacje', color: '#EC4899' },
+  { id: 'sen',     label: 'Sen',     color: '#7C8AF0' },
+  { id: 'spokój',  label: 'Spokój',  color: '#5FBF98' },
 ]
-export const RATING_W_FORMULARZU = ['energia', 'spokój']
+export const RATING_W_FORMULARZU = ['energia', 'stres', 'ciało']
 
 // Stany spoza koła emocji — codzienne, których u Plutchika nie ma.
 export const INNE_EMOCJE = [

@@ -4,7 +4,7 @@ import { pl } from 'date-fns/locale'
 import { Rozwijana } from '../Analityka'
 import { IconTrash } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
-import { nastrojDni, znacznikiDni, wplywZnacznikow, nastrojWGrupach, MIN_DNI } from '../../utils/moodFactors'
+import { nastrojDni, znacznikiDni, wplywZnacznikow, nastrojWGrupach, ocenyCzynnikow, MIN_DNI } from '../../utils/moodFactors'
 import { senDnia, kubelekSnu, KUBELKI_SNU } from '../../utils/sleepLogic'
 import { statystykiCyklu, fazaDnia, FAZY, KOLEJNOSC_FAZ } from '../../utils/cycleLogic'
 import { findFactor, to10, fmt10, CUSTOM_COLORS, TODAY } from './wspolne'
@@ -41,6 +41,12 @@ function ListaWplywu({ pozycje, pusty }) {
               {p.dni} {p.dni === 1 ? 'dzień' : 'dni'} · średnio {fmt10(p.z)}
               {p.bez !== null && <> · bez: {fmt10(p.bez)}</>}
             </div>
+            {p.ocena && (
+              <div className="wplyw-ocena">Twoja ocena:
+                {p.ocena.lepiej > 0 && <b className="plus">↑ lepiej {p.ocena.lepiej}×</b>}
+                {p.ocena.gorzej > 0 && <b className="minus">↓ gorzej {p.ocena.gorzej}×</b>}
+              </div>
+            )}
           </div>
         )
       })}
@@ -82,7 +88,8 @@ export default function MoodInsights({ logs, sleepLogs, okresy, people, ust, zap
       if (typ === 'o') { const o = okresyZycia.find(x => x.id === id); return o ? { ...w, nazwa: o.label, kolor: o.color } : null }
       const c = findFactor(id, ust.factors); return { ...w, nazwa: c.label, kolor: c.color }
     }
-    const opisane = wplyw.map(opisz).filter(Boolean)
+    const oceny = ocenyCzynnikow(logs)
+    const opisane = wplyw.map(opisz).filter(Boolean).map(w => ({ ...w, ocena: oceny.get(w.klucz) || null }))
     const stat = statystykiCyklu(okresy)
     return {
       dniZNastrojem: nastroj.size,

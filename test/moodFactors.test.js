@@ -51,3 +51,16 @@ test('nastrojWGrupach — rozłączne grupy w zadanej kolejności', () => {
   assert.equal(g[0].srednia, 2)
   assert.equal(g[1].dni, 3)
 })
+
+test('ocenyCzynnikow — zliczenie „lepiej / gorzej” z wpisów', async () => {
+  const { ocenyCzynnikow } = await import('../src/utils/moodFactors.js')
+  const o = ocenyCzynnikow([
+    { factorEffects: { praca: -1, spotkanie: 1 } },
+    { factorEffects: { praca: -1 } },
+    { factorEffects: { praca: 1, sport: 0 } },
+    {},
+  ])
+  assert.deepEqual(o.get('f:praca'), { lepiej: 1, gorzej: 2 })
+  assert.deepEqual(o.get('f:spotkanie'), { lepiej: 1, gorzej: 0 })
+  assert.equal(o.has('f:sport'), false)
+})

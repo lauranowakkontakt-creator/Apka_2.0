@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { collection, query, deleteDoc, doc, orderBy } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
@@ -7,7 +7,7 @@ import StatTiles from '../StatTiles'
 import { format, startOfMonth, getDaysInMonth, addDays, subMonths, addMonths } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { LineAreaSVG, DonutStat, BarChartSVG } from '../ChartPrimitives'
-import { IconTrash, IconChevronLeft, IconChevronRight, IconPlus, IconClose, IconChart, IcMoon } from '../Icons'
+import { IconTrash, IconChevronLeft, IconChevronRight, IconPlus, IconClose, IconChart, IcMoon, IconEdit } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
 import SegTabs from '../SegTabs'
 import PersonBubble from '../PersonBubble'
@@ -20,6 +20,7 @@ import MoodEntryForm from './MoodEntryForm'
 import MoodInsights from './MoodInsights'
 import SleepView from './SleepView'
 import CycleView from './CycleView'
+import { chwileWpisu } from '../../utils/moodEntry'
 import { MOODS, MoodFace, kicker, to10, fmt10, TODAY, moodDla, findEmotion, findRatingCat, findFactor, useMoodSettings } from './wspolne'
 
 // Kolekcja pod users/{uid}/… z sortowaniem — trzy takie same subskrypcje modułu.
@@ -43,6 +44,7 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
   const [tab, setTab]             = useState('mood') // mood | sleep | cycle
   const [entryDate, setEntryDate] = useState(null) // otwiera modal wpisu dla danego dnia
   const [entryMood, setEntryMood] = useState(null) // nastrój wybrany buźką na karcie „dziś”
+  const [entryEdit, setEntryEdit] = useState(null) // edytowany wpis (jeden wpis na dzień)
   const [selDate, setSelDate]     = useState(TODAY()) // wybrany dzień (kalendarz) — dzielony z „+" w rogu
   const [view, setView]           = useState('main') // main | stats (analiza pod ikoną w belce)
   const [senForm, setSenForm]     = useState(null)
@@ -56,13 +58,25 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
   const osoby     = useMemo(() => [...people].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pl')), [people])
   const [ust, zapiszUst] = useMoodSettings(user.uid)
 
+  // Jeden wpis na dzień: „+”, buźka albo dotknięcie wpisu otwiera ISTNIEJĄCY wpis
+  // tego dnia (do zmiany i dopisania), a nowy powstaje tylko, gdy dnia jeszcze nie ma.
+  const logsRef = useRef(logs)
+  logsRef.current = logs
+  const otworz = (d, m = null, log = null) => {
+    const dzien = d <= TODAY() ? d : TODAY()
+    const istniejacy = log || logsRef.current
+      .filter(l => l.date === dzien)
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0] || null
+    setEntryMood(m); setEntryEdit(istniejacy); setEntryDate(dzien)
+  }
+
   // Górna belka („Apka"): [analiza][＋ Dodaj] — spójnie z innymi modułami.
   // „+” dodaje to, co pasuje do otwartej zakładki. Hook przed early-returnem.
   useEffect(() => {
     const dodaj = () => {
       if (tab === 'sleep') setSenForm({ type: 'night' })
       else if (tab === 'cycle') setCyklForm(true)
-      else { setEntryMood(null); setEntryDate(selDate <= TODAY() ? selDate : TODAY()) }
+      else otworz(selDate)
     }
     setHeaderExtras?.(
       <>
@@ -106,7 +120,7 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
       {(view === 'stats' || tab === 'mood') && (
         <MoodPage logs={logs} sleepLogs={sleepLogs} okresy={okresy} people={osoby} ust={ust} zapiszUst={zapiszUst}
           onDelete={handleDelete} selDate={selDate} setSelDate={setSelDate} view={view} onCycle={() => setTab('cycle')} onSleep={() => setTab('sleep')}
-          onAddEntry={(d, m = null) => { setEntryMood(m); setEntryDate(d <= TODAY() ? d : TODAY()) }} />
+          onAddEntry={otworz} onEdit={(log) => otworz(log.date, null, log)} />
       )}
       {view === 'main' && tab === 'sleep' && <SleepView user={user} logs={sleepLogs} formularz={senForm} setFormularz={setSenForm} />}
       {view === 'main' && tab === 'cycle' && <CycleView user={user} okresy={okresy} moodLogs={logs} formularz={cyklForm} setFormularz={setCyklForm} />}
@@ -116,10 +130,11 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setEntryDate(null)}>
           <div className="modal">
             <div className="modal-header">
-              <h3 style={{ textTransform: 'capitalize' }}>{entryDate === TODAY() ? 'Nowy wpis · dziś' : `Wpis · ${entryLabel}`}</h3>
+              <h3>{entryEdit ? (entryDate === TODAY() ? 'Dziś · zmień lub dopisz' : `Wpis · ${entryLabel}`) : entryDate === TODAY() ? 'Nowy wpis · dziś' : `Wpis · ${entryLabel}`}</h3>
               <button className="modal-close" aria-label="Zamknij" onClick={() => setEntryDate(null)}><IconClose size={16} /></button>
             </div>
-            <MoodEntryForm key={entryDate + (entryMood || '')} user={user} date={entryDate} initialMood={entryMood} ust={ust} zapiszUst={zapiszUst} people={osoby}
+            <MoodEntryForm key={entryDate + (entryMood || '') + (entryEdit?.id || '')} user={user} date={entryDate} initialMood={entryMood} edit={entryEdit}
+              ust={ust} zapiszUst={zapiszUst} people={osoby}
               onSaved={() => setEntryDate(null)} />
           </div>
         </div>
@@ -131,7 +146,7 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
 /* ============================================================
    JEDEN WIDOK — wykres + średnia + emocje + wpis + kalendarz
    ============================================================ */
-function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, selDate, setSelDate, onAddEntry, onCycle, onSleep, view = 'main' }) {
+function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, selDate, setSelDate, onAddEntry, onEdit, onCycle, onSleep, view = 'main' }) {
   const [viewMode, setViewMode] = useState('month') // month | year | all
   const [month, setMonth]     = useState(new Date())
   const today = TODAY()
@@ -328,7 +343,7 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
               <strong>{selDate === today ? 'Dziś' : selLabel}</strong>
               {canAdd && (
                 <button type="button" className="mood-day-add" onClick={() => onAddEntry?.(selDate)}>
-                  <IconPlus size={13} /> wpis
+                  {dayLogs.length ? <><IconEdit size={13} /> zmień / dopisz</> : <><IconPlus size={13} /> wpis</>}
                 </button>
               )}
             </div>
@@ -340,7 +355,7 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
               </div>
             )}
             {dayLogs.length > 0 ? (
-              dayLogs.map(log => <LogEntry key={log.id} log={log} onDelete={() => onDelete(log)} people={people} ust={ust} />)
+              dayLogs.map(log => <LogEntry key={log.id} log={log} onDelete={() => onDelete(log)} onEdit={() => onEdit(log)} people={people} ust={ust} />)
             ) : (
               <p className="mood-day-empty">{canAdd ? 'Brak wpisów tego dnia' : 'Nie można dodać wpisu z przyszłości'}</p>
             )}
@@ -487,25 +502,41 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
   )
 }
 
-function LogEntry({ log, onDelete, people, ust }) {
+function LogEntry({ log, onDelete, onEdit, people, ust }) {
   const moodObj = log.mood ? MOODS.find(m => m.id === log.mood) : null
   const ratingEntries = Object.entries(log.ratings || {}).filter(([, v]) => v > 0).map(([id, v]) => ({ ...findRatingCat(id, ust.ratingCats), value: v }))
   const osoby = (log.peopleIds || []).map(id => people.find(p => p.id === id)).filter(Boolean)
+  const czasy = log.emotionTimes || {}
   const emocje = (log.emotions || []).map(id => findEmotion(id, ust.emotions))
+    .sort((a, b) => (czasy[a.id] || '99').localeCompare(czasy[b.id] || '99'))
   const czynniki = (log.factors || []).map(id => findFactor(id, ust.factors))
+  const wplyw = log.factorEffects || {}
+  const chwile = chwileWpisu(log)
+  const wiele = chwile.length > 1
   return (
-    <article className="mood-log" style={moodObj ? { '--c': moodObj.color } : undefined}>
-      <div className="mood-log-face">{moodObj && <MoodFace mood={moodObj} size={24} active />}</div>
+    <article className="mood-log" style={moodObj ? { '--c': moodDla(log.moodValue || moodObj.value).color } : undefined}>
+      <div className="mood-log-face">{moodObj && <MoodFace mood={moodDla(log.moodValue || moodObj.value)} size={24} active />}</div>
       <div className="mood-log-body">
         <div className="mood-log-head">
-          <strong>{log.moodLabel}</strong>
-          {log.time && <span>{log.time}</span>}
+          <button type="button" className="mood-log-open" onClick={onEdit} aria-label="Zmień lub dopisz do wpisu">
+            <strong>{wiele ? moodDla(log.moodValue).label : log.moodLabel}</strong>
+            {!wiele && log.time && <span>{log.time}</span>}
+            <IconEdit size={12} />
+          </button>
           <button onClick={onDelete} className="t-btn delete" aria-label="Usuń wpis"><IconTrash size={12} /></button>
         </div>
+        {wiele && (
+          <div className="mood-chwile" aria-label="Nastrój w ciągu dnia">
+            {chwile.map((c, i) => { const m = MOODS.find(x => x.value === c.value); return m && (
+              <span key={i} className="mood-chwila" style={{ '--c': m.color }}><MoodFace mood={m} size={16} active />{c.time || ''}</span>
+            ) })}
+          </div>
+        )}
         {(emocje.length > 0 || czynniki.length > 0 || osoby.length > 0) && (
           <div className="mood-tags">
-            {emocje.map(em => <span key={em.id} className="mood-tag" style={{ '--c': em.color }}><i />{em.label.toLowerCase()}</span>)}
-            {czynniki.map(f => <span key={f.id} className="mood-tag sq" style={{ '--c': f.color }}><i />{f.label}</span>)}
+            {emocje.map(em => <span key={em.id} className="mood-tag" style={{ '--c': em.color }}><i />{em.label.toLowerCase()}{czasy[em.id] && wiele && <small>{czasy[em.id]}</small>}</span>)}
+            {czynniki.map(f => <span key={f.id} className="mood-tag sq" style={{ '--c': f.color }}><i />{f.label}
+              {wplyw[f.id] === 1 && <b className="plus" aria-label="lepiej">↑</b>}{wplyw[f.id] === -1 && <b className="minus" aria-label="gorzej">↓</b>}</span>)}
             {osoby.map(o => <span key={o.id} className="mood-tag person"><PersonBubble person={o} size={16} />{o.name}</span>)}
           </div>
         )}
