@@ -225,7 +225,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Nagłówek osoby */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button className="t-btn" onClick={onBack} style={{ padding: '4px 8px' }}><IconChevronLeft size={18} /></button>
+        <button aria-label="Wróć" className="t-btn" onClick={onBack} style={{ padding: '4px 8px' }}><IconChevronLeft size={18} /></button>
         <PersonBubble person={person} size={48} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{person.name}</p>
@@ -571,7 +571,7 @@ function PersonForm({ user, editData, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3>{editData ? 'Edytuj osobę' : 'Nowa osoba'}</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-group">

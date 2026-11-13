@@ -109,11 +109,11 @@ export default function Charts({ user, privateMode = false }) {
 
       {/* Period navigation (bez strzałek w widoku „Lata") */}
       {period !== 'all' && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button className="icon-btn" onClick={goBack}><IconChevronLeft size={16} /></button>
+        <button aria-label="Poprzedni okres" className="icon-btn" onClick={goBack}><IconChevronLeft size={16} /></button>
         <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>
           {bounds.label}
         </span>
-        <button className="icon-btn" onClick={goFwd}><IconChevronRight size={16} /></button>
+        <button aria-label="Następny okres" className="icon-btn" onClick={goFwd}><IconChevronRight size={16} /></button>
       </div>}
 
       {/* Filtr kont — jeden przewijany palcem wiersz, niezależnie od liczby kont */}

@@ -66,7 +66,7 @@ export default function HabitFreshStart({ user, habits = [], pauses = [], onClos
       <div className="modal">
         <div className="modal-header">
           <h3>Zacznij od nowa</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <div className="form">

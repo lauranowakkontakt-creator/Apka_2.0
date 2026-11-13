@@ -34,7 +34,7 @@ export default function SettingsDrawer({ open, onClose, activeModule, modules, o
               <div className="drawer-email">{user.email || ''}</div>
             </div>
           </div>
-          <button className="drawer-close" onClick={onClose}>
+          <button aria-label="Zamknij" className="drawer-close" onClick={onClose}>
             <IconClose size={16} />
           </button>
         </div>

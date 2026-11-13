@@ -65,8 +65,8 @@ export default function DreamCategoryManager({ user }) {
                 background: c.color || '#9E9E9E',
               }} />
               <span style={{ flex: 1, fontSize: 14, minWidth: 0, wordBreak: 'break-word' }}>{c.label}</span>
-              <button className="t-btn" onClick={() => setEditId(c.id)}><IconEdit size={13} /></button>
-              <button className="t-btn delete" onClick={() => remove(c)}><IconTrash size={13} /></button>
+              <button aria-label="Edytuj" className="t-btn" onClick={() => setEditId(c.id)}><IconEdit size={13} /></button>
+              <button aria-label="Usuń" className="t-btn delete" onClick={() => remove(c)}><IconTrash size={13} /></button>
             </div>
           ))}
 

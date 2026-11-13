@@ -34,7 +34,7 @@ export default function AccountReorderModal({ user, accounts, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><IconReorder size={16} /> Kolejność kont</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <div className="form">
           <p className="pause-info">Przeciągnij konto za uchwyt po prawej, żeby ustawić kolejność.</p>

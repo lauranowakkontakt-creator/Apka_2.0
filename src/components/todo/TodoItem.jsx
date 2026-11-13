@@ -24,7 +24,8 @@ export default function TodoItem({ todo, lists, peopleById = {}, onToggle, onTog
       ...(todo.starred && !todo.done ? { borderColor: 'color-mix(in oklab, var(--warn) 55%, var(--border))', background: 'color-mix(in oklab, var(--warn) 6%, var(--surface))' } : {}),
     }}>
       {/* Checkbox */}
-      <button onClick={() => onToggle(todo)} style={{
+      <button onClick={() => onToggle(todo)} role="checkbox" aria-checked={!!todo.done}
+        aria-label={`Zrobione: ${todo.title || todo.text || 'zadanie'}`} className="todo-check" style={{
         width: 24, height: 24, borderRadius: 8, flexShrink: 0, marginTop: 1,
         border: `1.8px solid ${todo.done ? 'var(--income)' : list ? listColor : priority?.color || 'var(--border-strong)'}`,
         background: todo.done ? 'var(--income)' : 'transparent', cursor: 'pointer',
@@ -49,14 +50,14 @@ export default function TodoItem({ todo, lists, peopleById = {}, onToggle, onTog
           {priority && !todo.done && (
             <span style={{
               fontSize: 10, padding: '1px 7px', borderRadius: 4,
-              background: priority.color + '22', color: priority.color, fontWeight: 700,
+              background: priority.color + '22', color: `color-mix(in oklab, ${priority.color} 62%, white)`, fontWeight: 700,
               textTransform: 'uppercase', letterSpacing: '.04em',
             }}>
               {priority.label}
             </span>
           )}
           {date && (
-            <span style={{ fontSize: 11, fontWeight: overdue || dueToday ? 600 : 400, color: overdue ? '#E53935' : dueToday ? '#FB8C00' : 'var(--text-muted)' }}>
+            <span style={{ fontSize: 11, fontWeight: overdue || dueToday ? 600 : 400, color: overdue ? '#F0625F' : dueToday ? '#FB8C00' : 'var(--text-muted)' }}>
               {overdue ? <IconFlag size={10} style={{ verticalAlign: 'middle', marginRight: 2 }} /> : dueToday ? <IconClock size={10} style={{ verticalAlign: 'middle', marginRight: 2 }} /> : <IconCalendar size={10} style={{ verticalAlign: 'middle', marginRight: 2 }} />}
               {format(date, 'd MMM', { locale: pl })}
             </span>
@@ -91,7 +92,7 @@ export default function TodoItem({ todo, lists, peopleById = {}, onToggle, onTog
         {subs.length > 0 && (
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
             {subs.map(s => (
-              <button key={s.id} type="button" onClick={() => onToggleSubtask?.(todo, s.id)}
+              <button key={s.id} type="button" role="checkbox" aria-checked={!!s.done} className="todo-sub" onClick={() => onToggleSubtask?.(todo, s.id)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
                 <span style={{
                   width: 16, height: 16, borderRadius: 5, flexShrink: 0, display: 'grid', placeItems: 'center',
@@ -113,8 +114,8 @@ export default function TodoItem({ todo, lists, peopleById = {}, onToggle, onTog
             <IconStar size={13} style={todo.starred ? { fill: 'currentColor' } : undefined} />
           </button>
         )}
-        <button className="t-btn" onClick={onEdit}><IconEdit size={13} /></button>
-        <button className="t-btn delete" onClick={() => onDelete(todo.id)}><IconTrash size={13} /></button>
+        <button aria-label="Edytuj" className="t-btn" onClick={onEdit}><IconEdit size={13} /></button>
+        <button aria-label="Usuń" className="t-btn delete" onClick={() => onDelete(todo.id)}><IconTrash size={13} /></button>
       </div>
     </div>
   )

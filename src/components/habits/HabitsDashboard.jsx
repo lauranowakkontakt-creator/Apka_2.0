@@ -377,9 +377,9 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
             {/* Mały kalendarz miesiąca — z przewijaniem */}
             <div className="card card-hover-glow habit-hero-cal">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, marginBottom: 6 }}>
-                <button className="icon-btn" style={{ width: 22, height: 22 }} onClick={() => setDashMonth(subMonths(dashMonth, 1))} title="Poprzedni miesiąc"><IconChevronLeft size={12} /></button>
+                <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => setDashMonth(subMonths(dashMonth, 1))} title="Poprzedni miesiąc"><IconChevronLeft size={12} /></button>
                 <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', textAlign: 'center', whiteSpace: 'nowrap' }}>{format(dashMonth, 'LLL yyyy', { locale: pl })}</span>
-                <button className="icon-btn" style={{ width: 22, height: 22 }} onClick={() => setDashMonth(addMonths(dashMonth, 1))} title="Następny miesiąc"><IconChevronRight size={12} /></button>
+                <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => setDashMonth(addMonths(dashMonth, 1))} title="Następny miesiąc"><IconChevronRight size={12} /></button>
               </div>
               <MonthCalendar month={dashMonth} renderCell={aggCellFor(filtered)} cellH={15} gap={2} font={7.5} maxWidth={240} />
             </div>
@@ -488,6 +488,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
               ) : (
                 /* Check — odhaczysz też dodatkowe (dni poza harmonogramem / w pauzie) */
                 <button
+                  role="checkbox" aria-checked={!!done} aria-label={`Wykonane: ${habit.name}`}
                   onClick={() => !isFut && toggleDay(habit, selectedDay)}
                   disabled={isFut}
                   style={{
@@ -553,12 +554,12 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
 
             {/* Single day navigator */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 14 }}>
-              <button className="month-btn" onClick={goBack} style={{ width: 32, height: 32 }}>‹</button>
+              <button aria-label="Poprzedni" className="month-btn" onClick={goBack} style={{ width: 32, height: 32 }}>‹</button>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'capitalize' }}>{dayLabel}</div>
                 {isToday && <div style={{ fontSize: 10, color: 'var(--accent)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>Dziś</div>}
               </div>
-              <button className="month-btn" onClick={goFwd} style={{ width: 32, height: 32, opacity: isToday ? 0.3 : 1 }} disabled={isToday}>›</button>
+              <button aria-label="Następny" className="month-btn" onClick={goFwd} style={{ width: 32, height: 32, opacity: isToday ? 0.3 : 1 }} disabled={isToday}>›</button>
             </div>
 
             {/* Category filter */}
@@ -605,8 +606,8 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
                         const toggle = () => setCollapsedRoutines(prev => ({ ...prev, [g.id ?? '_none']: !collapsed }))
                         return (
                           <div key={g.id ?? '_none'} style={{ marginBottom: 14 }}>
-                            <button type="button" onClick={toggle} style={{
-                              display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, width: '100%',
+                            <button type="button" onClick={toggle} aria-expanded={!collapsed} style={{
+                              display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, width: '100%', minHeight: 24,
                               background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
                               color: 'inherit', textAlign: 'left',
                             }}>
@@ -702,9 +703,9 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
 
           {/* Nawigator okresu */}
           <div className="habit-week-nav" style={{ margin: 0 }}>
-            <button className="month-btn" onClick={goPrev} disabled={prevDisabled} style={{ opacity: prevDisabled ? 0.3 : 1 }}>‹</button>
+            <button aria-label="Poprzedni" className="month-btn" onClick={goPrev} disabled={prevDisabled} style={{ opacity: prevDisabled ? 0.3 : 1 }}>‹</button>
             <span className="habit-period-label" style={{ textTransform: statPeriod === 'week' ? 'none' : 'none' }}>{navLabel}</span>
-            <button className="month-btn" onClick={goNext} disabled={nextDisabled} style={{ opacity: nextDisabled ? 0.3 : 1 }}>›</button>
+            <button aria-label="Następny" className="month-btn" onClick={goNext} disabled={nextDisabled} style={{ opacity: nextDisabled ? 0.3 : 1 }}>›</button>
           </div>
 
           {/* Podsumowanie okresu — duży pierścień % + kafelki */}

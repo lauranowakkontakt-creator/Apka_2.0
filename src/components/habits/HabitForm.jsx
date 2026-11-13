@@ -147,7 +147,7 @@ export default function HabitForm({ user, onClose, editData }) {
       <div className="modal">
         <div className="modal-header">
           <h3>{editData ? 'Edytuj nawyk' : 'Nowy nawyk'}</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="form">
 
@@ -324,7 +324,7 @@ export default function HabitForm({ user, onClose, editData }) {
                 {checklist.map(s => (
                   <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface2)', borderRadius: 8, padding: '7px 10px' }}>
                     <span style={{ flex: 1, fontSize: 13 }}>{s.title}</span>
-                    <button type="button" className="t-btn delete" onClick={() => removeStep(s.id)}><IconTrash size={12} /></button>
+                    <button aria-label="Usuń" type="button" className="t-btn delete" onClick={() => removeStep(s.id)}><IconTrash size={12} /></button>
                   </div>
                 ))}
               </div>
@@ -333,7 +333,7 @@ export default function HabitForm({ user, onClose, editData }) {
               <input type="text" className="form-input" value={stepInput} onChange={e => setStepInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addStep() } }}
                 placeholder="Dodaj krok, np. 10 pompek..." maxLength={100} style={{ flex: 1, margin: 0 }} />
-              <button type="button" className="btn-save" style={{ width: 'auto', margin: 0, padding: '0 14px' }} onClick={addStep}><IconPlus size={16} /></button>
+              <button aria-label="Dodaj" type="button" className="btn-save" style={{ width: 'auto', margin: 0, padding: '0 14px' }} onClick={addStep}><IconPlus size={16} /></button>
             </div>
             {checklist.length > 0 && (
               <p style={{ margin: '6px 2px 0', fontSize: 11, color: 'var(--text-muted)' }}>

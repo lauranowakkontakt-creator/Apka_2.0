@@ -85,7 +85,7 @@ export default function PauseForm({ user, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><IconPause size={16} /> Pauza nawyków</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <div className="form">
           <p className="pause-info">W podanym czasie żaden nawyk ani wyzwanie nie jest wymagany — seria nie jest przerywana, ale dni przerwy nie liczą się do streaka. W kalendarzu dni przerwy dostają kolor powodu.</p>

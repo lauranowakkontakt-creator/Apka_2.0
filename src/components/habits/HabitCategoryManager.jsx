@@ -32,7 +32,7 @@ export default function HabitCategoryManager({ user, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <h3><IconTag size={17} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Kategorie nawyków</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -52,8 +52,8 @@ export default function HabitCategoryManager({ user, onClose }) {
                 <CatIcon categoryId={null} emoji={c.icon || 'IcTag'} size={17} />
               </div>
               <span style={{ flex: 1, fontSize: 14 }}>{c.name}</span>
-              <button className="t-btn" onClick={() => setEditId(c.id)}><IconEdit size={13} /></button>
-              <button className="t-btn delete" onClick={() => remove(c)}><IconTrash size={13} /></button>
+              <button aria-label="Edytuj" className="t-btn" onClick={() => setEditId(c.id)}><IconEdit size={13} /></button>
+              <button aria-label="Usuń" className="t-btn delete" onClick={() => remove(c)}><IconTrash size={13} /></button>
             </div>
           ))}
 

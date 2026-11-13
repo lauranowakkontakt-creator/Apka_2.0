@@ -67,8 +67,8 @@ export default function PeopleView({ calPeople, events, categories, onManage, on
                   {e.note && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontStyle: 'italic' }}>{e.note}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-                  <button className="t-btn" onClick={() => onEdit(e)}><IconEdit size={11} /></button>
-                  <button className="t-btn delete" onClick={() => onDelete(e.id)}><IconTrash size={11} /></button>
+                  <button aria-label="Edytuj" className="t-btn" onClick={() => onEdit(e)}><IconEdit size={11} /></button>
+                  <button aria-label="Usuń" className="t-btn delete" onClick={() => onDelete(e.id)}><IconTrash size={11} /></button>
                 </div>
               </div>
             ))}
@@ -122,7 +122,7 @@ export default function PeopleView({ calPeople, events, categories, onManage, on
               <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{format(parseISO(e.date), 'd MMM', { locale: pl })}</span>
                 <span style={{ fontSize: 13, flex: 1, minWidth: 0 }}>{e.title}</span>
-                <button className="t-btn" onClick={() => onEdit(e)}><IconEdit size={11} /></button>
+                <button aria-label="Edytuj" className="t-btn" onClick={() => onEdit(e)}><IconEdit size={11} /></button>
               </div>
             ))}
           </div>

@@ -498,7 +498,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
       {activeTab === 'shopping'  && <ShoppingList user={user} />}
 
       {activeTab === 'transactions' && (
-        <button className="btn-add" onClick={() => setShowForm(true)}><IconPlus size={22} /></button>
+        <button aria-label="Dodaj" className="btn-add" onClick={() => setShowForm(true)}><IconPlus size={22} /></button>
       )}
 
       {modal === 'transfer'    && <TransferForm   user={user} onClose={() => setModal(null)} />}

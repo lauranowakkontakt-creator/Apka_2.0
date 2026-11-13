@@ -19,10 +19,10 @@ export default function WeekView({ weekDate, events, categories, calPeople, filt
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button className="icon-btn" onClick={onPrev}><IconChevronLeft size={16} /></button>
+        <button aria-label="Poprzedni" className="icon-btn" onClick={onPrev}><IconChevronLeft size={16} /></button>
         <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 700, textTransform: 'capitalize' }}>{rangeLabel}</span>
         <button className="icon-btn" style={{ width: 'auto', padding: '0 10px', fontSize: 12 }} onClick={onToday}>Dziś</button>
-        <button className="icon-btn" onClick={onNext}><IconChevronRight size={16} /></button>
+        <button aria-label="Następny" className="icon-btn" onClick={onNext}><IconChevronRight size={16} /></button>
       </div>
 
       {days.map(day => {
@@ -55,8 +55,8 @@ export default function WeekView({ weekDate, events, categories, calPeople, filt
                       <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', width: 38, flexShrink: 0 }}>{e.startTime || '—'}</span>
                       <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</span>
                       {e.recurrence && <IconRepeat size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
-                      <button className="t-btn" onClick={() => onEdit(e)}><IconEdit size={12} /></button>
-                      <button className="t-btn delete" onClick={() => onDelete(e.id)}><IconTrash size={12} /></button>
+                      <button aria-label="Edytuj" className="t-btn" onClick={() => onEdit(e)}><IconEdit size={12} /></button>
+                      <button aria-label="Usuń" className="t-btn delete" onClick={() => onDelete(e.id)}><IconTrash size={12} /></button>
                     </div>
                   )
                 })}

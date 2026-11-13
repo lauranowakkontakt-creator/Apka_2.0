@@ -361,7 +361,7 @@ export default function ImportView({ user, onClose }) {
             <p className="modal-kicker">Finanse</p>
             <h3>Import transakcji</h3>
           </div>
-          <button className="modal-close" onClick={onClose} disabled={saving}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose} disabled={saving}><IconClose size={16} /></button>
         </div>
 
         {step === 'file' && (

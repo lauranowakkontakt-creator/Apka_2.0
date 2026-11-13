@@ -25,6 +25,7 @@ import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from '
 import { getCurrencyCode } from './utils/currency'
 import { useSynchronizujIkonyKategorii } from './utils/useSynchronizujIkony'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
+import { useModalA11y } from './utils/useModalA11y'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
 // się do emulatora Auth na jedno stałe konto lokalne. Zawsze to samo konto =
@@ -124,6 +125,18 @@ export default function App() {
 
   // Auto-księgowanie regularnych płatności w tle — działa zawsze, nie tylko w zakładce „Regularne"
   useRegularPaymentsProcessor(user?.uid)
+  useModalA11y()
+
+  // Escape zamyka panel ustawień i arkusz „Więcej” (okna obsługuje useModalA11y)
+  useEffect(() => {
+    if (!drawerOpen && !moreOpen) return
+    const naKlawisz = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || document.querySelector('.modal-overlay')) return
+      setDrawerOpen(false); setMoreOpen(false)
+    }
+    window.addEventListener('keydown', naKlawisz)
+    return () => window.removeEventListener('keydown', naKlawisz)
+  }, [drawerOpen, moreOpen])
   useSynchronizujIkonyKategorii(user?.uid)
 
   // Zmiana waluty głównej/kursów: przeładowanie modułów (key), żeby przeliczyły sumy.
@@ -203,6 +216,7 @@ export default function App() {
               <button
                 key={m.id}
                 className={`sidebar-nav-item${isActive ? ' active' : ''}`}
+                aria-current={isActive ? 'page' : undefined}
                 style={isActive ? { '--accent': modAccent, '--accent-soft': `color-mix(in oklab, ${modAccent} 15%, transparent)` } : {}}
                 onClick={() => { setActiveModule(m.id); setDrawerOpen(false) }}
               >
@@ -221,7 +235,7 @@ export default function App() {
             <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.displayName || 'Laura'}</div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || ''}</div>
           </div>
-          <button className="icon-btn" style={{ width: 30, height: 30, flexShrink: 0 }} onClick={() => setDrawerOpen(true)}>
+          <button aria-label="Ustawienia" className="icon-btn" style={{ width: 30, height: 30, flexShrink: 0 }} onClick={() => setDrawerOpen(true)}>
             <IconSettings size={14}/>
           </button>
         </div>
@@ -241,7 +255,7 @@ export default function App() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {headerExtras}
-            <button className="icon-btn" onClick={() => setDrawerOpen(true)}><IconSettings size={15}/></button>
+            <button aria-label="Ustawienia" className="icon-btn" onClick={() => setDrawerOpen(true)}><IconSettings size={15}/></button>
           </div>
         </div>
 
@@ -255,7 +269,7 @@ export default function App() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {headerExtras}
-            <button
+            <button aria-label="Ustawienia"
               className="icon-btn"
               style={{ width: 34, height: 34, background: 'var(--accent-soft)', color: 'var(--accent)', border: 'none' }}
               onClick={() => setDrawerOpen(true)}
@@ -292,7 +306,7 @@ export default function App() {
       </div>
 
       {/* Bottom nav — mobile */}
-      <nav className="bottom-nav">
+      <nav className="bottom-nav" aria-label="Aplikacje">
         <div className="bn-indicator" style={{ left: `calc(${(activeIdx + 0.5) * w}% - 12px)`, background: accent }}/>
         {navItems.map(m => {
           const isActive = activeModule === m.id
@@ -301,6 +315,7 @@ export default function App() {
             <button
               key={m.id}
               className={`bottom-nav-item${isActive ? ' active' : ''}`}
+              aria-current={isActive ? 'page' : undefined}
               style={{ '--accent': modAccent }}
               onClick={() => goTo(m.id)}
             >

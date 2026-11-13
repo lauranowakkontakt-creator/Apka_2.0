@@ -133,7 +133,7 @@ export default function CategoriesView({ user, onClose }) {
       <div className="modal modal-tall">
         <div className="modal-header">
           <h3><IconTag size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Kategorie</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <div className="habit-view-tabs" style={{ marginBottom: 12 }}>
@@ -172,8 +172,8 @@ export default function CategoriesView({ user, onClose }) {
                         </span>
                       )}
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="t-btn" onClick={() => { setEditCat(cat); setShowAdd(false) }}><IconEdit size={13} /></button>
-                        <button className="t-btn delete" onClick={() => deleteCat(cat.id)}><IconTrash size={13} /></button>
+                        <button aria-label="Edytuj" className="t-btn" onClick={() => { setEditCat(cat); setShowAdd(false) }}><IconEdit size={13} /></button>
+                        <button aria-label="Usuń" className="t-btn delete" onClick={() => deleteCat(cat.id)}><IconTrash size={13} /></button>
                         <button
                           className="t-btn"
                           onClick={() => { toggleExpanded(cat.id); setAddingSubcat(null); setEditSubcat(null) }}
@@ -229,8 +229,8 @@ export default function CategoriesView({ user, onClose }) {
                                   <span style={{ fontSize: 10, color: subColor, fontWeight: 600, background: subColor + '22', borderRadius: 99, padding: '1px 6px' }}>{sub.subcategories.length}</span>
                                 )}
                                 <div style={{ display: 'flex', gap: 4 }}>
-                                  <button className="t-btn" onClick={() => { setEditSubcat({ catId: cat.id, subcat: sub }); setAddingSubcat(null) }}><IconEdit size={12} /></button>
-                                  <button className="t-btn delete" onClick={() => deleteSubcat(cat.id, sub.id)}><IconTrash size={12} /></button>
+                                  <button aria-label="Edytuj" className="t-btn" onClick={() => { setEditSubcat({ catId: cat.id, subcat: sub }); setAddingSubcat(null) }}><IconEdit size={12} /></button>
+                                  <button aria-label="Usuń" className="t-btn delete" onClick={() => deleteSubcat(cat.id, sub.id)}><IconTrash size={12} /></button>
                                   <button className="t-btn" title="Pod-podkategorie" onClick={() => { toggleSub(sub.id); setAddingSS(null); setEditSS(null) }}
                                     style={{ color: expandedSub.has(sub.id) ? subColor : 'var(--text-muted)' }}>
                                     <IconChevronDown size={12} style={{ transform: expandedSub.has(sub.id) ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
@@ -247,8 +247,8 @@ export default function CategoriesView({ user, onClose }) {
                                   ) : (
                                     <div key={ss.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', borderRadius: 7, padding: '5px 8px', border: '1px solid var(--border)' }}>
                                       <span style={{ flex: 1, fontSize: 12, color: 'var(--text)' }}>{ss.label}</span>
-                                      <button className="t-btn" onClick={() => { setEditSS({ catId: cat.id, subId: sub.id, item: ss }); setAddingSS(null) }}><IconEdit size={11} /></button>
-                                      <button className="t-btn delete" onClick={() => deleteSS(cat.id, sub.id, ss.id)}><IconTrash size={11} /></button>
+                                      <button aria-label="Edytuj" className="t-btn" onClick={() => { setEditSS({ catId: cat.id, subId: sub.id, item: ss }); setAddingSS(null) }}><IconEdit size={11} /></button>
+                                      <button aria-label="Usuń" className="t-btn delete" onClick={() => deleteSS(cat.id, sub.id, ss.id)}><IconTrash size={11} /></button>
                                     </div>
                                   )
                                 ))}

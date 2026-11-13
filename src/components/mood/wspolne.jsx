@@ -103,7 +103,7 @@ export function AddChip({ onAdd, placeholder = 'nowa…', label = 'dodaj' }) {
   return (
     <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
       <input autoFocus value={val} onChange={e => setVal(e.target.value)} maxLength={24}
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submit() } if (e.key === 'Escape') setOpen(false) }}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submit() } if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }}
         placeholder={placeholder} className="mood-chip-input" />
       <button type="button" className="mood-chip-ok" onClick={submit}>OK</button>
     </span>

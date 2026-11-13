@@ -314,7 +314,7 @@ function GratitudeReader({ all, id, onGo, onClose }) {
           <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <IcSun size={17} /> Wdzięczność
           </h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <div className="reader-body">
           <div className="reader-date">{dayLabel(entry.date)}</div>
@@ -343,7 +343,7 @@ function GratitudeRow({ entry, index, editing, editValue, onEditChange, onEditSt
           onChange={e => onEditChange(e.target.value)} maxLength={200}
           onKeyDown={e => {
             if (e.key === 'Enter') { e.preventDefault(); onEditSave() }
-            if (e.key === 'Escape') onEditCancel()
+            if (e.key === 'Escape') { e.stopPropagation(); onEditCancel() }
           }}
         />
         <button className="t-btn" title="Zapisz" onClick={onEditSave}><IconCheck size={14} /></button>

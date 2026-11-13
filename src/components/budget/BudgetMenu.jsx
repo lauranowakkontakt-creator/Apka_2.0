@@ -37,7 +37,7 @@ export default function BudgetMenu({ onAction, privateMode }) {
 
   return (
     <div className="budget-menu-wrap" ref={ref}>
-      <button className={`budget-menu-btn ${open ? 'active' : ''}`} onClick={() => setOpen(o => !o)}>
+      <button aria-label="Więcej" aria-haspopup="menu" aria-expanded={open} className={`budget-menu-btn ${open ? 'active' : ''}`} onClick={() => setOpen(o => !o)}>
         ⋮
       </button>
       {open && (

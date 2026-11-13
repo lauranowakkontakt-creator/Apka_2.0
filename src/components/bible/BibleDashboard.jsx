@@ -282,7 +282,7 @@ export default function BibleDashboard({ user, setHeaderExtras }) {
               <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <IconCalendar size={17} /> Czytanie i licznik
               </h3>
-              <button className="modal-close" onClick={() => setShowJourney(false)}><IconClose size={16} /></button>
+              <button aria-label="Zamknij" className="modal-close" onClick={() => setShowJourney(false)}><IconClose size={16} /></button>
             </div>
             <div className="form">
               {progress.startDate ? (
@@ -368,7 +368,7 @@ function ChapterSheet({ book, chapter, count, note, onClose, onSetCount, onBump,
           <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <IconBook size={17} /> {book.name} {chapter}
           </h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
 
         <div className="form">

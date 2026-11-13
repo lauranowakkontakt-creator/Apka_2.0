@@ -145,8 +145,8 @@ export default function RegularPayments({ user }) {
                           <IconRepeat size={11} /> Cofnij
                         </button>
                       )}
-                      <button className="t-btn" onClick={() => { setEditPayment(p); setShowForm(true) }}><IconEdit size={13} /></button>
-                      <button className="t-btn delete" onClick={() => handleDelete(p.id)}><IconTrash size={13} /></button>
+                      <button aria-label="Edytuj" className="t-btn" onClick={() => { setEditPayment(p); setShowForm(true) }}><IconEdit size={13} /></button>
+                      <button aria-label="Usuń" className="t-btn delete" onClick={() => handleDelete(p.id)}><IconTrash size={13} /></button>
                     </div>
                   </div>
                 </div>

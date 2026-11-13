@@ -211,7 +211,7 @@ export default function DreamForm({ user, categories, people, symbols, onCreateS
       <div className="modal">
         <div className="modal-header">
           <h3>{editData ? 'Edytuj sen' : 'Nowy sen'}</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-group">

@@ -202,7 +202,7 @@ export default function HabitExtras({
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderRadius: 'var(--r)', padding: '10px 14px',
           }}>
-            <button className="month-btn" style={{ width: 32, height: 32 }}
+            <button aria-label="Poprzedni" className="month-btn" style={{ width: 32, height: 32 }}
               onClick={() => onSelectDay(format(subDays(selDate, 1), 'yyyy-MM-dd'))}>‹</button>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'capitalize' }}>{dayLabel}</div>
@@ -211,7 +211,7 @@ export default function HabitExtras({
               )}
             </div>
             {/* W przyszłość nie puszczamy — nie da się zaliczyć czegoś, co się nie stało. */}
-            <button className="month-btn" style={{ width: 32, height: 32, opacity: isToday ? 0.3 : 1 }}
+            <button aria-label="Następny" className="month-btn" style={{ width: 32, height: 32, opacity: isToday ? 0.3 : 1 }}
               disabled={isToday}
               onClick={() => onSelectDay(format(addDays(selDate, 1), 'yyyy-MM-dd'))}>›</button>
           </div>

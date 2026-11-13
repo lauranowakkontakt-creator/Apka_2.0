@@ -29,7 +29,7 @@ export const Chip = ({ color, children, onClick, active }) => (
 // Pigułka symbolu — z prefiksem #
 export const SymbolChip = ({ symbol, onClick }) => (
   <Chip color={symbol.color || '#5BB6D9'} onClick={onClick}>
-    <span style={{ opacity: 0.65 }}>#</span>{symbol.name}
+    <span aria-hidden="true" style={{ opacity: 0.75 }}>#</span>{symbol.name}
   </Chip>
 )
 

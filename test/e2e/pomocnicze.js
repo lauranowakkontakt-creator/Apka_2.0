@@ -73,16 +73,21 @@ export async function nakladanie(strona, zakres = 'body') {
     // 2. Teksty zachodzące na siebie
     const teksty = [...root.querySelectorAll('*')].filter(e =>
       [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && widoczny(e) && !e.closest(NAKLADKI))
-    const boxy = teksty.map(e => ({ e, r: e.getBoundingClientRect() }))
+    const boxy = teksty.map(e => ({ e, r: e.getBoundingClientRect(), linie: [...e.getClientRects()].filter(r => r.width > 0 && r.height > 0) }))
     for (let i = 0; i < boxy.length; i++) {
       for (let j = i + 1; j < boxy.length; j++) {
         const a = boxy[i], b = boxy[j]
         if (a.e.contains(b.e) || b.e.contains(a.e)) continue
-        const w = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left)
-        const h = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top)
-        if (w <= 0 || h <= 0) continue
-        const mniejszy = Math.min(a.r.width * a.r.height, b.r.width * b.r.height)
-        if ((w * h) / mniejszy > 0.25) problemy.push(`teksty na sobie: ${opis(a.e)} i ${opis(b.e)}`)
+        // Tekst w linii zawinięty na dwa wiersze ma obrys obejmujący oba wiersze
+        // na całą szerokość — nachodzi „na papierze” na sąsiada z tego samego
+        // zdania. Dlatego porównujemy osobno prostokąty każdego wiersza.
+        const nachodzi = a.linie.some(ra => b.linie.some(rb => {
+          const w = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left)
+          const h = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top)
+          if (w <= 0 || h <= 0) return false
+          return (w * h) / Math.min(ra.width * ra.height, rb.width * rb.height) > 0.25
+        }))
+        if (nachodzi) problemy.push(`teksty na sobie: ${opis(a.e)} i ${opis(b.e)}`)
       }
     }
     // 3. Słowo złamane w połowie („wdzięcznoś / ć”): najdłuższe słowo szersze

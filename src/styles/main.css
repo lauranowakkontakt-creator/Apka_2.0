@@ -3750,3 +3750,47 @@ body { overscroll-behavior-y: none; }
 /* Nazwy emocji i czynników nie łamią się w połowie słowa */
 .wn-nazwa { overflow-wrap: normal; }
 .wn-emocje li { grid-template-columns: minmax(118px, 38%) 1fr 40px; }
+
+/* ===== DOSTĘPNOŚĆ — przegląd WCAG 2.1 AA (listopad 2026) =====
+   Poprawki zebrane w jednym miejscu po skanie wszystkich modułów na telefonie
+   i komputerze. Każda reguła opisuje, co naprawia. */
+
+/* Widoczny fokus z klawiatury także tam, gdzie go nie było: pola wielowierszowe,
+   linki, elementy z role/tabindex. (Przyciski, pola i listy miały go wcześniej.) */
+textarea:focus-visible, a:focus-visible, summary:focus-visible,
+[role="button"]:focus-visible, [role="checkbox"]:focus-visible, [role="tab"]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+/* Okno dostaje fokus po otwarciu (useModalA11y) — bez ramki wokół całego okna. */
+.modal:focus, .modal-overlay:focus { outline: none; }
+
+/* Zamknięty panel ustawień i arkusz „Więcej” były tylko wysunięte poza ekran,
+   więc Tab wchodził w niewidoczne przyciski. visibility wyłącza je z fokusu
+   i z czytnika; opóźnienie pozwala dokończyć animację chowania. */
+.drawer:not(.open), .more-sheet:not(.open) { visibility: hidden; }
+.drawer { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear .3s; }
+.drawer.open { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s; }
+.more-sheet { transition: transform .32s var(--spring), visibility 0s linear .32s; }
+.more-sheet.open { transition: transform .32s var(--spring), visibility 0s; }
+
+/* Aktywna zakładka i pozycja nawigacji: sam akcent modułu bywał za ciemny na
+   swoim tle (Biblia 4,1:1). Domieszka koloru tekstu daje ≥4,5:1 w każdym module
+   i nie zmienia charakteru koloru. */
+.seg > button.active, .seg-btn.active { color: color-mix(in oklab, var(--accent) 70%, var(--text)); }
+.bottom-nav-item.active { color: color-mix(in oklab, var(--accent) 78%, var(--text)); }
+/* Podpisy w dolnym pasku (9 px) — jaśniejszy z dwóch szarych, ≥4,5:1 */
+.bottom-nav-item { color: var(--text-sub); }
+
+/* Cele dotyku: kropki portfeli miały 6×6 px. Wygląd zostaje, a niewidoczne
+   pole wokół kropki powiększa obszar trafienia do 24 px (WCAG 2.5.8). */
+.wallet-dot { position: relative; }
+.wallet-dot::after { content: ''; position: absolute; inset: -9px -3px; }
+.wallet-dots { gap: 7px; }
+@media (pointer: coarse) {
+  /* Pola wyboru zadań i kroków: większy obszar dotyku bez zmiany wyglądu */
+  .todo-check { position: relative; }
+  .todo-check::after { content: ''; position: absolute; inset: -8px; }
+  .todo-sub { min-height: 28px; }
+}
+

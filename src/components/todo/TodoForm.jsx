@@ -60,7 +60,7 @@ export default function TodoForm({ user, lists, people = [], editData, defaultLi
       <div className="modal">
         <div className="modal-header">
           <h3>{editData ? 'Edytuj zadanie' : 'Nowe zadanie'}</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="form">
           <div className="form-group">
@@ -114,7 +114,7 @@ export default function TodoForm({ user, lists, people = [], editData, defaultLi
                 {subtasks.map(s => (
                   <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface2)', borderRadius: 8, padding: '7px 10px' }}>
                     <span style={{ flex: 1, fontSize: 13 }}>{s.title}</span>
-                    <button type="button" className="t-btn delete" onClick={() => removeSub(s.id)}><IconTrash size={12} /></button>
+                    <button aria-label="Usuń" type="button" className="t-btn delete" onClick={() => removeSub(s.id)}><IconTrash size={12} /></button>
                   </div>
                 ))}
               </div>
@@ -123,7 +123,7 @@ export default function TodoForm({ user, lists, people = [], editData, defaultLi
               <input type="text" className="form-input" value={subInput} onChange={e => setSubInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSub() } }}
                 placeholder="Dodaj krok..." maxLength={100} style={{ flex: 1, margin: 0 }} />
-              <button type="button" className="btn-save" style={{ width: 'auto', margin: 0, padding: '0 14px' }} onClick={addSub}><IconPlus size={16} /></button>
+              <button aria-label="Dodaj" type="button" className="btn-save" style={{ width: 'auto', margin: 0, padding: '0 14px' }} onClick={addSub}><IconPlus size={16} /></button>
             </div>
           </div>
 

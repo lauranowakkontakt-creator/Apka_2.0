@@ -37,7 +37,7 @@ export default function SearchPanel({ user, onClose, onEdit }) {
       <div className="modal modal-tall">
         <div className="modal-header">
           <h3><IconSearch size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />Szukaj transakcji</h3>
-          <button className="modal-close" onClick={onClose}><IconClose size={16} /></button>
+          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
         </div>
         <div className="search-filters">
           <input type="text" className="form-input" placeholder="Szukaj po opisie lub kategorii..."
