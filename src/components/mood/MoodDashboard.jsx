@@ -261,8 +261,11 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
 
         {tiles}
 
+        {/* Na komputerze kalendarz i wpisy stoją obok siebie — rozciągnięty na całą
+            szerokość kalendarz miał kafle dnia po ~200 px. */}
+        <div className="mood-main-grid">
         {/* Kalendarz miesiąca (kolor = nastrój dnia; klik wybiera dzień) */}
-        <div className="card card-hover-glow" style={{ padding: 16 }}>
+        <div className="card card-hover-glow mood-cal-card" style={{ padding: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 6 }}>
             {['P', 'W', 'Ś', 'C', 'P', 'S', 'N'].map((d, i) => <div key={i} style={{ textAlign: 'center', fontSize: 9, fontWeight: 700, color: 'var(--text-muted)' }}>{d}</div>)}
           </div>
@@ -289,7 +292,7 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
         </div>
 
         {/* Wpisy wybranego dnia + dodawanie */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             {kicker(selDate === today ? 'Wpisy dziś' : `Wpisy · ${selLabel}`)}
             {canAdd && (
@@ -309,6 +312,7 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
               {canAdd ? 'Brak wpisów tego dnia' : 'Nie można dodać wpisu z przyszłości'}
             </p>
           )}
+        </div>
         </div>
       </div>
     )
