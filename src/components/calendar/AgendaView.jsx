@@ -1,13 +1,14 @@
 import { IconChevronRight } from '../Icons'
 import EventRow from './EventRow'
 import { format, isToday, parseISO } from 'date-fns'
+import { eventHasPerson } from './wspolne'
 import { pl } from 'date-fns/locale'
 
 // Agenda — lista nadchodzących wydarzeń bez siatki.
 
 export default function AgendaView({ events, categories, calPeople, filterPersonId, onAdd, onEdit, onDelete }) {
   const today    = format(new Date(), 'yyyy-MM-dd')
-  const src      = filterPersonId ? events.filter(e => e.personId === filterPersonId) : events
+  const src      = filterPersonId ? events.filter(e => eventHasPerson(e, filterPersonId)) : events
   const upcoming = [...src].filter(e => e.date >= today)
     .sort((a, b) => a.date !== b.date ? a.date.localeCompare(b.date) : (a.startTime || '').localeCompare(b.startTime || ''))
   const grouped  = {}

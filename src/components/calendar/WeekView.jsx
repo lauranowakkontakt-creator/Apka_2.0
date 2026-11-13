@@ -1,5 +1,5 @@
 import { CatIcon, IconCheck, IconChevronLeft, IconChevronRight, IconEdit, IconRepeat, IconTrash } from '../Icons'
-import { getEventColor } from './wspolne'
+import { getEventColor, eventHasPerson } from './wspolne'
 import { eachDayOfInterval, endOfWeek, format, isToday, startOfWeek } from 'date-fns'
 import { pl } from 'date-fns/locale'
 
@@ -11,7 +11,7 @@ export default function WeekView({ weekDate, events, categories, calPeople, filt
   const evOn = (day) => {
     const s = format(day, 'yyyy-MM-dd')
     let all = events.filter(e => s >= e.date && s <= (e.dateEnd || e.date))
-    if (filterPersonId) all = all.filter(e => e.personId === filterPersonId)
+    if (filterPersonId) all = all.filter(e => eventHasPerson(e, filterPersonId))
     return all.sort((a, b) => (a.startTime || '99').localeCompare(b.startTime || '99'))
   }
   const rangeLabel = `${format(start, 'd', { locale: pl })}–${format(days[6], 'd MMM yyyy', { locale: pl })}`

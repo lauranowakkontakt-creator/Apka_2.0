@@ -390,6 +390,7 @@ export function seedDemoData(put, Timestamp) {
 
   // ── Nastrój ──────────────────────────────────────────────────────────────
   const MOODS = [['awful', 'okropny', 1, '#E05A2B'], ['bad', 'źle', 2, '#F59E0B'], ['ok', 'ok', 3, '#94A3B8'], ['good', 'dobrze', 4, '#5FBF98'], ['great', 'świetnie', 5, '#3B82F6']]
+  const MOOD_PEOPLE = people.slice(0, 4).map(p => p.id)
   const EMO = ['spokój', 'wdzięczność', 'radość', 'ciekawość', 'miłość', 'nadzieja', 'zmęczenie', 'frustracja', 'lęk', 'smutek']
   for (let b = 0; b < 60; b++) {
     if (chance(0.35)) continue
@@ -397,10 +398,24 @@ export function seedDemoData(put, Timestamp) {
     put(base('moodLogs'), id('nastroj'), {
       date: isoAgo(b), time: b === 0 ? '08:15' : null, mood, moodValue, moodLabel, moodColor,
       emotions: sample(EMO, int(0, 3)),
-      ratings: Object.fromEntries(sample(['sen', 'energia', 'spokój'], int(0, 3)).map(k => [k, int(1, 5)])),
+      factors: sample(['dom', 'praca', 'studia', 'kościół', 'spotkanie', 'sport', 'natura'], int(0, 3)),
+      peopleIds: chance(0.4) ? sample(MOOD_PEOPLE, int(1, 2)) : [],
+      ratings: Object.fromEntries(sample(['energia', 'spokój', 'relacje'], int(0, 3)).map(k => [k, int(1, 5)])),
       note: chance(0.3) ? 'Dzień jak co dzień' : '', createdAt: ts(withTime(daysAgo(b))),
     })
   }
+
+  // Sen: noce i drzemki; cykl: cztery okresy co ~29 dni; okres życia do statystyk
+  const hm = (m) => `${String(Math.floor(((m % 1440) + 1440) % 1440 / 60)).padStart(2, '0')}:${String(((m % 60) + 60) % 60).padStart(2, '0')}`
+  for (let b = 0; b < 40; b++) {
+    if (chance(0.2)) continue
+    const start = 22 * 60 + int(0, 150), minutes = int(300, 540)
+    put(base('sleepLogs'), id('sen'), { date: isoAgo(b), type: 'night', start: hm(start), end: hm(start + minutes), minutes, wakeups: int(0, 3), quality: int(2, 5), createdAt: ts(daysAgo(b)) })
+    if (chance(0.2)) put(base('sleepLogs'), id('drzemka'), { date: isoAgo(b), type: 'nap', start: '14:10', end: '14:40', minutes: 30, wakeups: 0, quality: null, createdAt: ts(daysAgo(b)) })
+  }
+  ;[96, 67, 39, 10].forEach(b => put(base('cycleLogs'), id('cykl'), { start: isoAgo(b), end: isoAgo(b - 4), createdAt: ts(daysAgo(b)) }))
+  put(base('settings'), 'mood', { emotions: [], factors: [{ id: 'egzamin', label: 'egzamin', color: '#E6C04A' }], ratingCats: [],
+    okresy: [{ id: 'o1', label: 'sesja', color: '#5FBF98', from: isoAgo(30), to: isoAgo(18) }] })
 
   // ── Notatki ──────────────────────────────────────────────────────────────
   ;[['Lista książek', 'Quo Vadis\nLalka\nMistrz i Małgorzata', ['książki'], true],

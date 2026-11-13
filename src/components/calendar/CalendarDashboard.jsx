@@ -14,7 +14,7 @@ import EventForm from './EventForm'
 import PeopleManager from './PeopleManager'
 import PeopleView from './PeopleView'
 import WeekView from './WeekView'
-import { DEFAULT_CATEGORIES, getEventColor, whoOf } from './wspolne'
+import { DEFAULT_CATEGORIES, getEventColor, whoOf, eventHasPerson } from './wspolne'
 import { addDays, addMonths, endOfMonth, format, getDate, isSameMonth, startOfMonth, startOfWeek, subMonths } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { Timestamp, addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, updateDoc } from 'firebase/firestore'
@@ -143,7 +143,7 @@ export default function CalendarDashboard({ user, setHeaderExtras }) {
   const eventsOnDay = (day) => {
     const s = format(day, 'yyyy-MM-dd')
     const all = expandedEvents.filter(e => s >= e.date && s <= (e.dateEnd || e.date))
-    return filterPersonId ? all.filter(e => e.personId === filterPersonId) : all
+    return filterPersonId ? all.filter(e => eventHasPerson(e, filterPersonId)) : all
   }
   const todosOnDay    = (day) => todos.filter(t => t.dueDate === format(day, 'yyyy-MM-dd'))
   const paymentsOnDay = (day) => payments.filter(p => p.dayOfMonth === getDate(day))
@@ -230,7 +230,7 @@ export default function CalendarDashboard({ user, setHeaderExtras }) {
             selectedDay={selectedDay}
             categories={categories}
             calPeople={calPeople}
-            events={filterPersonId ? expandedEvents.filter(e => e.personId === filterPersonId) : expandedEvents}
+            events={filterPersonId ? expandedEvents.filter(e => eventHasPerson(e, filterPersonId)) : expandedEvents}
             onDayClick={handleDayClick}
             todosOnDay={todosOnDay}
             paymentsOnDay={paymentsOnDay}
@@ -240,7 +240,7 @@ export default function CalendarDashboard({ user, setHeaderExtras }) {
               kratkę i nic nie pokazywał. */}
           <DayDetail
             day={selectedDay}
-            events={filterPersonId ? expandedEvents.filter(e => e.personId === filterPersonId) : expandedEvents}
+            events={filterPersonId ? expandedEvents.filter(e => eventHasPerson(e, filterPersonId)) : expandedEvents}
             todos={todos}
             payments={payments}
             categories={categories}

@@ -2,6 +2,7 @@ import { IconArchive, IconChevronDown, IconChevronRight, IconEdit, IconRestore, 
 import PersonBubble from '../PersonBubble'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
+import { eventHasPerson } from './wspolne'
 import { useState } from 'react'
 
 // Osoby w Kalendarzu — wydarzenia zgrupowane po osobie, plus archiwizacja.
@@ -14,7 +15,7 @@ export default function PeopleView({ calPeople, events, categories, onManage, on
   const archivedPeople = calPeople.filter(p => p.hiddenInCalendar)
 
   const upcomingFor = (personId) =>
-    events.filter(e => e.personId === personId && e.date >= today)
+    events.filter(e => eventHasPerson(e, personId) && e.date >= today)
       .sort((a, b) => a.date.localeCompare(b.date))
 
   const noPerson = events.filter(e => !e.personId && e.date >= today)
@@ -22,7 +23,7 @@ export default function PeopleView({ calPeople, events, categories, onManage, on
 
   const renderPerson = (person, archived) => {
     const upcoming = upcomingFor(person.id)
-    const totalEvents = events.filter(e => e.personId === person.id).length
+    const totalEvents = events.filter(e => eventHasPerson(e, person.id)).length
     return (
       <div key={person.id} style={{ background: 'var(--surface)', border: `1px solid ${person.color}44`, borderRadius: 'var(--r)', overflow: 'hidden', opacity: archived ? 0.85 : 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: person.color + '14', borderBottom: `1px solid ${person.color}22` }}>

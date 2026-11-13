@@ -42,6 +42,9 @@ export const findPerson = (ppl, id)    => ppl.find(p => p.id === id)
 export const getEventColor = (cats, ppl, e) =>
   findPerson(ppl, e.personId)?.color || findCat(cats, e.categoryId)?.color || e.color || '#607D8B'
 // Etykieta „kogo dotyczy": osoba z systemu Osób lub wolny tekst `who`
+// Wydarzenie należy do osoby, gdy jest jej „główną" osobą albo jedną z oznaczonych
+// (`peopleIds` — spotkania zakładane ze wpisu nastroju mają kilka osób naraz).
+export const eventHasPerson = (e, id) => e.personId === id || (e.peopleIds || []).includes(id)
 export const whoOf = (e) => e.personName || e.who || ''
 
 export const kicker = (t) => (
