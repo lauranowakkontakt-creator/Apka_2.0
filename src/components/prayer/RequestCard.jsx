@@ -1,5 +1,5 @@
 import { normalizeTags } from '../../utils/prayerFilters'
-import { checklistProgress, hasChecklist } from '../../utils/prayerList'
+import { checklistProgress, hasChecklist, dniTemu } from '../../utils/prayerList'
 import { daysSince, findPrio, getNeglect } from '../../utils/prayerStats'
 import { CatIcon, IconCalendar, IconCheck, IconEdit, IconPrayer, IconTrash } from '../Icons'
 import { TODAY } from './wspolne'
@@ -94,7 +94,7 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
               <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
                 <IconPrayer size={13} /> ×{item.prayedDates.length}
                 {days === 0 && ' · dziś'}
-                {days !== null && days > 0 && ` · ${days} dni temu`}
+                {days !== null && days > 0 && ` · ${dniTemu(days)}`}
               </div>
             )}
           </div>
@@ -174,7 +174,7 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
               <span style={{ fontSize: fs.badge, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                 <IconPrayer size={10} /> ×{item.prayedDates.length}
                 {days === 0 && ' · dziś'}
-                {days !== null && days > 0 && ` · ${days} dni temu`}
+                {days !== null && days > 0 && ` · ${dniTemu(days)}`}
               </span>
             )}
             {item.notes?.length > 0 && (

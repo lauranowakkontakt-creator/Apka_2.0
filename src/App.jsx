@@ -5,16 +5,30 @@ import Login from './components/Login'
 import Pulpit from './components/Pulpit'
 // Moduły ładowane leniwie — każdy trafia do osobnego chunka, więc start
 // aplikacji (zwłaszcza na telefonie) nie ciągnie kodu wszystkich modułów naraz.
-const Dashboard         = lazy(() => import('./components/Dashboard'))
-const HabitsDashboard   = lazy(() => import('./components/habits/HabitsDashboard'))
-const TodoDashboard     = lazy(() => import('./components/todo/TodoDashboard'))
+const Dashboard = lazy(() => import('./components/Dashboard'))
+const HabitsDashboard = lazy(() => import('./components/habits/HabitsDashboard'))
+const TodoDashboard = lazy(() => import('./components/todo/TodoDashboard'))
 const CalendarDashboard = lazy(() => import('./components/calendar/CalendarDashboard'))
-const PrayerDashboard   = lazy(() => import('./components/prayer/PrayerDashboard'))
-const BibleDashboard    = lazy(() => import('./components/bible/BibleDashboard'))
-const PeopleHub         = lazy(() => import('./components/people/PeopleHub'))
-const DreamDashboard    = lazy(() => import('./components/dream/DreamDashboard'))
+const PrayerDashboard = lazy(() => import('./components/prayer/PrayerDashboard'))
+const BibleDashboard = lazy(() => import('./components/bible/BibleDashboard'))
+const PeopleHub = lazy(() => import('./components/people/PeopleHub'))
+const DreamDashboard = lazy(() => import('./components/dream/DreamDashboard'))
 const GratitudeDashboard = lazy(() => import('./components/gratitude/GratitudeDashboard'))
-const MoodDashboard     = lazy(() => import('./components/mood/MoodDashboard'))
+const MoodDashboard = lazy(() => import('./components/mood/MoodDashboard'))
+// Te same importy co wyżej — bundler łączy je w jeden chunk; lista służy do
+// dociągnięcia kodu modułów w wolnej chwili (patrz efekt w App).
+const MODULY_DO_DOCIAGNIECIA = [
+  () => import('./components/Dashboard'),
+  () => import('./components/habits/HabitsDashboard'),
+  () => import('./components/todo/TodoDashboard'),
+  () => import('./components/calendar/CalendarDashboard'),
+  () => import('./components/prayer/PrayerDashboard'),
+  () => import('./components/bible/BibleDashboard'),
+  () => import('./components/people/PeopleHub'),
+  () => import('./components/dream/DreamDashboard'),
+  () => import('./components/gratitude/GratitudeDashboard'),
+  () => import('./components/mood/MoodDashboard'),
+]
 import SettingsDrawer from './components/SettingsDrawer'
 import MoreSheet from './components/MoreSheet'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -126,6 +140,22 @@ export default function App() {
   // Auto-księgowanie regularnych płatności w tle — działa zawsze, nie tylko w zakładce „Regularne"
   useRegularPaymentsProcessor(user?.uid)
   useModalA11y()
+
+  // Płynność: po zalogowaniu, w wolnej chwili, dociągamy kod pozostałych
+  // modułów — przejście do nich nie czeka wtedy na pobranie.
+  useEffect(() => {
+    if (!user) return
+    const wolnaChwila = window.requestIdleCallback || ((f) => setTimeout(f, 1500))
+    const anuluj = window.cancelIdleCallback || clearTimeout
+    let i = 0, id = 0
+    const nastepny = () => {
+      if (i >= MODULY_DO_DOCIAGNIECIA.length) return
+      MODULY_DO_DOCIAGNIECIA[i++]().catch(() => {})
+      id = wolnaChwila(nastepny)
+    }
+    id = wolnaChwila(nastepny)
+    return () => anuluj(id)
+  }, [user])
 
   // Escape zamyka panel ustawień i arkusz „Więcej” (okna obsługuje useModalA11y)
   useEffect(() => {
@@ -262,10 +292,10 @@ export default function App() {
         {/* Mobile header */}
         <div className="mobile-header">
           <div>
-            <div style={{ fontSize: 9, color: 'var(--text-muted)', letterSpacing: '.12em', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 9, color: 'var(--text-sub)', letterSpacing: '.12em', textTransform: 'uppercase' }}>Apka 2.0</div>
+            <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-.02em', marginTop: 1, lineHeight: 1.15 }}>
               {modules.find(m => m.id === activeModule)?.label || ''}
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.02em', marginTop: 2 }}>Apka 2.0</div>
+            </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {headerExtras}

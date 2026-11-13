@@ -6,6 +6,7 @@ import { addDays, format, getDaysInMonth, startOfMonth, subDays } from 'date-fns
 import { pl } from 'date-fns/locale'
 import { useMemo, useState } from 'react'
 import { AnalizaRoku, Rozwijana } from '../Analityka'
+import { dniTemu } from '../../utils/prayerList'
 
 // Statystyki: podsumowanie miesiąca i roku, kalendarz dni modlitwy,
 // zestawienie per osoba. Samo liczenie siedzi w utils/prayerStats.js.
@@ -118,7 +119,7 @@ export default function StatsView({ intentions, people, allPrayedDates, streak }
                     <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
                       <IconPrayer size={10} /> ×{p.totalPrays} · {p.totalIntentions} {p.totalIntentions === 1 ? 'prośba' : 'próśb'}
                       {p.days === 0 && ' · modlono dziś'}
-                      {p.days !== null && p.days > 0 && ` · ${p.days} dni temu`}
+                      {p.days !== null && p.days > 0 && ` · ${dniTemu(p.days)}`}
                       {p.days === null && p.activeCount > 0 && ' · jeszcze nie modlono'}
                     </p>
                   </div>

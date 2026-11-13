@@ -5,6 +5,7 @@ import { CatIcon, IconArchive, IconCheck, IconChevronDown, IconChevronRight, Ico
 import { TODAY } from './wspolne'
 import { differenceInDays, parseISO } from 'date-fns'
 import { useMemo, useState } from 'react'
+import { dniTemu } from '../../utils/prayerList'
 
 // Lista osób, za które się modlisz — wejście do modułu Modlitwa.
 // Sortowanie: najbardziej zaniedbani u góry (patrz utils/prayerStats).
@@ -72,7 +73,7 @@ export default function PeopleView({ user, people, intentions, carMode, onSelect
             <div style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {suggestion.name}
               <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>
-                {suggestion.days === null ? ' · jeszcze nie modlono' : ` · ${suggestion.days} dni temu`}
+                {suggestion.days === null ? ' · jeszcze nie modlono' : ` · ${dniTemu(suggestion.days) || 'dziś'}`}
               </span>
             </div>
           </div>
@@ -121,7 +122,7 @@ export default function PeopleView({ user, people, intentions, carMode, onSelect
                     </span>
                   )}
                   {p.days === 0 && <span>· modlono dziś</span>}
-                  {p.days !== null && p.days > 0 && <span>· {p.days} dni temu</span>}
+                  {p.days !== null && p.days > 0 && <span>· {dniTemu(p.days)}</span>}
                   {p.days === null && p.activeCount > 0 && <span>· jeszcze nie modlono</span>}
                 </p>
               </div>

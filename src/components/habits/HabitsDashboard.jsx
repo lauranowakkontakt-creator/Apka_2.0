@@ -554,12 +554,12 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
 
             {/* Single day navigator */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 14 }}>
-              <button aria-label="Poprzedni" className="month-btn" onClick={goBack} style={{ width: 32, height: 32 }}>‹</button>
+              <button aria-label="Poprzedni" className="month-btn" onClick={goBack} style={{ width: 32, height: 32 }}><IconChevronLeft size={16} /></button>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'capitalize' }}>{dayLabel}</div>
                 {isToday && <div style={{ fontSize: 10, color: 'var(--accent)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>Dziś</div>}
               </div>
-              <button aria-label="Następny" className="month-btn" onClick={goFwd} style={{ width: 32, height: 32, opacity: isToday ? 0.3 : 1 }} disabled={isToday}>›</button>
+              <button aria-label="Następny" className="month-btn" onClick={goFwd} style={{ width: 32, height: 32, opacity: isToday ? 0.3 : 1 }} disabled={isToday}><IconChevronRight size={16} /></button>
             </div>
 
             {/* Category filter */}
@@ -703,9 +703,9 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
 
           {/* Nawigator okresu */}
           <div className="habit-week-nav" style={{ margin: 0 }}>
-            <button aria-label="Poprzedni" className="month-btn" onClick={goPrev} disabled={prevDisabled} style={{ opacity: prevDisabled ? 0.3 : 1 }}>‹</button>
+            <button aria-label="Poprzedni" className="month-btn" onClick={goPrev} disabled={prevDisabled} style={{ opacity: prevDisabled ? 0.3 : 1 }}><IconChevronLeft size={16} /></button>
             <span className="habit-period-label" style={{ textTransform: statPeriod === 'week' ? 'none' : 'none' }}>{navLabel}</span>
-            <button aria-label="Następny" className="month-btn" onClick={goNext} disabled={nextDisabled} style={{ opacity: nextDisabled ? 0.3 : 1 }}>›</button>
+            <button aria-label="Następny" className="month-btn" onClick={goNext} disabled={nextDisabled} style={{ opacity: nextDisabled ? 0.3 : 1 }}><IconChevronRight size={16} /></button>
           </div>
 
           {/* Podsumowanie okresu — duży pierścień % + kafelki */}
