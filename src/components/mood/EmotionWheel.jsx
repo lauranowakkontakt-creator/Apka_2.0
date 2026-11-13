@@ -100,43 +100,60 @@ export default function EmotionWheel({ selected = new Set(), onToggle }) {
     return [...poziomy, ...mieszane].filter(e => selected.has(e.id)).length
   }
   const akt = otwarty === null ? null : emocjePlatka(otwarty)
+  const kolejnosc = PETALS.map((_, i) => i).sort((a, b) => (a === otwarty) - (b === otwarty))
 
   return (
     <div className="emo-wheel">
       <svg viewBox="-160 -160 320 320" role="group" aria-label="Koło emocji">
-        {PETALS.map((petal, i) => {
+        {/* Płatki: otwarty rysujemy na końcu, żeby jego obwódka nie chowała się
+            pod sąsiadem. Płatek nie powiększa się — wcześniej wystawał poza koło
+            i zasłaniał podpis obok, co wyglądało jak zepsute koło. */}
+        {kolejnosc.map(i => {
+          const petal = PETALS[i]
           const startA = i * STEP - Math.PI / 2
-          const midA = startA + STEP / 2
           const on = otwarty === i
           const n = ileW(i)
-          // Podpis stoi poziomo. W płatkach u góry i u dołu środek kąta wypada blisko
-          // pionowej krawędzi, więc odsuwamy go w bok — inaczej długie słowo
-          // („Oczekiwanie") wchodziło na sąsiedni płatek.
-          const pion = Math.abs(Math.sin(midA)) > 0.9
-          const lx = Math.cos(midA) * 104 + (pion ? Math.sign(Math.cos(midA)) * 8 : 0), ly = Math.sin(midA) * 104
+          const przygas = otwarty !== null && !on
           return (
             <g key={petal.base.id} role="button" tabIndex={0} aria-pressed={on}
               aria-label={`${petal.base.label}${n ? `, wybrane: ${n}` : ''}`}
               onClick={() => setOtwarty(on ? null : i)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOtwarty(on ? null : i) } }}
-              style={{ cursor: 'pointer', opacity: otwarty === null || on ? 1 : 0.6, transition: 'opacity .2s' }}>
-              {/* trzy odcienie w jednym płatku — podpowiadają, że w środku są poziomy */}
-              <path d={sector(116, on ? 158 : RO, startA, startA + STEP)} fill={petal.mild.color} />
-              <path d={sector(74, 116, startA, startA + STEP)} fill={petal.base.color} />
-              <path d={sector(RI, 74, startA, startA + STEP)} fill={petal.intense.color} />
-              {(on || n > 0) && <path d={sector(RI, on ? 158 : RO, startA, startA + STEP, 0.03)} fill="none" stroke="#fff" strokeWidth={on ? 3 : 2} strokeLinejoin="round" />}
-              <text x={lx} y={ly} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700"
-                fill={INK} style={{ pointerEvents: 'none', userSelect: 'none' }}>{petal.base.label}</text>
-              {n > 0 && (
-                <g style={{ pointerEvents: 'none' }}>
-                  <circle cx={Math.cos(midA) * 136} cy={Math.sin(midA) * 136} r="9" fill="#fff" />
-                  <text x={Math.cos(midA) * 136} y={Math.sin(midA) * 136} textAnchor="middle" dominantBaseline="central"
-                    fontSize="11" fontWeight="700" fill={INK}>{n}</text>
-                </g>
-              )}
+              style={{ cursor: 'pointer' }}>
+              <g style={{ opacity: przygas ? 0.35 : 1, transition: 'opacity .2s' }}>
+                {/* trzy odcienie w jednym płatku — podpowiadają, że w środku są poziomy */}
+                <path d={sector(116, RO, startA, startA + STEP)} fill={petal.mild.color} />
+                <path d={sector(74, 116, startA, startA + STEP)} fill={petal.base.color} />
+                <path d={sector(RI, 74, startA, startA + STEP)} fill={petal.intense.color} />
+              </g>
+              {(on || n > 0) && <path d={sector(RI + 1, RO - 1, startA, startA + STEP, 0.03)} fill="none" stroke="#fff" strokeWidth={on ? 3.5 : 2} strokeLinejoin="round" />}
             </g>
           )
         })}
+        {/* Podpisy i liczniki w osobnej warstwie nad płatkami — nic ich nie zasłania */}
+        <g style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          {PETALS.map((petal, i) => {
+            const midA = i * STEP - Math.PI / 2 + STEP / 2
+            const n = ileW(i)
+            // Podpis stoi poziomo; w płatkach u góry i u dołu odsuwamy go w bok,
+            // żeby długie słowo („Oczekiwanie") nie wchodziło na sąsiada.
+            const pion = Math.abs(Math.sin(midA)) > 0.9
+            const lx = Math.cos(midA) * 100 + (pion ? Math.sign(Math.cos(midA)) * 8 : 0), ly = Math.sin(midA) * 100
+            const przygas = otwarty !== null && otwarty !== i
+            return (
+              <g key={petal.base.id} style={{ opacity: przygas ? 0.5 : 1 }}>
+                <text x={lx} y={ly} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700" fill={INK}>{petal.base.label}</text>
+                {n > 0 && (
+                  <>
+                    <circle cx={Math.cos(midA) * 134} cy={Math.sin(midA) * 134} r="9" fill="#fff" />
+                    <text x={Math.cos(midA) * 134} y={Math.sin(midA) * 134} textAnchor="middle" dominantBaseline="central"
+                      fontSize="11" fontWeight="700" fill={INK}>{n}</text>
+                  </>
+                )}
+              </g>
+            )
+          })}
+        </g>
         <circle r={RI - 4} fill="var(--surface2)" stroke="var(--border)" />
         <text textAnchor="middle" dominantBaseline="central" fontSize="16" fontWeight="700" fill="var(--text)"
           style={{ pointerEvents: 'none' }}>{selected.size || ''}</text>

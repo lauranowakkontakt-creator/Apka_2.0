@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react'
 import { collection, addDoc, deleteDoc, updateDoc, doc, Timestamp } from 'firebase/firestore'
-import { format } from 'date-fns'
+import { format, startOfMonth, getDaysInMonth, addMonths, addDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { db } from '../../firebase/config'
 import { Rozwijana } from '../Analityka'
-import { IconTrash, IconClose } from '../Icons'
+import { IconTrash, IconClose, IconChevronLeft, IconChevronRight } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
-import { statystykiCyklu, dzienCyklu, fazaCyklu, prognozaCyklu, zakresyFaz, posortowane, fazaDnia, roznicaDni,
+import { statystykiCyklu, dzienCyklu, fazaCyklu, prognozaCyklu, zakresyFaz, posortowane, fazaDnia, roznicaDni, kalendarzCyklu, czyOkres,
   FAZY, KOLEJNOSC_FAZ } from '../../utils/cycleLogic'
 import { nastrojDni, nastrojWGrupach, MIN_DNI } from '../../utils/moodFactors'
 import { fmt10, TODAY } from './wspolne'
@@ -67,6 +67,8 @@ export default function CycleView({ user, okresy, moodLogs, formularz, setFormul
         </div>
       </section>
 
+      <CycleCalendar okresy={okresy} stat={stat} today={today} />
+
       {f && (
         <section className="card cycle-today">
           <div className="cycle-today-head"><i style={{ background: f.kolor }} />Czego się dziś spodziewać</div>
@@ -112,6 +114,52 @@ export default function CycleView({ user, okresy, moodLogs, formularz, setFormul
 
       {formularz && <CycleForm user={user} okresy={okresy} onClose={() => setFormularz(false)} />}
     </div>
+  )
+}
+
+const klucz = (d) => format(d, 'yyyy-MM-dd')
+const krotko = (k) => format(new Date(k + 'T12:00:00'), 'd MMM', { locale: pl })
+
+// Mały kalendarz: zapisane okresy, przewidywane okresy i okno owulacji
+// z JEJ średniej długości cyklu — kilka miesięcy do przodu.
+function CycleCalendar({ okresy, stat, today }) {
+  const [miesiac, setMiesiac] = useState(() => startOfMonth(new Date()))
+  const kal = useMemo(() => kalendarzCyklu(okresy, today, 6), [okresy, today])
+  const start = startOfMonth(miesiac)
+  const pusteNaPoczatku = (start.getDay() + 6) % 7
+  const dniM = Array.from({ length: getDaysInMonth(start) }, (_, i) => klucz(addDays(start, i)))
+  const nazwa = format(start, 'LLLL yyyy', { locale: pl })
+  return (
+    <section className="card cyc-cal">
+      <div className="cyc-cal-head">
+        <button type="button" className="mood-cal-nav" aria-label="Poprzedni miesiąc" onClick={() => setMiesiac(m => addMonths(m, -1))}><IconChevronLeft size={14} /></button>
+        <strong>{nazwa.charAt(0).toUpperCase() + nazwa.slice(1)}</strong>
+        <button type="button" className="mood-cal-nav" aria-label="Następny miesiąc" onClick={() => setMiesiac(m => addMonths(m, 1))}><IconChevronRight size={14} /></button>
+      </div>
+      <div className="cyc-cal-grid">
+        {['pn', 'wt', 'śr', 'cz', 'pt', 'so', 'nd'].map(d => <span key={d} className="mood-cal-dow">{d}</span>)}
+        {Array.from({ length: pusteNaPoczatku }, (_, i) => <span key={'e' + i} />)}
+        {dniM.map(d => {
+          const okres = czyOkres(okresy, d, stat.dlugoscOkresu) && d <= today
+          const prog = !okres && kal.prognoza.has(d)
+          const owu = !okres && !prog && kal.owulacja.has(d)
+          return (
+            <span key={d} className={`cyc-day${okres ? ' okres' : ''}${prog ? ' prog' : ''}${owu ? ' owu' : ''}${d === today ? ' today' : ''}`}
+              aria-label={`${Number(d.slice(8))}${okres ? ', okres' : prog ? ', przewidywany okres' : owu ? ', okolice owulacji' : ''}`}>
+              {Number(d.slice(8))}
+            </span>
+          )
+        })}
+      </div>
+      <div className="cyc-cal-legend">
+        <span><i className="okres" />okres</span><span><i className="prog" />przewidywany</span><span><i className="owu" />owulacja</span>
+      </div>
+      {kal.starty.length > 0 && (
+        <p className="cyc-cal-next">Kolejne okresy: {kal.starty.slice(0, 3).map(krotko).join(' · ')}
+          <small>{stat.zDanych ? `wg Twojej średniej: cykl ${stat.dlugoscCyklu} dni, okres ${stat.dlugoscOkresu} dni` : 'na razie wg typowych 28 dni — dokładniej po 2 zapisanych okresach'}</small>
+        </p>
+      )}
+    </section>
   )
 }
 

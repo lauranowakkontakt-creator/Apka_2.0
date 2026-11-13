@@ -14,7 +14,7 @@ import PersonBubble from '../PersonBubble'
 import { Rozwijana, RokWPikselach } from '../Analityka'
 import { wpisyOkresu, statystykiNastroju, podsumowanieLat } from '../../utils/moodStats'
 import { bladSubskrypcji } from '../../utils/polaczenie'
-import { statystykiCyklu, dzienCyklu, fazaCyklu, prognozaCyklu, czyOkres, FAZY } from '../../utils/cycleLogic'
+import { statystykiCyklu, dzienCyklu, fazaCyklu, prognozaCyklu, czyOkres, kalendarzCyklu, FAZY } from '../../utils/cycleLogic'
 import { senDnia, fmtCzas } from '../../utils/sleepLogic'
 import MoodEntryForm from './MoodEntryForm'
 import MoodInsights from './MoodInsights'
@@ -189,6 +189,7 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
   const prog = prognozaCyklu(okresy, today)
   const dzienC = dzienCyklu(okresy, today)
   const faza = fazaCyklu(dzienC, cykl.dlugoscCyklu, cykl.dlugoscOkresu)
+  const kalCyklu = useMemo(() => kalendarzCyklu(okresy, today, 6), [okresy, today])
 
   // Kalendarz miesiąca
   const firstDow = (mStart.getDay() + 6) % 7
@@ -198,7 +199,7 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
     const avgV = dl.length ? dl.reduce((s, l) => s + (l.moodValue || 0), 0) / dl.length : null
     const mObj = avgV ? moodDla(avgV) : null
     return { date: d, dayNum: format(addDays(mStart, i), 'd'), count: dl.length, color: mObj?.color,
-      okres: czyOkres(okresy, d, cykl.dlugoscOkresu), prognoza: !!prog?.przyszleDni.has(d) }
+      okres: d <= today && czyOkres(okresy, d, cykl.dlugoscOkresu), prognoza: kalCyklu.prognoza.has(d) }
   })
 
   // Rok: średnia per miesiąc + średnia roczna
@@ -310,14 +311,14 @@ function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, s
                     style={color ? { '--c': color } : undefined}
                     aria-label={`${dayNum}${count ? `, wpisów: ${count}` : ''}${okres ? ', okres' : prognoza ? ', spodziewany okres' : ''}`}>
                     {dayNum}
-                    {(okres || prognoza) && <i className={`cal-okres${okres ? '' : ' prog'}`} />}
+                    {(okres || prognoza) && <i className={`mcal-okres${okres ? '' : ' prog'}`} />}
                   </button>
                 )
               })}
             </div>
             <div className="mood-cal-legend">
               {MOODS.map(m => <span key={m.id}><i style={{ background: m.color }} />{m.label}</span>)}
-              {okresy.length > 0 && <span><i className="cal-okres" />okres</span>}
+              {okresy.length > 0 && <span><i className="mcal-okres leg" />okres</span>}
             </div>
           </section>
 

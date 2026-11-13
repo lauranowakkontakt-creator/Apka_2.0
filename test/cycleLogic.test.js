@@ -99,3 +99,25 @@ test('fazaDnia — w zamkniętym cyklu liczy się jego faktyczna długość', ()
   // Bieżący cykl po terminie zostaje „przed miesiączką", a nie osobną grupą.
   assert.equal(fazaDnia(okresy, '2026-10-29'), 'przedmiesiaczkowa')
 })
+
+test('kalendarzCyklu — kolejne okresy i owulacje wg jej średniej', async () => {
+  const { kalendarzCyklu } = await import('../src/utils/cycleLogic.js')
+  // Średnia z zapisów: 29 dni, okres 5 dni; ostatni okres 28 września.
+  const k = kalendarzCyklu(okresy, '2026-10-11', 3)
+  assert.deepEqual(k.starty, ['2026-10-27', '2026-11-25', '2026-12-24'])
+  assert.ok(k.prognoza.has('2026-10-31'))
+  assert.ok(!k.prognoza.has('2026-11-01'))
+  assert.ok(k.prognoza.has('2026-11-25'))
+  // Owulacja bieżącego cyklu: dzień 15 (29 − 14) → 12 października ±1.
+  assert.ok(k.owulacja.has('2026-10-11') && k.owulacja.has('2026-10-12') && k.owulacja.has('2026-10-13'))
+  assert.ok(!k.owulacja.has('2026-10-10'), 'minione dni nie są prognozą')
+  assert.ok(k.owulacja.has('2026-11-10'))      // 27 października + 14 dni
+})
+
+test('kalendarzCyklu — spóźniony okres przesuwa prognozę od jutra', async () => {
+  const { kalendarzCyklu } = await import('../src/utils/cycleLogic.js')
+  const k = kalendarzCyklu(okresy, '2026-10-30', 2)
+  assert.equal(k.starty[0], '2026-10-31')
+  assert.equal(k.starty[1], '2026-11-29')
+  assert.deepEqual(kalendarzCyklu([], '2026-10-30').starty, [])
+})

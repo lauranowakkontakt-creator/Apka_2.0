@@ -168,3 +168,30 @@ export function fazaDnia(okresy, data, stat = statystykiCyklu(okresy)) {
   const f = fazaCyklu(dzien, dlugosc, dlOkresu)
   return f === 'spoznienie' ? 'przedmiesiaczkowa' : f
 }
+
+/**
+ * Dni do małego kalendarza cyklu, liczone z JEJ średnich (nie z książkowych 28 dni):
+ * - `starty`    — przewidywane początki kolejnych `ileCykli` okresów,
+ * - `prognoza`  — przewidywane dni okresu (tylko po dzisiejszym dniu),
+ * - `owulacja`  — okno owulacji (dzień owulacji ±1) bieżącego i kolejnych cykli.
+ * Dni okresu już zapisanego sprawdza się osobno przez czyOkres().
+ */
+export function kalendarzCyklu(okresy, dzis, ileCykli = 6) {
+  const ost = okresPrzed(okresy, dzis)
+  const pusto = { starty: [], prognoza: new Set(), owulacja: new Set() }
+  if (!ost || roznicaDni(ost.start, dzis) + 1 > MAX_CYKL) return pusto
+  const s = statystykiCyklu(okresy)
+  const owu = dzienOwulacji(s.dlugoscCyklu)
+  const starty = [], prognoza = new Set(), owulacja = new Set()
+  // Spóźniony okres: kolejne prognozy liczymy od dziś, nie od dawno minionego terminu.
+  let kolejny = dodajDni(ost.start, s.dlugoscCyklu)
+  if (kolejny <= dzis) kolejny = dodajDni(dzis, 1)
+  for (let i = -1; i <= 1; i++) { const d = dodajDni(ost.start, owu - 1 + i); if (d >= dzis) owulacja.add(d) }
+  for (let c = 0; c < ileCykli; c++) {
+    const start = dodajDni(kolejny, s.dlugoscCyklu * c)
+    starty.push(start)
+    for (let i = 0; i < s.dlugoscOkresu; i++) prognoza.add(dodajDni(start, i))
+    for (let i = -1; i <= 1; i++) owulacja.add(dodajDni(start, owu - 1 + i))
+  }
+  return { starty, prognoza, owulacja }
+}
