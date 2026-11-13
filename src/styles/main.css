@@ -3319,3 +3319,134 @@ body { overscroll-behavior-y: none; }
 .an-tabela-lata td:first-child { white-space: nowrap; padding-right: 10px; }
 .an-lata-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 .an-tabela .an-lata-sum td { font-weight: 700; border-top: 2px solid var(--border); }
+
+/* ============================================================
+   NASTRÓJ — koło emocji, czynniki, sen, cykl, wpływ na nastrój
+   Cele dotyku ≥ 40 px: formularz wypełnia się kciukiem na telefonie.
+   ============================================================ */
+.mood-form { display: flex; flex-direction: column; gap: 22px; }
+.mood-faces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.mood-face-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px; min-height: 68px;
+  border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 500; color: var(--text-sub);
+  background: color-mix(in oklab, var(--c) 8%, transparent); border: 2px solid color-mix(in oklab, var(--c) 35%, transparent);
+  transition: transform .2s var(--spring), background .15s, border-color .15s;
+}
+.mood-face-btn.on { background: color-mix(in oklab, var(--c) 22%, transparent); border-color: var(--c); color: var(--text); font-weight: 700; transform: translateY(-2px); }
+
+.mood-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.mood-chip {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 40px; padding: 8px 14px; border-radius: 99px;
+  font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; color: var(--text-sub);
+  background: color-mix(in oklab, var(--c, var(--text-muted)) 9%, transparent);
+  border: 1.5px solid color-mix(in oklab, var(--c, var(--text-muted)) 40%, transparent); transition: background .15s, border-color .15s, color .15s;
+}
+.mood-chip.on { background: color-mix(in oklab, var(--c) 26%, transparent); border-color: var(--c); color: var(--text); font-weight: 700; }
+.mood-chip.add { background: var(--surface2); border: 1.5px dashed var(--border-strong); color: var(--text-muted); font-size: 13px; }
+.mood-chip-input { width: 140px; min-height: 40px; padding: 8px 12px; border-radius: 99px; font-size: 16px; font-family: inherit; background: var(--surface); border: 1.5px solid var(--accent); color: var(--text); outline: none; }
+.mood-chip-ok { min-height: 40px; padding: 8px 14px; border-radius: 99px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; background: var(--accent); color: #fff; border: none; }
+
+.mood-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; color: var(--text-sub); }
+.mood-row > span { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.mood-row > span > i { width: 8px; height: 8px; border-radius: 99px; flex-shrink: 0; }
+.mood-dot { width: 40px; height: 40px; border-radius: 99px; cursor: pointer; border: 1.5px solid var(--border-strong); background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 700; font-family: inherit; transition: background .15s, border-color .15s; }
+@media (max-width: 380px) { .mood-dot { width: 36px; height: 36px; } }
+
+.mood-people { display: flex; flex-wrap: wrap; gap: 8px; }
+.mood-person {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 6px 12px 6px 7px; border-radius: 99px;
+  font-family: inherit; font-size: 14px; cursor: pointer; color: var(--text-sub); background: transparent; border: 1.5px solid var(--border-strong);
+}
+.mood-person.on { border-color: var(--c); background: color-mix(in oklab, var(--c) 20%, transparent); color: var(--text); font-weight: 700; }
+.mood-note { font-size: 12.5px; line-height: 1.5; color: var(--text-muted); margin: 10px 0 0; }
+.mood-note.ok { color: var(--text); padding: 8px 12px; border-radius: 10px; background: color-mix(in oklab, var(--income) 14%, transparent); border: 1px solid color-mix(in oklab, var(--income) 40%, transparent); }
+.mood-save { margin: 0; position: sticky; bottom: 0; }
+
+.mood-btn-main { min-height: 44px; padding: 10px 18px; border-radius: 12px; border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; background: var(--accent); color: #fff; flex-shrink: 0; }
+.mood-btn-ghost { flex: 1; min-height: 44px; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.mood-btn-ghost:disabled { opacity: .45; cursor: not-allowed; }
+
+.mood-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.mood-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; color: var(--text-sub); background: var(--surface2); border: 1px solid var(--border); }
+.mood-tag > i { width: 7px; height: 7px; border-radius: 99px; background: var(--c); }
+.mood-tag.sq > i { border-radius: 2px; }
+.mood-tag.person { padding-left: 3px; }
+
+/* Koło emocji */
+.emo-wheel svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 0 auto; font-family: var(--font-sans); }
+.emo-wheel svg g:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.emo-hint { text-align: center; font-size: 12.5px; color: var(--text-muted); margin: 8px 0 0; }
+.emo-panel { margin-top: 10px; padding: 12px; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.emo-panel-lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px; }
+.emo-levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.emo-level {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; padding: 8px 4px;
+  border-radius: 12px; cursor: pointer; font-family: inherit; color: var(--text);
+  background: color-mix(in oklab, var(--c) 16%, transparent); border: 2px solid color-mix(in oklab, var(--c) 50%, transparent);
+}
+.emo-level.on { background: var(--c); border-color: #fff; color: rgba(16,14,10,.92); }
+.emo-level-name { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; text-align: center; }
+.emo-level-sub { font-size: 10.5px; opacity: .75; }
+
+/* Sen */
+.sleep-timer { display: flex; align-items: center; gap: 12px; padding: 14px; color: var(--info); }
+.sleep-timer-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sleep-timer-txt strong { font-size: 15px; color: var(--text); }
+.sleep-timer-txt span { font-size: 12px; color: var(--text-muted); }
+.sleep-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--border); }
+.sleep-row > i { width: 4px; align-self: stretch; border-radius: 4px; flex-shrink: 0; }
+.sleep-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sleep-row-main strong { font-size: 14px; }
+.sleep-row-main span { font-size: 12px; color: var(--text-muted); }
+.sleep-total { text-align: center; font-size: 13px; color: var(--text-muted); }
+.sleep-total strong { font-size: 22px; color: var(--text); margin-left: 6px; }
+.sleep-stepper { display: flex; align-items: center; gap: 12px; }
+.sleep-stepper button { width: 40px; height: 40px; border-radius: 99px; border: 1.5px solid var(--border-strong); background: transparent; color: var(--text); font-size: 18px; cursor: pointer; font-family: inherit; }
+.sleep-stepper strong { min-width: 20px; text-align: center; font-size: 16px; color: var(--text); }
+
+/* Cykl */
+.cycle-empty { padding: 20px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.cycle-empty p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-sub); }
+.cycle-hero { padding: 16px; display: flex; align-items: center; gap: 16px; }
+.cycle-day { width: 84px; height: 84px; border-radius: 50%; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface2); border: 2px solid var(--border-strong); }
+.cycle-day span { font-size: 30px; font-weight: 700; line-height: 1; }
+.cycle-day small { font-size: 9.5px; color: var(--text-muted); margin-top: 4px; }
+.cycle-hero-txt { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.cycle-hero-txt strong { font-size: 17px; display: flex; align-items: center; gap: 8px; }
+.cycle-hero-txt strong i, .cycle-banner > i { width: 10px; height: 10px; border-radius: 99px; flex-shrink: 0; }
+.cycle-hero-txt span { font-size: 13px; color: var(--text-sub); line-height: 1.45; }
+.cycle-bar { position: relative; display: flex; gap: 2px; height: 14px; }
+.cycle-bar > div { border-radius: 4px; min-width: 0; }
+.cycle-marker { position: absolute; top: -5px; bottom: -5px; width: 4px; margin-left: -2px; border-radius: 4px; background: var(--text); box-shadow: 0 0 0 2px var(--surface); }
+.cycle-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 12px; color: var(--text-muted); }
+.cycle-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cycle-legend span.on { color: var(--text); font-weight: 700; }
+.cycle-legend i { width: 8px; height: 8px; border-radius: 99px; }
+.cycle-legend small { font-weight: 400; color: var(--text-muted); }
+.cycle-opis { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-sub); }
+.cycle-opis.moje { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.cycle-opis strong { color: var(--text); }
+.cycle-banner { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 12px; border-radius: var(--r); cursor: pointer; text-align: left; font-family: inherit; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+.cycle-banner > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cycle-banner strong { font-size: 13.5px; color: var(--text); }
+.cycle-banner small { font-size: 12px; color: var(--text-muted); }
+.cal-okres { position: absolute; bottom: 3px; left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 99px; background: #DC2626; }
+.cal-okres.prog { background: transparent; border: 1.5px solid #F87171; }
+.cal-legenda { display: flex; gap: 16px; margin-top: 10px; font-size: 11.5px; color: var(--text-muted); }
+.cal-legenda span { display: inline-flex; align-items: center; gap: 6px; }
+.cal-legenda .cal-okres { position: static; margin: 0; display: inline-block; }
+
+/* Wpływ czynników na nastrój */
+.wplyw { display: flex; flex-direction: column; gap: 14px; }
+.wplyw-row.slabe { opacity: .6; }
+.wplyw-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.wplyw-name { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.wplyw-name i { width: 9px; height: 9px; border-radius: 99px; flex-shrink: 0; }
+.wplyw-delta { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wplyw-row.slabe .wplyw-delta { font-size: 11.5px; font-weight: 500; color: var(--text-muted); }
+.wplyw-track { position: relative; height: 8px; margin: 6px 0 5px; border-radius: 4px; background: var(--surface2); }
+.wplyw-track::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--border-strong); }
+.wplyw-track.plain::after { display: none; }
+.wplyw-track > div { position: absolute; top: 0; bottom: 0; }
+.wplyw-sub { font-size: 12px; color: var(--text-muted); }
+.mood-person { text-align: left; }

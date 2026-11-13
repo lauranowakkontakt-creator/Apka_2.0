@@ -6,7 +6,7 @@ const COLLECTIONS = [
   'accounts', 'transactions', 'regularPayments', 'savingsGoals', 'shoppingItems', 'debtors',
   'habits', 'habitPauses', 'habitCategories', 'habitRoutines',
   'dreams', 'dreamCategories', 'dreamSymbols', 'dreamMemory',
-  'moodLogs', 'todos', 'todoLists',
+  'moodLogs', 'sleepLogs', 'cycleLogs', 'todos', 'todoLists',
   'calendarEvents', 'calendarPeople', 'calendarCategories',
   'prayerIntentions', 'prayerPeople', 'bibleNotes',
   'notes', 'gratitude', 'memories',
@@ -19,6 +19,7 @@ const SINGLE_DOCS = [
   ['settings', 'tithe'],
   ['settings', 'calendar'],
   ['settings', 'habitPauses'],
+  ['settings', 'mood'],
 ]
 
 // Firestore Timestamp → ISO string (czytelne i odtwarzalne)

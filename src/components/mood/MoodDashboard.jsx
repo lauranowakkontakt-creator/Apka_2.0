@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { collection, query, addDoc, deleteDoc, doc, Timestamp, orderBy } from 'firebase/firestore'
+import { collection, query, deleteDoc, doc, orderBy } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
@@ -9,168 +9,81 @@ import { pl } from 'date-fns/locale'
 import { LineAreaSVG, DonutStat, BarChartSVG } from '../ChartPrimitives'
 import { IconTrash, IconChevronLeft, IconChevronRight, IconPlus, IconClose, IconChart } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
-import { ALL_EMOTIONS } from './EmotionWheel'
 import SegTabs from '../SegTabs'
+import PersonBubble from '../PersonBubble'
 import { Rozwijana, RokWPikselach } from '../Analityka'
 import { wpisyOkresu, statystykiNastroju, podsumowanieLat } from '../../utils/moodStats'
 import { bladSubskrypcji } from '../../utils/polaczenie'
+import { statystykiCyklu, dzienCyklu, fazaCyklu, prognozaCyklu, czyOkres, FAZY } from '../../utils/cycleLogic'
+import { senDnia, fmtCzas } from '../../utils/sleepLogic'
+import MoodEntryForm from './MoodEntryForm'
+import MoodInsights from './MoodInsights'
+import SleepView from './SleepView'
+import CycleView from './CycleView'
+import { MOODS, MoodFace, kicker, to10, fmt10, TODAY, moodDla, findEmotion, findRatingCat, findFactor, useMoodSettings } from './wspolne'
 
-// Skala pomocnicza: wewnętrznie nastrój to 1–5, ale średnią pokazujemy 1–10
-const to10 = (v) => (v > 0 ? ((v - 1) / 4) * 9 + 1 : 0)
-const fmt10 = (v) => to10(v).toFixed(1).replace('.', ',')
-
-// Własne emocje / kategorie ocen — trzymane lokalnie (reużywalne między wpisami)
-const CUSTOM_COLORS = ['#E6C04A', '#5FBF98', '#3B82F6', '#EC4899', '#9B7CF0', '#14B8A6', '#F97316', '#84CC16', '#06B6D4', '#E0673E']
-function loadCustom(key) { try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] } }
-function saveCustom(key, arr) { try { localStorage.setItem(key, JSON.stringify(arr)) } catch { /* ignore */ } }
-const EMO_KEY = 'mw_moodEmotions'
-const CAT_KEY = 'mw_moodRatingCats'
-
-// ── 5-stopniowa skala nastroju ────────────────────────────────────────────────
-const MOODS = [
-  { id: 'awful',   label: 'okropny',  value: 1, color: '#E05A2B' },
-  { id: 'bad',     label: 'źle',      value: 2, color: '#F59E0B' },
-  { id: 'ok',      label: 'ok',       value: 3, color: '#94A3B8' },
-  { id: 'good',    label: 'dobrze',   value: 4, color: '#5FBF98' },
-  { id: 'great',   label: 'świetnie', value: 5, color: '#3B82F6' },
-]
-
-// ── Oceny dnia 1–5 w kategoriach ──────────────────────────────────────────────
-export const RATING_CATS = [
-  { id: 'sen',     label: 'Sen',     color: '#7C8AF0' },
-  { id: 'energia', label: 'Energia', color: '#E0B15A' },
-  { id: 'spokój',  label: 'Spokój',  color: '#5FBF98' },
-  { id: 'relacje', label: 'Relacje', color: '#EC4899' },
-]
-
-// Emocje do wyboru (pigułki) — prosty, czytelny zestaw zamiast koła Plutchika
-const PILL_EMOTIONS = [
-  { id: 'spokój',      label: 'spokój',      color: '#5FBF98' },
-  { id: 'wdzięczność', label: 'wdzięczność', color: '#9B7CF0' },
-  { id: 'radość',      label: 'radość',      color: '#E6C04A' },
-  { id: 'ciekawość',   label: 'ciekawość',   color: '#3B82F6' },
-  { id: 'miłość',      label: 'miłość',      color: '#E8607A' },
-  { id: 'nadzieja',    label: 'nadzieja',    color: '#14B8A6' },
-  { id: 'duma',        label: 'duma',        color: '#F97316' },
-  { id: 'ulga',        label: 'ulga',        color: '#84CC16' },
-  { id: 'zmęczenie',   label: 'zmęczenie',   color: '#06B6D4' },
-  { id: 'frustracja',  label: 'frustracja',  color: '#E0673E' },
-  { id: 'lęk',         label: 'lęk',         color: '#8B5CF6' },
-  { id: 'smutek',      label: 'smutek',      color: '#6E89DE' },
-  { id: 'złość',       label: 'złość',       color: '#E66A4E' },
-  { id: 'samotność',   label: 'samotność',   color: '#9FB2EC' },
-  { id: 'stres',       label: 'stres',       color: '#D98B5F' },
-]
-// Stare chipy — fallback dla wpisów sprzed pigułek
-const LEGACY_EMOTIONS = [
-  { id: 'przerażenie', label: 'przerażenie', color: '#339666' },
-]
-
-function MoodFace({ mood, size = 30, active }) {
-  const col = active ? mood.color : 'var(--text-muted)'
-  const mouths = {
-    awful:   'M9,17 Q16,11 23,17',
-    bad:     'M9,17 Q16,13 23,17',
-    ok:      'M9,15 L23,15',
-    good:    'M9,15 Q16,18 23,15',
-    great:   'M9,14 Q16,20 23,14',
-  }
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none"
-      stroke={col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11.5" cy="11.5" r="1.5" fill={col} stroke="none" />
-      <circle cx="20.5" cy="11.5" r="1.5" fill={col} stroke="none" />
-      <path d={mouths[mood.id] || mouths.ok} />
-    </svg>
-  )
+// Kolekcja pod users/{uid}/… z sortowaniem — trzy takie same subskrypcje modułu.
+function useKolekcja(uid, nazwa, pole, onLoaded) {
+  const [dane, setDane] = useState([])
+  useEffect(() => {
+    // Bez `pole` bierzemy całą kolekcję — orderBy pominąłby dokumenty bez tego pola.
+    const kol = collection(db, 'users', uid, nazwa)
+    const q = pole ? query(kol, orderBy(pole, 'desc')) : kol
+    return onSnapshot(q, snap => {
+      setDane(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      onLoaded?.()
+    }, bladSubskrypcji(nazwa))
+  }, [uid]) // eslint-disable-line react-hooks/exhaustive-deps
+  return dane
 }
-
-const TODAY = () => format(new Date(), 'yyyy-MM-dd')
-
-function findEmotion(id) {
-  return PILL_EMOTIONS.find(e => e.id === id)
-    || loadCustom(EMO_KEY).find(e => e.id === id)
-    || ALL_EMOTIONS.find(e => e.id === id)
-    || LEGACY_EMOTIONS.find(e => e.id === id)
-    || { id, label: id, color: '#9A9DB5' }
-}
-
-function findRatingCat(id) {
-  return RATING_CATS.find(c => c.id === id)
-    || loadCustom(CAT_KEY).find(c => c.id === id)
-    || { id, label: id, color: '#9A9DB5' }
-}
-
-// Mały „+ dodaj" zamieniający się w pole tekstowe — do własnych emocji/kategorii
-function AddChip({ onAdd, placeholder = 'nowa…' }) {
-  const [open, setOpen] = useState(false)
-  const [val, setVal]   = useState('')
-  const submit = () => { const t = val.trim(); if (t) onAdd(t); setVal(''); setOpen(false) }
-  if (!open) return (
-    <button type="button" onClick={() => setOpen(true)} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 99, fontSize: 12.5,
-      cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, background: 'var(--surface2)',
-      border: '1px dashed var(--border-strong)', color: 'var(--text-muted)',
-    }}><IconPlus size={13} /> dodaj</button>
-  )
-  return (
-    <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
-      <input autoFocus value={val} onChange={e => setVal(e.target.value)} maxLength={20}
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); submit() } if (e.key === 'Escape') setOpen(false) }}
-        placeholder={placeholder}
-        style={{ width: 120, padding: '6px 10px', borderRadius: 99, fontSize: 12.5, fontFamily: 'inherit',
-          background: 'var(--surface)', border: '1px solid var(--accent)', color: 'var(--text)', outline: 'none' }} />
-      <button type="button" onClick={submit} style={{ padding: '6px 10px', borderRadius: 99, fontSize: 12, fontWeight: 700,
-        cursor: 'pointer', fontFamily: 'inherit', background: 'var(--accent)', color: 'var(--bg)', border: 'none' }}>OK</button>
-    </span>
-  )
-}
-
-const kicker = (t, extra) => (
-  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.18em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6, ...extra }}>
-    <span style={{ display: 'inline-block', width: 14, height: 2, borderRadius: 2, background: 'var(--accent)', opacity: 0.6 }} />
-    {t}
-  </div>
-)
 
 // ── Root component ────────────────────────────────────────────────────────────
 export default function MoodDashboard({ user, setHeaderExtras }) {
-  const [logs, setLogs]       = useState([])
   const [loading, setLoading] = useState(true)
+  const [tab, setTab]             = useState('mood') // mood | sleep | cycle
   const [entryDate, setEntryDate] = useState(null) // otwiera modal wpisu dla danego dnia
   const [selDate, setSelDate]     = useState(TODAY()) // wybrany dzień (kalendarz) — dzielony z „+" w rogu
   const [view, setView]           = useState('main') // main | stats (analiza pod ikoną w belce)
+  const [senForm, setSenForm]     = useState(null)
+  const [cyklForm, setCyklForm]   = useState(false)
   useFallbackTimeout(() => setLoading(false))
 
-  useEffect(() => {
-    const q = query(collection(db, 'users', user.uid, 'moodLogs'), orderBy('createdAt', 'desc'))
-    return onSnapshot(q, snap => {
-      setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-      setLoading(false)
-    }, bladSubskrypcji('moodLogs'))
-  }, [user.uid])
+  const logs      = useKolekcja(user.uid, 'moodLogs', 'createdAt', () => setLoading(false))
+  const sleepLogs = useKolekcja(user.uid, 'sleepLogs', 'date')
+  const okresy    = useKolekcja(user.uid, 'cycleLogs', 'start')
+  const people    = useKolekcja(user.uid, 'calendarPeople')
+  const osoby     = useMemo(() => [...people].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'pl')), [people])
+  const [ust, zapiszUst] = useMoodSettings(user.uid)
 
   // Górna belka („Apka"): [analiza][＋ Dodaj] — spójnie z innymi modułami.
-  // „+” jest ostatni (przy ustawieniach). Hook przed early-returnem (zasady hooków).
+  // „+” dodaje to, co pasuje do otwartej zakładki. Hook przed early-returnem.
   useEffect(() => {
+    const dodaj = () => {
+      if (tab === 'sleep') setSenForm({ type: 'night' })
+      else if (tab === 'cycle') setCyklForm(true)
+      else setEntryDate(selDate <= TODAY() ? selDate : TODAY())
+    }
     setHeaderExtras?.(
       <>
-        <button className="hdr-btn" title="Analiza i statystyki" onClick={() => setView('stats')}>
+        <button className="hdr-btn" title="Analiza i statystyki" aria-label="Analiza i statystyki" onClick={() => setView('stats')}>
           <IconChart size={17} />
         </button>
-        <button className="hdr-btn accent" title="Dodaj wpis nastroju"
-          onClick={() => setEntryDate(selDate <= TODAY() ? selDate : TODAY())}>
+        <button className="hdr-btn accent" title="Dodaj wpis" aria-label="Dodaj wpis" onClick={() => { setView('main'); dodaj() }}>
           <IconPlus size={17} />
         </button>
       </>
     )
     return () => setHeaderExtras?.(null)
-  }, [selDate])
+  }, [selDate, tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć wpis nastroju?' })
+  const handleDelete = async (log) => {
+    const ok = await confirmDialog({
+      title: 'Usunąć wpis nastroju?',
+      ...(log.eventId ? { message: 'Z kalendarza zniknie też spotkanie założone z tego wpisu.' } : {}),
+    })
     if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'moodLogs', id))
+    await deleteDoc(doc(db, 'users', user.uid, 'moodLogs', log.id))
+    if (log.eventId) await deleteDoc(doc(db, 'users', user.uid, 'calendarEvents', log.eventId)).catch(() => { /* już usunięte w kalendarzu */ })
   }
 
   if (loading) return <div className="list-loading">Ładowanie...</div>
@@ -179,24 +92,34 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
 
   return (
     <div className="mood-dashboard">
-      {view === 'stats' && (
+      {view === 'stats' ? (
         <div className="rev-subhead">
-          <button className="rev-back" onClick={() => setView('main')} title="Wróć"><IconChevronLeft size={18} /></button>
+          <button className="rev-back" onClick={() => setView('main')} title="Wróć" aria-label="Wróć"><IconChevronLeft size={18} /></button>
           <div className="rev-subhead-title">Analiza i statystyki</div>
         </div>
+      ) : (
+        <SegTabs items={[{ id: 'mood', label: 'Nastrój' }, { id: 'sleep', label: 'Sen' }, { id: 'cycle', label: 'Cykl' }]}
+          active={tab} onChange={setTab} style={{ marginBottom: 12 }} />
       )}
-      <MoodPage user={user} logs={logs} onDelete={handleDelete} selDate={selDate} setSelDate={setSelDate}
-        view={view} onAddEntry={(d) => setEntryDate(d <= TODAY() ? d : TODAY())} />
 
-      {/* Modal wpisu — emocje / jak się masz / ocena dnia otwierane spod „+" */}
+      {(view === 'stats' || tab === 'mood') && (
+        <MoodPage logs={logs} sleepLogs={sleepLogs} okresy={okresy} people={osoby} ust={ust} zapiszUst={zapiszUst}
+          onDelete={handleDelete} selDate={selDate} setSelDate={setSelDate} view={view} onCycle={() => setTab('cycle')}
+          onAddEntry={(d) => setEntryDate(d <= TODAY() ? d : TODAY())} />
+      )}
+      {view === 'main' && tab === 'sleep' && <SleepView user={user} logs={sleepLogs} formularz={senForm} setFormularz={setSenForm} />}
+      {view === 'main' && tab === 'cycle' && <CycleView user={user} okresy={okresy} moodLogs={logs} formularz={cyklForm} setFormularz={setCyklForm} />}
+
+      {/* Modal wpisu — otwierany spod „+" */}
       {entryDate && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setEntryDate(null)}>
           <div className="modal">
             <div className="modal-header">
               <h3 style={{ textTransform: 'capitalize' }}>{entryDate === TODAY() ? 'Nowy wpis · dziś' : `Wpis · ${entryLabel}`}</h3>
-              <button className="modal-close" onClick={() => setEntryDate(null)}><IconClose size={16} /></button>
+              <button className="modal-close" aria-label="Zamknij" onClick={() => setEntryDate(null)}><IconClose size={16} /></button>
             </div>
-            <MoodEntryForm key={entryDate} user={user} date={entryDate} onSaved={() => setEntryDate(null)} />
+            <MoodEntryForm key={entryDate} user={user} date={entryDate} ust={ust} zapiszUst={zapiszUst} people={osoby}
+              onSaved={() => setEntryDate(null)} />
           </div>
         </div>
       )}
@@ -205,177 +128,9 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
 }
 
 /* ============================================================
-   FORMULARZ WPISU — wielokrotnego użytku (Dziś + Kalendarz)
-   ============================================================ */
-function MoodEntryForm({ user, date, onSaved }) {
-  const [mood, setMood]         = useState(null)
-  const [emotions, setEmotions] = useState(new Set())
-  const [ratings, setRatings]   = useState({})
-  const [note, setNote]         = useState('')
-  const [saving, setSaving]     = useState(false)
-  const [customEms, setCustomEms]   = useState(() => loadCustom(EMO_KEY))
-  const [customCats, setCustomCats] = useState(() => loadCustom(CAT_KEY))
-
-  const isToday = date === TODAY()
-
-  const slug = (s) => s.toLowerCase().trim()
-  const addEmotion = (label) => {
-    const id = slug(label)
-    if (!id) return
-    if (![...PILL_EMOTIONS, ...customEms].some(e => e.id === id)) {
-      const next = [...customEms, { id, label: id, color: CUSTOM_COLORS[customEms.length % CUSTOM_COLORS.length] }]
-      setCustomEms(next); saveCustom(EMO_KEY, next)
-    }
-    setEmotions(prev => new Set(prev).add(id))
-  }
-  const addCat = (label) => {
-    const id = slug(label)
-    if (!id || [...RATING_CATS, ...customCats].some(c => c.id === id)) return
-    const next = [...customCats, { id, label, color: CUSTOM_COLORS[(RATING_CATS.length + customCats.length) % CUSTOM_COLORS.length] }]
-    setCustomCats(next); saveCustom(CAT_KEY, next)
-  }
-  const allEmotions = [...PILL_EMOTIONS, ...customEms]
-  const allCats = [...RATING_CATS, ...customCats]
-
-  const handleSave = async () => {
-    if (!mood) return
-    setSaving(true)
-    const mObj = MOODS.find(m => m.id === mood)
-    const cleanRatings = Object.fromEntries(Object.entries(ratings).filter(([, v]) => v > 0))
-    try {
-      await addDoc(collection(db, 'users', user.uid, 'moodLogs'), {
-        date,
-        time: isToday ? format(new Date(), 'HH:mm') : null,
-        mood,
-        moodValue: mObj.value,
-        moodLabel: mObj.label,
-        moodColor: mObj.color,
-        emotions: Array.from(emotions),
-        ratings: cleanRatings,
-        note: note.trim(),
-        createdAt: Timestamp.now(),
-      })
-      setMood(null); setEmotions(new Set()); setRatings({}); setNote('')
-      onSaved?.()
-    } finally { setSaving(false) }
-  }
-
-  const toggleEmotion = (id) => {
-    if (id === null) { setEmotions(new Set()); return }
-    setEmotions(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }
-
-  const dateLabel = format(new Date(date + 'T12:00:00'), 'd MMM', { locale: pl })
-
-  return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-      {/* Nastrój */}
-      <div>
-        {kicker(isToday ? 'Jak się masz teraz?' : `Jak się miałaś · ${dateLabel}?`, { marginBottom: 14 })}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-          {MOODS.map(m => {
-            const active = mood === m.id
-            return (
-              <button key={m.id} onClick={() => setMood(active ? null : m.id)} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                padding: '9px 4px', borderRadius: 12, cursor: 'pointer',
-                background: active ? m.color + '33' : m.color + '14',
-                border: `2px solid ${active ? m.color : m.color + '55'}`,
-                transform: active ? 'translateY(-2px)' : 'none',
-                boxShadow: active ? `0 6px 16px -8px ${m.color}` : 'none',
-                transition: 'all .2s cubic-bezier(.34,1.4,.64,1)',
-              }}>
-                <MoodFace mood={m} size={28} active />
-                <span style={{
-                  fontSize: 11, fontWeight: active ? 700 : 500,
-                  color: m.color, letterSpacing: '.01em',
-                }}>{m.label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Emocje — wybierz kilka lub dodaj własną */}
-      <div>
-        {kicker('Emocje · wybierz kilka', { marginBottom: 12 })}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {allEmotions.map(em => {
-            const on = emotions.has(em.id)
-            return (
-              <button key={em.id} onClick={() => toggleEmotion(em.id)} style={{
-                padding: '7px 14px', borderRadius: 99, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-                fontWeight: on ? 700 : 500,
-                background: on ? em.color + '26' : em.color + '12',
-                border: `1px solid ${on ? em.color : em.color + '40'}`,
-                color: em.color, transition: 'all .15s',
-              }}>{em.label}</button>
-            )
-          })}
-          <AddChip onAdd={addEmotion} placeholder="emocja…" />
-        </div>
-      </div>
-
-      {/* Oceny dnia 1–5 (+ własne kategorie) */}
-      <div>
-        {kicker('Oceń dzień · 1–5', { marginBottom: 12 })}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {allCats.map(cat => (
-            <div key={cat.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-              <span style={{ fontSize: 13, color: 'var(--text-sub)', display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ width: 7, height: 7, borderRadius: 99, background: cat.color, display: 'inline-block' }} />
-                {cat.label}
-              </span>
-              <div style={{ display: 'flex', gap: 5 }}>
-                {[1,2,3,4,5].map(v => {
-                  const cur = ratings[cat.id] || 0
-                  const on = v <= cur
-                  return (
-                    <button key={v}
-                      onClick={() => setRatings(r => ({ ...r, [cat.id]: v === cur ? 0 : v }))}
-                      style={{
-                        width: 28, height: 28, borderRadius: 99, cursor: 'pointer',
-                        border: `1.5px solid ${on ? cat.color : 'var(--border)'}`,
-                        background: on ? cat.color + '2E' : 'transparent',
-                        color: on ? cat.color : 'var(--text-muted)',
-                        fontSize: 11, fontWeight: 700, transition: 'all .15s',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>{v}</button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-          <div style={{ marginTop: 2 }}><AddChip onAdd={addCat} placeholder="kategoria…" /></div>
-        </div>
-      </div>
-
-      {/* Notatka */}
-      <textarea
-        className="form-input"
-        placeholder="Jak minął dzień? Co czujesz?…"
-        value={note} onChange={e => setNote(e.target.value)}
-        rows={3} maxLength={400}
-        style={{ margin: 0, resize: 'none', fontSize: 14 }}
-      />
-
-      {/* Zapis */}
-      <button
-        className="btn-save"
-        onClick={handleSave}
-        disabled={saving || !mood}
-        style={{ opacity: !mood ? 0.4 : 1, margin: 0 }}>
-        {saving ? 'Zapisywanie…' : !mood ? 'Wybierz nastrój' : isToday ? 'Zapisz nastrój' : `Zapisz wpis · ${dateLabel}`}
-      </button>
-    </div>
-  )
-}
-
-/* ============================================================
    JEDEN WIDOK — wykres + średnia + emocje + wpis + kalendarz
    ============================================================ */
-function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view = 'main' }) {
+function MoodPage({ logs, sleepLogs, okresy, people, ust, zapiszUst, onDelete, selDate, setSelDate, onAddEntry, onCycle, view = 'main' }) {
   const [viewMode, setViewMode] = useState('month') // month | year | all
   const [month, setMonth]     = useState(new Date())
   const today = TODAY()
@@ -410,7 +165,7 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
   const tileLogs  = wpisyOkresu(logs, tileMode, tileMode === 'year' ? String(year) : monthStr)
   const tileStats = statystykiNastroju(tileLogs)
   const tileColor = tileStats.srednia
-    ? MOODS.reduce((p, c) => Math.abs(c.value - tileStats.srednia) < Math.abs(p.value - tileStats.srednia) ? c : p).color
+    ? moodDla(tileStats.srednia).color
     : undefined
   const tiles = (
     <StatTiles tiles={[
@@ -425,8 +180,14 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
   const topEms = useMemo(() => {
     const c = {}
     emoSource.forEach(l => (l.emotions || []).forEach(id => { c[id] = (c[id] || 0) + 1 }))
-    return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id, n]) => ({ ...findEmotion(id), count: n }))
-  }, [emoSource])
+    return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id, n]) => ({ ...findEmotion(id, ust.emotions), count: n }))
+  }, [emoSource, ust.emotions])
+
+  // Cykl: dzień i faza na dziś + dni okresu do zaznaczenia w kalendarzu
+  const cykl = statystykiCyklu(okresy)
+  const prog = prognozaCyklu(okresy, today)
+  const dzienC = dzienCyklu(okresy, today)
+  const faza = fazaCyklu(dzienC, cykl.dlugoscCyklu, cykl.dlugoscOkresu)
 
   // Kalendarz miesiąca
   const firstDow = (mStart.getDay() + 6) % 7
@@ -434,8 +195,9 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
     const d = format(addDays(mStart, i), 'yyyy-MM-dd')
     const dl = logs.filter(l => l.date === d)
     const avgV = dl.length ? dl.reduce((s, l) => s + (l.moodValue || 0), 0) / dl.length : null
-    const mObj = avgV ? MOODS.reduce((p, c) => Math.abs(c.value - avgV) < Math.abs(p.value - avgV) ? c : p) : null
-    return { date: d, dayNum: format(addDays(mStart, i), 'd'), count: dl.length, color: mObj?.color }
+    const mObj = avgV ? moodDla(avgV) : null
+    return { date: d, dayNum: format(addDays(mStart, i), 'd'), count: dl.length, color: mObj?.color,
+      okres: czyOkres(okresy, d, cykl.dlugoscOkresu), prognoza: !!prog?.przyszleDni.has(d) }
   })
 
   // Rok: średnia per miesiąc + średnia roczna
@@ -444,12 +206,13 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
     const pref = format(ms, 'yyyy-MM')
     const ml = logs.filter(l => (l.date || '').startsWith(pref) && l.moodValue)
     const avgV = ml.length ? ml.reduce((s, l) => s + l.moodValue, 0) / ml.length : null
-    const mObj = avgV ? MOODS.reduce((p, c) => Math.abs(c.value - avgV) < Math.abs(p.value - avgV) ? c : p) : null
+    const mObj = avgV ? moodDla(avgV) : null
     return { idx: m, label: format(ms, 'LLL', { locale: pl }), avgV, color: mObj?.color, count: ml.length }
   })
   const yearValid = logs.filter(l => (l.date || '').startsWith(String(year)) && l.moodValue)
   const yearAvg = yearValid.length ? yearValid.reduce((s, l) => s + l.moodValue, 0) / yearValid.length : 0
 
+  const senWybranego = senDnia(sleepLogs, selDate)
   const dayLogs = logs.filter(l => l.date === selDate).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
   const canAdd = selDate <= today
   const selLabel = format(new Date(selDate + 'T12:00:00'), 'd MMMM yyyy', { locale: pl })
@@ -479,6 +242,16 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
   if (view === 'main') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Cykl na dziś — skrót do zakładki Cykl */}
+        {faza && (
+          <button type="button" className="cycle-banner" onClick={onCycle}>
+            <i style={{ background: FAZY[faza].kolor }} />
+            <span><strong>Dzień {dzienC} cyklu · {FAZY[faza].nazwa.toLowerCase()}</strong>
+              <small>{prog && prog.dniDo > 0 ? `okres za ok. ${prog.dniDo} dni · ` : ''}zobacz, czego się spodziewać</small></span>
+            <IconChevronRight size={15} />
+          </button>
+        )}
+
         {/* Nawigacja miesiąca (nazwa nad kalendarzem) */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <button className="month-btn" style={{ width: 32, height: 32 }} onClick={() => setMonth(m => addMonths(m, -1))}><IconChevronLeft size={15} /></button>
@@ -495,19 +268,24 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
             {Array.from({ length: firstDow }, (_, i) => <div key={'e' + i} />)}
-            {calDays.map(({ date, dayNum, count, color }) => {
+            {calDays.map(({ date, dayNum, count, color, okres, prognoza }) => {
               const isSel = date === selDate
               const isTd = date === today
               return (
-                <button key={date} onClick={() => setSelDate(date)} title={count ? `${dayNum} · ${count} wpis.` : dayNum} style={{
+                <button key={date} onClick={() => setSelDate(date)} aria-pressed={isSel}
+                  aria-label={`${dayNum}${count ? `, wpisów: ${count}` : ''}${okres ? ', okres' : prognoza ? ', spodziewany okres' : ''}`} style={{
+                  position: 'relative',
                   aspectRatio: '1 / 1', borderRadius: 8, display: 'grid', placeItems: 'center', cursor: 'pointer',
                   background: color ? color + '33' : 'var(--surface2)',
                   border: `1.5px solid ${isSel ? (color || 'var(--accent)') : isTd ? 'var(--accent)' : 'transparent'}`,
-                  fontSize: 12, fontWeight: isTd ? 700 : 500, color: color ? '#fff' : 'var(--text-muted)', transition: 'all .15s',
-                }}>{dayNum}</button>
+                  fontSize: 12, fontWeight: isTd ? 700 : 500, color: color ? 'var(--text)' : 'var(--text-muted)', transition: 'all .15s',
+                }}>{dayNum}{(okres || prognoza) && <span className={`cal-okres${okres ? '' : ' prog'}`} />}</button>
               )
             })}
           </div>
+          {okresy.length > 0 && (
+            <div className="cal-legenda"><span><i className="cal-okres" />okres</span><span><i className="cal-okres prog" />spodziewany</span></div>
+          )}
         </div>
 
         {/* Wpisy wybranego dnia + dodawanie */}
@@ -521,8 +299,11 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
               </button>
             )}
           </div>
+          {senWybranego.razem > 0 && (
+            <p className="mood-note" style={{ margin: 0 }}>Sen: {senWybranego.maNoc ? `noc ${fmtCzas(senWybranego.noc)}` : ''}{senWybranego.maNoc && senWybranego.pobudki ? ` · pobudki: ${senWybranego.pobudki}` : ''}{senWybranego.liczbaDrzemek ? `${senWybranego.maNoc ? ' · ' : ''}drzemki ${fmtCzas(senWybranego.drzemki)}` : ''}</p>
+          )}
           {dayLogs.length > 0 ? (
-            dayLogs.map(log => <LogEntry key={log.id} log={log} onDelete={() => onDelete(log.id)} />)
+            dayLogs.map(log => <LogEntry key={log.id} log={log} onDelete={() => onDelete(log)} people={people} ust={ust} />)
           ) : (
             <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0', margin: 0 }}>
               {canAdd ? 'Brak wpisów tego dnia' : 'Nie można dodać wpisu z przyszłości'}
@@ -626,7 +407,7 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
                 {lata.map(r => {
                   const color = r.srednia
-                    ? MOODS.reduce((p, c) => Math.abs(c.value - r.srednia) < Math.abs(p.value - r.srednia) ? c : p).color
+                    ? moodDla(r.srednia).color
                     : null
                   return (
                     <button key={r.rok} onClick={() => { setMonth(new Date(Number(r.rok), 0, 1)); setViewMode('year') }} style={{
@@ -657,20 +438,23 @@ function MoodPage({ user, logs, onDelete, selDate, setSelDate, onAddEntry, view 
           )}
         </>
       )}
+      <MoodInsights logs={logs} sleepLogs={sleepLogs} okresy={okresy} people={people} ust={ust} zapiszUst={zapiszUst} />
+
       {/* Rok w pikselach — każdy dzień w kolorze średniego nastroju */}
       <Rozwijana id="nastroj-pix" tytul={`Rok w pikselach · ${pixYear}`} domyslnie podsumowanie={`${pixDays.size} dni`}>
         <RokWPikselach rok={pixYear} dzis={format(new Date(), 'yyyy-MM-dd')}
-          kolorDnia={(k) => { const v = pixDays.get(k); return v ? MOODS.reduce((p, c) => Math.abs(c.value - v) < Math.abs(p.value - v) ? c : p).color : null }}
-          opisDnia={(k) => { const v = pixDays.get(k); return v ? `średnio ${v.toFixed(1).replace('.', ',')} · ${MOODS.reduce((p, c) => Math.abs(c.value - v) < Math.abs(p.value - v) ? c : p).label}` : 'brak wpisu' }}
+          kolorDnia={(k) => { const v = pixDays.get(k); return v ? moodDla(v).color : null }}
+          opisDnia={(k) => { const v = pixDays.get(k); return v ? `średnio ${v.toFixed(1).replace('.', ',')} · ${moodDla(v).label}` : 'brak wpisu' }}
           legenda={MOODS.map(m => [m.color, m.label])} />
       </Rozwijana>
     </div>
   )
 }
 
-function LogEntry({ log, onDelete }) {
+function LogEntry({ log, onDelete, people, ust }) {
   const moodObj = log.mood ? MOODS.find(m => m.id === log.mood) : null
-  const ratingEntries = Object.entries(log.ratings || {}).filter(([, v]) => v > 0).map(([id, v]) => ({ ...findRatingCat(id), value: v }))
+  const ratingEntries = Object.entries(log.ratings || {}).filter(([, v]) => v > 0).map(([id, v]) => ({ ...findRatingCat(id, ust.ratingCats), value: v }))
+  const osoby = (log.peopleIds || []).map(id => people.find(p => p.id === id)).filter(Boolean)
   return (
     <div style={{
       background: 'var(--surface)',
@@ -682,29 +466,33 @@ function LogEntry({ log, onDelete }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {moodObj && <MoodFace mood={moodObj} size={20} active />}
-          <span style={{ fontSize: 13, fontWeight: 600, color: moodObj?.color || 'var(--text)' }}>{log.moodLabel}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{log.moodLabel}</span>
           {log.time && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{log.time}</span>}
         </div>
-        <button onClick={onDelete} className="t-btn delete"><IconTrash size={12} /></button>
+        <button onClick={onDelete} className="t-btn delete" aria-label="Usuń wpis"><IconTrash size={12} /></button>
       </div>
       {log.emotions?.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        <div className="mood-tags">
           {log.emotions.map(id => {
-            const em = findEmotion(id)
-            return (
-              <span key={id} style={{
-                padding: '2px 8px', borderRadius: 99, fontSize: 11,
-                background: em.color + '22', color: em.color, border: `1px solid ${em.color}44`, fontWeight: 600,
-              }}>{em.label}</span>
-            )
+            const em = findEmotion(id, ust.emotions)
+            return <span key={id} className="mood-tag" style={{ '--c': em.color }}><i />{em.label.toLowerCase()}</span>
           })}
+        </div>
+      )}
+      {(log.factors?.length > 0 || osoby.length > 0) && (
+        <div className="mood-tags">
+          {(log.factors || []).map(id => {
+            const f = findFactor(id, ust.factors)
+            return <span key={id} className="mood-tag sq" style={{ '--c': f.color }}><i />{f.label}</span>
+          })}
+          {osoby.map(o => <span key={o.id} className="mood-tag person"><PersonBubble person={o} size={16} />{o.name}</span>)}
         </div>
       )}
       {ratingEntries.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {ratingEntries.map(c => (
             <span key={c.id} style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {c.label} <strong style={{ color: c.color }}>{c.value}/5</strong>
+              {c.label} <strong style={{ color: 'var(--text)' }}>{c.value}/5</strong>
             </span>
           ))}
         </div>
@@ -715,9 +503,10 @@ function LogEntry({ log, onDelete }) {
 }
 
 
+
 // Pojedynczy wpis w miesiącu — zamiast samotnej kropki na wykresie pokaż czytelną kartę
 function SingleMoodPreview({ point }) {
-  const mObj = MOODS.reduce((p, c) => Math.abs(c.value - point.value) < Math.abs(p.value - point.value) ? c : p)
+  const mObj = moodDla(point.value)
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, height: 150, padding: '0 6px' }}>
       <div style={{
@@ -735,10 +524,4 @@ function SingleMoodPreview({ point }) {
       </div>
     </div>
   )
-}
-
-function AnimBar({ pct, color }) {
-  const [w, setW] = useState(0)
-  useEffect(() => { const id = setTimeout(() => setW(pct), 80); return () => clearTimeout(id) }, [pct])
-  return <div style={{ height: '100%', borderRadius: 99, background: color, width: `${w}%`, transition: 'width .7s ease' }} />
 }

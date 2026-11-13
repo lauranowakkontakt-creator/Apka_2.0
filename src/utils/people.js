@@ -34,5 +34,10 @@ export async function purgePerson(uid, personId) {
   // Zadania zostają — odpinamy osobę z listy `peopleIds`.
   const todoSnap = await getDocs(query(collection(db, 'users', uid, 'todos'), where('peopleIds', 'array-contains', personId)))
   await Promise.all(todoSnap.docs.map(d => updateDoc(d.ref, { peopleIds: arrayRemove(personId) })))
+  // Wpisy nastroju i spotkania z kilkoma osobami zostają — odpinamy tylko tę osobę.
+  for (const col of ['moodLogs', 'calendarEvents']) {
+    const snap = await getDocs(query(collection(db, 'users', uid, col), where('peopleIds', 'array-contains', personId)))
+    await Promise.all(snap.docs.map(d => updateDoc(d.ref, { peopleIds: arrayRemove(personId) })))
+  }
   await deleteDoc(doc(db, 'users', uid, 'calendarPeople', personId))
 }
