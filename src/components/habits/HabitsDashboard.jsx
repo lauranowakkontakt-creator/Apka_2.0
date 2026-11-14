@@ -32,6 +32,7 @@ import { isPausedDay, isHabitDue, getStreak, getBestStreak, toggleStepDone, isCh
   habitLifecycle, hasAmountGoal, amountTotals, amountShortLabel, dayAmount,
   amountStats, formatAmount } from '../../utils/habitLogic'
 import { bladSubskrypcji } from '../../utils/polaczenie'
+import { MODULE_ACCENTS } from '../../utils/moduleColors'
 
 const SHOW_DAY_RHYTHM = false
 
@@ -242,8 +243,8 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
       else { bg = 'transparent'; border = '1px dashed var(--border)' }
     }
     else if (due > 0) {
-      bg = `color-mix(in oklab, var(--warn) ${Math.round(22 + pct * 78)}%, var(--surface2))`
-      if (pct >= 1) border = '1px solid var(--warn)'
+      bg = `color-mix(in oklab, var(--accent) ${Math.round(22 + pct * 78)}%, var(--surface2))`
+      if (pct >= 1) border = '1px solid var(--accent)'
       if (pct >= 0.5) color = 'var(--bg)'
       // Coś zrobione, ale to był dzień wyjazdu/choroby — obwódka powodu,
       // żeby nie wyglądał jak każdy inny dzień.
@@ -286,7 +287,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8, justifyContent: 'flex-end' }}>
       <span style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>mniej</span>
       {[0, 0.35, 0.6, 0.85, 1].map((v, i) => (
-        <div key={i} style={{ width: 9, height: 9, borderRadius: 2, background: v === 0 ? 'var(--surface2)' : `color-mix(in oklab, var(--warn) ${Math.round(22 + v * 78)}%, var(--surface2))` }} />
+        <div key={i} style={{ width: 9, height: 9, borderRadius: 2, background: v === 0 ? 'var(--surface2)' : `color-mix(in oklab, var(--accent) ${Math.round(22 + v * 78)}%, var(--surface2))` }} />
       ))}
       <span style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>więcej</span>
     </div>
@@ -354,7 +355,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
               borderTop: '2px solid color-mix(in oklab, var(--accent) 80%, transparent)',
               background: 'linear-gradient(140deg, var(--surface) 45%, color-mix(in oklab, var(--accent) 7%, var(--surface)) 100%)',
             }}>
-              <Ring value={score.pct} size={64} thickness={6} color="var(--warn)" label="dziś" />
+              <Ring value={score.pct} size={64} thickness={6} color="var(--accent)" label="dziś" />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{todayLabel}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
@@ -548,7 +549,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
             {SHOW_DAY_RHYTHM && rytmSteps.length > 0 && (
               <div className="card card-hover-glow" style={{ padding: 18, marginBottom: 14 }}>
                 {kicker(isToday ? 'Dzisiejszy rytm' : 'Rytm dnia')}
-                <DayPath steps={rytmSteps} accent="var(--warn)" />
+                <DayPath steps={rytmSteps} accent="var(--accent)" />
               </div>
             )}
 
@@ -687,7 +688,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
         }
 
         const tile = (value, label, color, sub) => (
-          <div className="tile-accent" style={{ '--tile-color': color || 'var(--warn)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }}>
+          <div className="tile-accent" style={{ '--tile-color': color || 'var(--accent)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }}>
             <div className="serif" style={{ fontSize: 24, lineHeight: 1, color: color || 'var(--text)' }}>{value}</div>
             <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 5, textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</div>
             {sub && <div className="mono" style={{ fontSize: 9.5, color: 'var(--text-muted)', marginTop: 2 }}>{sub}</div>}
@@ -716,7 +717,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
           }}>
             {kicker('Realizacja — ' + navLabel)}
             <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-              <Ring value={agg.pct} size={104} thickness={9} color="var(--warn)" />
+              <Ring value={agg.pct} size={104} thickness={9} color="var(--accent)" />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(80px,1fr))', gap: 10, flex: 1, minWidth: 180 }}>
                 {tile(`${agg.done}/${agg.expected}`, 'Zrobione', 'var(--accent)')}
                 {tile(agg.perfectDays, 'Dni 100%')}
@@ -759,7 +760,7 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
               ) : (
                 <BarChartSVG
                   data={buckets.map(b => ({ label: b.label, value: b.value, active: b.active }))}
-                  height={150} accent="var(--warn)" fmt={v => `${v}%`}
+                  height={150} accent="var(--accent)" fmt={v => `${v}%`}
                 />
               )}
             </div>
@@ -939,10 +940,10 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
           {/* Rok w liczbach — wszystkie nawyki razem: odhaczenia miesiąc po
               miesiącu, rok w pikselach i ranking nawyków w wybranym roku. */}
           <AnalizaRoku id="nawyki" wpisy={wpisyNawykow} jednostka={['odhaczenie', 'odhaczenia', 'odhaczeń']}
-            kolor="#E0B15A" tytulDni="Dni z nawykiem">
+            kolor={MODULE_ACCENTS.habits} tytulDni="Dni z nawykiem">
             {(rok) => {
               const poz = habits.filter(h => !h.archived).map(h => ({
-                nazwa: h.name, kolor: h.color || 'var(--warn)',
+                nazwa: h.name, kolor: h.color || 'var(--accent)',
                 wartosc: habitDoneDates(h).filter(k => k.startsWith(String(rok))).length,
               })).filter(p => p.wartosc > 0).sort((a, b) => b.wartosc - a.wartosc)
               return (

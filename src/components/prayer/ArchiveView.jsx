@@ -7,6 +7,7 @@ import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { useMemo, useState } from 'react'
+import { MODULE_ACCENTS } from '../../utils/moduleColors'
 
 // Archiwum zakończonych próśb, z możliwością przywrócenia.
 
@@ -64,7 +65,7 @@ export default function ArchiveView({ user, intentions, people }) {
           <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 4 }}>Zarchiwizowanych</div>
         </div>
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 14, textAlign: 'center' }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#C9A24A', lineHeight: 1 }}>{totalPrays}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: MODULE_ACCENTS.prayer, lineHeight: 1 }}>{totalPrays}</div>
           <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 4 }}>Łącznie modlono</div>
         </div>
       </div>

@@ -47,7 +47,7 @@ test('App: buildModules zwiera komplet modułów, w tym nowe', () => {
 })
 
 test('App: każdy moduł ma kolor akcentu', () => {
-  const accents = APP.match(/const MODULE_ACCENTS = \{[\s\S]*?\n\}/)?.[0] || ''
+  const accents = read('src/utils/moduleColors.js').match(/export const MODULE_ACCENTS = \{[\s\S]*?\n\}/)?.[0] || ''
   for (const id of moduleIds) {
     assert.match(accents, new RegExp(`${id}\\s*:`), `moduł ${id} nie ma koloru w MODULE_ACCENTS`)
   }

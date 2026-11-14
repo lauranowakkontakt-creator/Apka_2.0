@@ -42,6 +42,7 @@ import { getCurrencyCode } from './utils/currency'
 import { useSynchronizujIkonyKategorii } from './utils/useSynchronizujIkony'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
 import { useModalA11y } from './utils/useModalA11y'
+import { MODULE_ACCENTS } from './utils/moduleColors'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
 // się do emulatora Auth na jedno stałe konto lokalne. Zawsze to samo konto =
@@ -63,20 +64,6 @@ async function signInLocal() {
   }
 }
 
-const MODULE_ACCENTS = {
-  home:     '#7C8AF0',
-  budget:   '#33C3A6',
-  habits:   '#E0B15A',
-  todo:     '#5BB6D9',
-  calendar: '#5FBF98',
-  prayer:   '#C9A24A',
-  bible:    '#4F74D9',
-  people:   '#D98B5F',
-  dream:    '#6366F1',
-  gratitude:'#E8A33D',
-  mood:     '#E8607A',
-  auto:     '#6FA8DC',
-}
 
 // Pełna lista modułów. To, które trafią na dolny pasek i czy w ogóle są
 // widoczne, ustala użytkownik w Ustawieniach (patrz utils/moduleLayout).

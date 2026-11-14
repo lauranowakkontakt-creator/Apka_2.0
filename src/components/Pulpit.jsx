@@ -17,6 +17,7 @@ import { dayScore, isRequiredHabit } from '../utils/habitLogic'
 import { gratitudeStats } from '../utils/gratitudeLogic'
 import { bladSubskrypcji } from '../utils/polaczenie'
 import { spalanie, terminyAuta, fmt1 } from '../utils/carLogic'
+import { MODULE_ACCENTS } from '../utils/moduleColors'
 
 const TODAY = () => format(new Date(), 'yyyy-MM-dd')
 
@@ -198,7 +199,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
     events.filter(e => occursOn(e, dateStr)).forEach(e => {
       const person = e.personName || e.who || ''
       items.push({
-        key: 'ev-' + e.id + '-' + dateStr, module: 'calendar', color: e.color || '#5FBF98',
+        key: 'ev-' + e.id + '-' + dateStr, module: 'calendar', color: e.color || MODULE_ACCENTS.calendar,
         time: e.startTime || null,
         label: person ? `${e.title} · ${person}` : e.title,
         meta: e.startTime ? (e.endTime ? `${e.startTime}–${e.endTime}` : e.startTime) : 'cały dzień',
@@ -269,7 +270,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
 
         {/* BUDŻET */}
         {shows('budget') && (
-        <PulpitCard accent="#33C3A6" Icon={IconBudget} label="Finanse" onClick={() => onNavigate('budget')}>
+        <PulpitCard accent={MODULE_ACCENTS.budget} Icon={IconBudget} label="Finanse" onClick={() => onNavigate('budget')}>
           <div className="pulpit-value" style={{ color: privateMode ? 'var(--text-muted)' : (budget.totalPLN >= 0 ? 'var(--income)' : 'var(--expense)') }}>
             {privateMode ? '••••' : fmt(budget.totalPLN)}
           </div>
@@ -290,7 +291,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
 
         {/* NAWYKI */}
         {shows('habits') && (
-        <PulpitCard accent="#E0B15A" Icon={IconHabits} label="Nawyki" onClick={() => onNavigate('habits')}>
+        <PulpitCard accent={MODULE_ACCENTS.habits} Icon={IconHabits} label="Nawyki" onClick={() => onNavigate('habits')}>
           <div className="pulpit-row">
             <Ring value={habitsStat.pct} size={56} thickness={6} color="#E0B15A" />
             <div>
@@ -326,7 +327,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
 
         {/* TO-DO */}
         {shows('todo') && (
-        <PulpitCard accent="#5BB6D9" Icon={IconTodo} label="To-do" onClick={() => onNavigate('todo')}>
+        <PulpitCard accent={MODULE_ACCENTS.todo} Icon={IconTodo} label="To-do" onClick={() => onNavigate('todo')}>
           <div className="pulpit-value" style={{ fontSize: 26 }}>
             {todoStat.active}<span className="pulpit-value-dim"> {todoStat.active === 1 ? 'zadanie' : 'zadań'}</span>
           </div>
@@ -340,7 +341,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
 
         {/* MODLITWA */}
         {shows('prayer') && (
-        <PulpitCard accent="#C9A24A" Icon={IconPrayer} label="Modlitwa" onClick={() => onNavigate('prayer')}>
+        <PulpitCard accent={MODULE_ACCENTS.prayer} Icon={IconPrayer} label="Modlitwa" onClick={() => onNavigate('prayer')}>
           <div className="pulpit-value" style={{ fontSize: 26 }}>
             {prayerStat.prayedToday}<span className="pulpit-value-dim">/{prayerStat.active}</span>
           </div>
@@ -354,7 +355,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
 
         {/* WDZIĘCZNIK */}
         {shows('gratitude') && (
-        <PulpitCard accent="#E8A33D" Icon={IcSun} label="Wdzięcznik" onClick={() => onNavigate('gratitude')}>
+        <PulpitCard accent={MODULE_ACCENTS.gratitude} Icon={IcSun} label="Wdzięcznik" onClick={() => onNavigate('gratitude')}>
           <div className="pulpit-value" style={{ fontSize: 26 }}>
             {gratStat.todayCount}<span className="pulpit-value-dim"> dziś</span>
           </div>
@@ -369,9 +370,9 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
 
         {/* BIBLIA */}
         {shows('bible') && (
-        <PulpitCard accent="#4F74D9" Icon={IconBook} label="Biblia" onClick={() => onNavigate('bible')}>
+        <PulpitCard accent={MODULE_ACCENTS.bible} Icon={IconBook} label="Biblia" onClick={() => onNavigate('bible')}>
           <div className="pulpit-row">
-            <Ring value={bibleStat.pct} size={56} thickness={6} color="#4F74D9" />
+            <Ring value={bibleStat.pct} size={56} thickness={6} color={MODULE_ACCENTS.bible} />
             <div style={{ minWidth: 0 }}>
               {/* „1189/1189" to dużo znaków jak na pół kafelka — stąd mniejszy stopień */}
               <div className="pulpit-value" style={{ fontSize: 19 }}>
@@ -385,7 +386,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
 
         {/* AUTO */}
         {shows('auto') && (
-        <PulpitCard accent="#6FA8DC" Icon={IcCar} label="Auto" onClick={() => onNavigate('auto')}>
+        <PulpitCard accent={MODULE_ACCENTS.auto} Icon={IcCar} label="Auto" onClick={() => onNavigate('auto')}>
           <div className="pulpit-value" style={{ fontSize: 26 }}>
             {fmt1(autoStat.glowne)}<span className="pulpit-value-dim"> l/100 km</span>
           </div>

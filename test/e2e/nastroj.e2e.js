@@ -242,6 +242,9 @@ test('sen: pobudka z godziną stoi w swoim miejscu nocy, „nie wiem” — w lo
   assert.deepEqual(await nakladanie(strona, '.modal'), [], 'formularz snu: elementy nachodzą na siebie')
   await strona.locator('.btn-save').click()
   await strona.waitForTimeout(500)
+  // Lista pokazuje 4 najnowsze zapisy — przy losowych danych demo nasz może być niżej
+  const starsze = strona.locator('.an-more', { hasText: 'Pokaż starsze' })
+  if (await starsze.count()) await starsze.click()
   const wiersz = strona.locator('.sleep-row-main span', { hasText: '23:00–07:00' }).first()
   assert.match(await wiersz.innerText(), /pobudki: 2 \(03:00\)/)
   const kreski = await strona.evaluate(() => [...document.querySelectorAll('.sleep-night-bar[title="23:00–07:00"] i')].map(i => ({ left: parseFloat(i.style.left), nieznana: i.classList.contains('nieznana') })))

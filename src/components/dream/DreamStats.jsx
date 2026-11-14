@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { AnalizaRoku, Rozwijana, Ranking, Kafle, TabelaLat } from '../Analityka'
 import { findDreamCategory } from '../../utils/dreamLogic'
 import { rozbijWgLat } from '../../utils/analityka'
+import { MODULE_ACCENTS } from '../../utils/moduleColors'
 
 // Statystyki snów: częstotliwość zapisywania i najczęstsze symbole.
 
@@ -55,7 +56,7 @@ export default function DreamStats({ dreams, categories }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <AnalizaRoku id="sen" wpisy={wpisy} jednostka={['sen', 'sny', 'snów']} kolor="#6366F1" tytulDni="Noce ze snem">
+      <AnalizaRoku id="sen" wpisy={wpisy} jednostka={['sen', 'sny', 'snów']} kolor={MODULE_ACCENTS.dream} tytulDni="Noce ze snem">
         {(rok) => (
           <Rozwijana id="sen-rodzaje" tytul={`Rodzaje snów · ${rok}`} domyslnie podsumowanie={rodzajeRoku(rok)[0]?.nazwa}>
             <Ranking pozycje={rodzajeRoku(rok)} fmt={fmtSny} pusty="Brak snów w tym roku" />
@@ -71,7 +72,7 @@ export default function DreamStats({ dreams, categories }) {
             { label: 'Średnio / rok', value: sumyLat.length ? (Math.round(razemSnow / sumyLat.length * 10) / 10).toLocaleString('pl-PL') : '—' },
             { label: 'Najczęstszy rodzaj', value: topRodzaj?.nazwa || '—', sub: topRodzaj ? `${Math.round(topRodzaj.suma / razemSnow * 100)}% snów` : null },
           ]} />
-          <Ranking pozycje={[...sumyLat].reverse().map(y => ({ nazwa: String(y.rok), wartosc: y.n, kolor: '#6366F1' }))} fmt={fmtSny} limit={12} />
+          <Ranking pozycje={[...sumyLat].reverse().map(y => ({ nazwa: String(y.rok), wartosc: y.n, kolor: MODULE_ACCENTS.dream }))} fmt={fmtSny} limit={12} />
           <p className="an-det-h">Rodzaje snów rok po roku</p>
           <TabelaLat dane={wLatach} kolory={kolorRodzaju} />
         </Rozwijana>

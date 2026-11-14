@@ -7,6 +7,7 @@ import { pl } from 'date-fns/locale'
 import { useMemo, useState } from 'react'
 import { AnalizaRoku, Rozwijana } from '../Analityka'
 import { dniTemu } from '../../utils/prayerList'
+import { MODULE_ACCENTS } from '../../utils/moduleColors'
 
 // Statystyki: podsumowanie miesiąca i roku, kalendarz dni modlitwy,
 // zestawienie per osoba. Samo liczenie siedzi w utils/prayerStats.js.
@@ -50,7 +51,7 @@ export default function StatsView({ intentions, people, allPrayedDates, streak }
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <StatSummary title="Modlitwa w liczbach" month={summary.month} year={summary.year} />
 
-      <AnalizaRoku id="modl" wpisy={wpisyModl} jednostka={['modlitwa', 'modlitwy', 'modlitw']} kolor="#C9A24A" tytulDni="Dni z modlitwą" />
+      <AnalizaRoku id="modl" wpisy={wpisyModl} jednostka={['modlitwa', 'modlitwy', 'modlitw']} kolor={MODULE_ACCENTS.prayer} tytulDni="Dni z modlitwą" />
 
       <Rozwijana id="modl-kal" tytul={`Kalendarz · ${calMLabel}`} podsumowanie={`${regularPct}% · seria ${streak}`}>
 
@@ -68,15 +69,15 @@ export default function StatsView({ intentions, people, allPrayedDates, streak }
             <div key={c.date} title={`${c.dayNum} ${calMLabel}${c.prayed ? ' · modlono' : ''}`} style={{
               height: 30, borderRadius: 7, display: 'grid', placeItems: 'center',
               fontSize: 11, fontWeight: c.isToday ? 700 : 500,
-              background: c.prayed ? '#C9A24A' : c.future ? 'transparent' : 'var(--surface2)',
-              border: c.isToday ? '1.5px solid #C9A24A' : c.future ? '1px dashed var(--border)' : '1px solid transparent',
+              background: c.prayed ? MODULE_ACCENTS.prayer : c.future ? 'transparent' : 'var(--surface2)',
+              border: c.isToday ? `1.5px solid ${MODULE_ACCENTS.prayer}` : c.future ? '1px dashed var(--border)' : '1px solid transparent',
               color: c.prayed ? '#fff' : 'var(--text-muted)',
             }}>{c.dayNum}</div>
           ))}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 14 }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#C9A24A' }}>{regularPct}%</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: MODULE_ACCENTS.prayer }}>{regularPct}%</div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.08em' }}>regularność</div>
           </div>
           <div style={{ textAlign: 'center' }}>
