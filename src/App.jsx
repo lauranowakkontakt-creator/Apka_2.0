@@ -15,6 +15,7 @@ const PeopleHub = lazy(() => import('./components/people/PeopleHub'))
 const DreamDashboard = lazy(() => import('./components/dream/DreamDashboard'))
 const GratitudeDashboard = lazy(() => import('./components/gratitude/GratitudeDashboard'))
 const MoodDashboard = lazy(() => import('./components/mood/MoodDashboard'))
+const AutoDashboard = lazy(() => import('./components/auto/AutoDashboard'))
 // Te same importy co wyżej — bundler łączy je w jeden chunk; lista służy do
 // dociągnięcia kodu modułów w wolnej chwili (patrz efekt w App).
 const MODULY_DO_DOCIAGNIECIA = [
@@ -28,12 +29,13 @@ const MODULY_DO_DOCIAGNIECIA = [
   () => import('./components/dream/DreamDashboard'),
   () => import('./components/gratitude/GratitudeDashboard'),
   () => import('./components/mood/MoodDashboard'),
+  () => import('./components/auto/AutoDashboard'),
 ]
 import SettingsDrawer from './components/SettingsDrawer'
 import MoreSheet from './components/MoreSheet'
 import ErrorBoundary from './components/ErrorBoundary'
 import PasekPolaczenia from './components/PasekPolaczenia'
-import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun, IconMood } from './components/Icons'
+import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun, IconMood, IcCar } from './components/Icons'
 import { getModuleIcons, resolveIcon } from './utils/iconPrefs'
 import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from './utils/moduleLayout'
 import { getCurrencyCode } from './utils/currency'
@@ -73,6 +75,7 @@ const MODULE_ACCENTS = {
   dream:    '#6366F1',
   gratitude:'#E8A33D',
   mood:     '#E8607A',
+  auto:     '#6FA8DC',
 }
 
 // Pełna lista modułów. To, które trafią na dolny pasek i czy w ogóle są
@@ -91,6 +94,7 @@ function buildModules() {
     { id: 'dream',    label: 'Sen',       Icon: resolveIcon(prefs.dream,    IconMoon) },
     { id: 'gratitude',label: 'Wdzięcznik',Icon: resolveIcon(prefs.gratitude, IcSun) },
     { id: 'mood',     label: 'Nastrój',   Icon: resolveIcon(prefs.mood, IconMood) },
+    { id: 'auto',     label: 'Auto',      Icon: resolveIcon(prefs.auto, IcCar) },
   ]
 }
 
@@ -329,6 +333,7 @@ export default function App() {
             {activeModule === 'dream'    && <DreamDashboard user={user} focusId={dreamFocus} onFocusConsumed={() => setDreamFocus(null)} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'gratitude'&& <GratitudeDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'mood'     && <MoodDashboard user={user} setHeaderExtras={setHeaderExtras} />}
+            {activeModule === 'auto'     && <AutoDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             </Suspense>
             </ErrorBoundary>
           </div>

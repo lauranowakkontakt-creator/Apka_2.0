@@ -7,7 +7,7 @@ import { pl } from 'date-fns/locale'
 import {
   IconBudget, IconHabits, IconTodo, IconPrayer, IconBook,
   IconFlame, IconChevronRight, IconCheck, IconClock, IconBills,
-  IcSun,
+  IcSun, IcCar,
 } from './Icons'
 import { Ring } from './ChartPrimitives'
 import { fmt, getCurrencyCode, CURRENCIES } from '../utils/currency'
@@ -16,6 +16,7 @@ import { BIBLE_BOOKS, TOTAL_CHAPTERS, chapterKey } from '../utils/bibleData'
 import { dayScore, isRequiredHabit } from '../utils/habitLogic'
 import { gratitudeStats } from '../utils/gratitudeLogic'
 import { bladSubskrypcji } from '../utils/polaczenie'
+import { spalanie, terminyAuta, fmt1 } from '../utils/carLogic'
 
 const TODAY = () => format(new Date(), 'yyyy-MM-dd')
 
@@ -42,6 +43,8 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
   const [payments, setPayments]     = useState([])
   const [bible, setBible]           = useState({ counts: {} })
   const [gratitude, setGratitude]   = useState([])
+  const [tankowania, setTankowania] = useState([])
+  const [auto, setAuto]             = useState({})
 
   useEffect(() => {
     const subs = [
@@ -71,11 +74,22 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
         s => setPayments(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('regularPayments')),
       onSnapshot(query(collection(db, 'users', user.uid, 'gratitude'), orderBy('date', 'desc'), limit(400)),
         s => setGratitude(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('gratitude')),
+      onSnapshot(query(collection(db, 'users', user.uid, 'carFuel'), orderBy('date', 'desc'), limit(300)),
+        s => setTankowania(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('carFuel')),
+      onSnapshot(doc(db, 'users', user.uid, 'settings', 'car'),
+        s => setAuto(s.data() || {}), bladSubskrypcji('settings/car', { przyBledzie: () => setAuto({}) })),
     ]
     return () => subs.forEach(u => u())
   }, [user.uid])
 
   const today = TODAY()
+
+  /* ── AUTO ── spalanie gazu (albo benzyny, gdy gazu nie ma) i najbliższy termin */
+  const autoStat = useMemo(() => {
+    const lpg = spalanie(tankowania, 'lpg').srednie, pb = spalanie(tankowania, 'pb').srednie
+    const termin = terminyAuta(auto, today).find(t => t.stan !== 'brak') || null
+    return { glowne: lpg ?? pb, paliwo: lpg != null ? 'gazu' : pb != null ? 'benzyny' : null, termin }
+  }, [tankowania, auto, today])
 
   /* ── BUDŻET ── */
   const budget = useMemo(() => {
@@ -365,6 +379,18 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
               </div>
               <div className="pulpit-sub">rozdziały</div>
             </div>
+          </div>
+        </PulpitCard>
+        )}
+
+        {/* AUTO */}
+        {shows('auto') && (
+        <PulpitCard accent="#6FA8DC" Icon={IcCar} label="Auto" onClick={() => onNavigate('auto')}>
+          <div className="pulpit-value" style={{ fontSize: 26 }}>
+            {fmt1(autoStat.glowne)}<span className="pulpit-value-dim"> l/100 km</span>
+          </div>
+          <div className="pulpit-sub" style={{ color: autoStat.termin?.stan === 'po' ? 'var(--expense)' : autoStat.termin?.stan === 'blisko' ? 'var(--warn)' : 'var(--text-muted)' }}>
+            {autoStat.termin ? `${autoStat.termin.label} ${autoStat.termin.opis}` : autoStat.paliwo ? `spalanie ${autoStat.paliwo}` : 'dodaj tankowanie'}
           </div>
         </PulpitCard>
         )}

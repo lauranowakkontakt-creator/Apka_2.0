@@ -10,6 +10,7 @@ const COLLECTIONS = [
   'calendarEvents', 'calendarPeople', 'calendarCategories',
   'prayerIntentions', 'prayerPeople', 'bibleNotes',
   'notes', 'gratitude', 'memories',
+  'carFuel', 'carRepairs',
 ]
 // Pojedyncze dokumenty
 const SINGLE_DOCS = [
@@ -20,6 +21,7 @@ const SINGLE_DOCS = [
   ['settings', 'calendar'],
   ['settings', 'habitPauses'],
   ['settings', 'mood'],
+  ['settings', 'car'],
 ]
 
 // Firestore Timestamp → ISO string (czytelne i odtwarzalne)

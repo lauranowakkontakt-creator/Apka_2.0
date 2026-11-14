@@ -24,6 +24,10 @@ export const MODULE_DATA = {
   people: { label: 'Osoby', what: 'osoby (znikną też z kalendarza, modlitwy i snów)', collections: ['calendarPeople'], docs: [] },
   dream: { label: 'Sen', what: 'sny, kategorie, symbole i ćwiczenia pamięci', collections: ['dreams', 'dreamCategories', 'dreamSymbols', 'dreamMemory'], docs: [] },
   gratitude: { label: 'Wdzięcznik', what: 'wpisy wdzięczności', collections: ['gratitude'], docs: [] },
+  auto: {
+    label: 'Auto', what: 'tankowania, naprawy oraz dane auta z terminami OC i przeglądu',
+    collections: ['carFuel', 'carRepairs'], docs: [['settings', 'car']],
+  },
   mood: {
     label: 'Nastrój', what: 'wpisy nastroju, zapisy snu, cykl oraz własne emocje, czynniki i okresy',
     collections: ['moodLogs', 'sleepLogs', 'cycleLogs'], docs: [['settings', 'mood']],
