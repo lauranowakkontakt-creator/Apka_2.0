@@ -161,14 +161,25 @@ export default function PeopleHub({ user, onOpenDream, setHeaderExtras }) {
               }}>
                 <PersonBubble person={p} size={44} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{p.name}</p>
-                  <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><IconCalendar size={11} /> {s.events}</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><IconPrayer size={11} /> {s.intentions}</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><IconMoon size={11} /> {s.dreams}</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><IconTodo size={11} /> {s.todos}</span>
-                    {s.debts > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--accent)' }}><IconCash size={11} /> {s.debts}</span>}
-                  </p>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</p>
+                  {(() => {
+                    // Pokazujemy tylko niezerowe liczniki, w jednej linii — karta zostaje niska
+                    const items = [
+                      { key: 'events', Icon: IconCalendar, n: s.events },
+                      { key: 'intentions', Icon: IconPrayer, n: s.intentions },
+                      { key: 'dreams', Icon: IconMoon, n: s.dreams },
+                      { key: 'todos', Icon: IconTodo, n: s.todos },
+                      { key: 'debts', Icon: IconCash, n: s.debts, accent: true },
+                    ].filter(it => it.n > 0)
+                    if (items.length === 0) return null
+                    return (
+                      <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                        {items.map(({ key, Icon, n, accent }) => (
+                          <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: accent ? 'var(--accent)' : undefined }}><Icon size={11} />{n}</span>
+                        ))}
+                      </p>
+                    )
+                  })()}
                 </div>
                 <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                   <button className="t-btn" onClick={() => toggleCircle(p)} title={circleOf(p) === 'far' ? 'Przenieś do bliskich' : 'Przenieś do dalszych'}
