@@ -227,3 +227,27 @@ for (const [rozmiar, nazwaR] of [[TELEFON, 'telefon'], [MALY_TELEFON, 'mały tel
     })
   }
 }
+
+test('sen: pobudka z godziną stoi w swoim miejscu nocy, „nie wiem” — w losowym', async () => {
+  const { strona, bledy } = await otworzModul(ctx, 'mood', MALY_TELEFON)
+  await strona.locator('[role=tab]', { hasText: 'Sen' }).click()
+  await strona.locator('.mood-btn-ghost', { hasText: 'Noc' }).click()
+  await strona.locator('#sen-data').fill(dzien(2))
+  await strona.locator('#sen-od').fill('23:00')
+  await strona.locator('#sen-do').fill('07:00')
+  await strona.locator('button[aria-label="Więcej pobudek"]').click()
+  await strona.locator('button[aria-label="Więcej pobudek"]').click()
+  await strona.locator('#sen-pobudka-0').fill('03:00')
+  assert.equal(await strona.locator('.sleep-wake-nw.on').count(), 1, 'druga pobudka powinna zostać na „Nie wiem”')
+  assert.deepEqual(await nakladanie(strona, '.modal'), [], 'formularz snu: elementy nachodzą na siebie')
+  await strona.locator('.btn-save').click()
+  await strona.waitForTimeout(500)
+  const wiersz = strona.locator('.sleep-row-main span', { hasText: '23:00–07:00' }).first()
+  assert.match(await wiersz.innerText(), /pobudki: 2 \(03:00\)/)
+  const kreski = await strona.evaluate(() => [...document.querySelectorAll('.sleep-night-bar[title="23:00–07:00"] i')].map(i => ({ left: parseFloat(i.style.left), nieznana: i.classList.contains('nieznana') })))
+  const znana = kreski.find(k => !k.nieznana), losowa = kreski.find(k => k.nieznana)
+  assert.equal(znana?.left, 50, '03:00 to połowa nocy 23:00–07:00')
+  assert.ok(losowa && losowa.left > 0 && losowa.left < 100, 'pobudka bez godziny powinna stać gdzieś w środku nocy')
+  assert.deepEqual(bledy, [])
+  await strona.close()
+})

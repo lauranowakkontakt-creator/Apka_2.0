@@ -6,7 +6,7 @@ import { db } from '../../firebase/config'
 import SegTabs from '../SegTabs'
 import { IconTrash, IconClose, IconPlus, IcMoon } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
-import { minutySnu, fmtCzas, fmtGodziny, senDnia, sredniaSnu, naOsi } from '../../utils/sleepLogic'
+import { minutySnu, fmtCzas, fmtGodziny, senDnia, sredniaSnu, naOsi, pozycjePobudek, pobudkaWCzasieSnu, opisPobudek } from '../../utils/sleepLogic'
 import { kicker, Skala5, TODAY } from './wspolne'
 
 // Zakładka „Sen": długość nocy, pobudki i drzemki.
@@ -88,7 +88,8 @@ export default function SleepView({ user, logs, formularz, setFormularz }) {
                   return poz && (
                     <div key={l.id} className="sleep-night-bar" title={`${l.start}–${l.end}`} aria-label={`${l.start}–${l.end}, ${fmtCzas(l.minutes)}`}
                       style={{ left: `${poz[0] * 100}%`, width: `${(poz[1] - poz[0]) * 100}%`, opacity: l.quality ? 0.45 + l.quality * 0.11 : 0.85 }}>
-                      {Array.from({ length: Math.min(l.wakeups || 0, 5) }, (_, i) => <i key={i} style={{ left: `${((i + 1) / ((l.wakeups || 0) + 1)) * 100}%` }} />)}
+                      {/* Pobudka z godziną stoi w swoim miejscu; „nie wiem” — w losowym (bledsza kreska) */}
+                      {pozycjePobudek(l).map((pb, i) => <i key={i} className={pb.znana ? '' : 'nieznana'} title={pb.znana ? `pobudka ${pb.godzina}` : 'pobudka, godzina nieznana'} style={{ left: `${pb.u * 100}%` }} />)}
                     </div>
                   )
                 })}
@@ -97,7 +98,7 @@ export default function SleepView({ user, logs, formularz, setFormularz }) {
             </div>
           )
         })}
-        <div className="sleep-week-legend"><span><i className="bar" />sen</span><span><i className="tick" />pobudka</span><span><em>+30′</em> drzemka</span></div>
+        <div className="sleep-week-legend"><span><i className="bar" />sen</span><span><i className="tick" />pobudka</span><span><i className="tick nieznana" />bez godziny</span><span><em>+30′</em> drzemka</span></div>
       </section>
 
       <div style={{ display: 'flex', gap: 8 }}>
@@ -114,7 +115,7 @@ export default function SleepView({ user, logs, formularz, setFormularz }) {
               <div className="sleep-row-main">
                 <strong>{fmtCzas(l.minutes)}</strong>
                 <span>{l.type === 'nap' ? 'drzemka' : 'noc'} · {format(new Date(l.date + 'T12:00:00'), 'd MMM', { locale: pl })} · {l.start}–{l.end}
-                  {l.type !== 'nap' && l.wakeups > 0 ? ` · pobudki: ${l.wakeups}` : ''}{l.quality ? ` · jakość ${l.quality}/5` : ''}</span>
+                  {l.type !== 'nap' && l.wakeups > 0 ? ` · ${opisPobudek(l)}` : ''}{l.quality ? ` · jakość ${l.quality}/5` : ''}</span>
               </div>
               <button type="button" className="t-btn delete" aria-label="Usuń zapis" onClick={() => usun(l)}><IconTrash size={12} /></button>
             </div>
@@ -139,7 +140,11 @@ function SleepForm({ user, dane, onClose, onSaved }) {
   const [date, setDate]       = useState(TODAY())
   const [start, setStart]     = useState(dane.start || (dane.type === 'nap' ? format(new Date(teraz - 30 * 60000), 'HH:mm') : '23:00'))
   const [end, setEnd]         = useState(dane.end || (dane.type === 'nap' ? format(teraz, 'HH:mm') : '07:00'))
-  const [wakeups, setWakeups] = useState(0)
+  // Godziny pobudek: '' = „nie wiem” (kreska stanie w losowym miejscu nocy).
+  // Długość listy = liczba pobudek.
+  const [godzinyPobudek, setGodzinyPobudek] = useState([])
+  const wakeups = godzinyPobudek.length
+  const ustawGodzine = (i, v) => setGodzinyPobudek(g => g.map((x, k) => (k === i ? v : x)))
   const [quality, setQuality] = useState(0)
   const [saving, setSaving]   = useState(false)
   const min = minutySnu(start, end)
@@ -151,7 +156,10 @@ function SleepForm({ user, dane, onClose, onSaved }) {
     try {
       await addDoc(collection(db, 'users', user.uid, 'sleepLogs'), {
         date, type, start, end, minutes: min,
-        wakeups: type === 'night' ? wakeups : 0, quality: quality || null, createdAt: Timestamp.now(),
+        wakeups: type === 'night' ? wakeups : 0,
+        // Godzina spoza czasu snu to pomyłka przy wpisywaniu — zapisujemy jak „nie wiem”
+        wakeTimes: type === 'night' ? godzinyPobudek.map(g => (g && pobudkaWCzasieSnu(start, end, g) ? g : null)) : [],
+        quality: quality || null, createdAt: Timestamp.now(),
       })
       onSaved()
     } catch { setSaving(false) }
@@ -185,10 +193,26 @@ function SleepForm({ user, dane, onClose, onSaved }) {
             <div className="mood-row">
               <span>Pobudki w nocy</span>
               <div className="sleep-stepper">
-                <button type="button" aria-label="Mniej pobudek" onClick={() => setWakeups(w => Math.max(0, w - 1))}>−</button>
+                <button type="button" aria-label="Mniej pobudek" onClick={() => setGodzinyPobudek(g => g.slice(0, -1))}>−</button>
                 <strong>{wakeups}</strong>
-                <button type="button" aria-label="Więcej pobudek" onClick={() => setWakeups(w => Math.min(20, w + 1))}>+</button>
+                <button type="button" aria-label="Więcej pobudek" onClick={() => setGodzinyPobudek(g => (g.length < 20 ? [...g, ''] : g))}>+</button>
               </div>
+            </div>
+          )}
+          {type === 'night' && wakeups > 0 && (
+            <div className="sleep-wakes">
+              {godzinyPobudek.map((g, i) => {
+                const poza = g && !pobudkaWCzasieSnu(start, end, g)
+                return (
+                  <div key={i} className="sleep-wake">
+                    <label htmlFor={`sen-pobudka-${i}`}>{i + 1}. pobudka</label>
+                    <input id={`sen-pobudka-${i}`} type="time" className="form-input" value={g} onChange={e => ustawGodzine(i, e.target.value)} />
+                    <button type="button" className={`sleep-wake-nw${g ? '' : ' on'}`} aria-pressed={!g} onClick={() => ustawGodzine(i, '')}>Nie wiem</button>
+                    {poza && <small>Ta godzina jest poza czasem snu ({start}–{end}) — zapisze się jako „nie wiem”.</small>}
+                  </div>
+                )
+              })}
+              <p className="sleep-wakes-hint">Podaj godzinę albo zostaw „Nie wiem” — wtedy pobudka zaznaczy się w losowym miejscu nocy.</p>
             </div>
           )}
           <div className="mood-row">

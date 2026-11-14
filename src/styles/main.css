@@ -3835,3 +3835,62 @@ textarea:focus-visible, a:focus-visible, summary:focus-visible,
 /* Kwoty na listach: cyfry równej szerokości, żeby nie „skakały” przy zmianie
    wartości i równo stały w kolumnach. */
 .t-amount, .rev-row, .account-item { font-variant-numeric: tabular-nums; }
+
+/* ===== SEN: godziny pobudek ===== */
+.sleep-wakes { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--r); background: var(--surface2); border: 1px solid var(--border); }
+.sleep-wake { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.sleep-wake label { font-size: 13px; color: var(--text-sub); white-space: nowrap; margin: 0; }
+.sleep-wake .form-input { margin: 0; min-width: 0; }
+.sleep-wake small { grid-column: 1 / -1; font-size: 11.5px; color: var(--warn); }
+.sleep-wake-nw { min-height: 40px; padding: 8px 12px; border-radius: 99px; font-size: 12.5px; font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap;
+  background: transparent; border: 1.5px solid var(--border-strong); color: var(--text-sub); transition: background-color .15s, border-color .15s, color .15s; }
+.sleep-wake-nw.on { background: color-mix(in oklab, var(--warn) 20%, transparent); border-color: var(--warn); color: var(--text); }
+.sleep-wakes-hint { margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--text-muted); }
+/* Pobudka bez godziny: bledsza kreska (stoi w losowym miejscu) */
+.sleep-night-bar i.nieznana { opacity: .5; }
+.sleep-week-legend i.tick.nieznana { opacity: .5; }
+.sleep-week-legend { flex-wrap: wrap; row-gap: 4px; }
+
+/* ===== AUTO ===== */
+.auto-alerty { display: flex; flex-direction: column; gap: 6px; }
+.auto-alert { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; width: 100%; padding: 11px 14px; border-radius: var(--r); cursor: pointer; font-family: inherit; text-align: left;
+  background: color-mix(in oklab, var(--warn) 12%, var(--surface)); border: 1px solid color-mix(in oklab, var(--warn) 45%, transparent); color: var(--text); }
+.auto-alert.po { background: color-mix(in oklab, var(--expense) 14%, var(--surface)); border-color: color-mix(in oklab, var(--expense) 55%, transparent); }
+.auto-alert strong { font-size: 14px; }
+.auto-alert span { font-size: 12.5px; color: var(--text-sub); text-align: right; }
+.auto-podsumowanie { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--text-muted); padding: 0 2px; }
+.auto-podsumowanie b { color: var(--text); font-variant-numeric: tabular-nums; }
+.auto-wskazowka { margin: 0; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+.auto-lista { display: flex; flex-direction: column; gap: 6px; }
+.auto-row { display: flex; align-items: center; gap: 10px; padding: 11px 8px 11px 12px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--border); }
+.auto-row > i { width: 4px; align-self: stretch; border-radius: 4px; flex-shrink: 0; }
+.auto-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.auto-row-main strong { font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.auto-row-main span { font-size: 12px; color: var(--text-muted); }
+.auto-row-note { font-style: italic; }
+.auto-row-wynik { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; font-style: normal; font-size: 17px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.auto-row-wynik small { font-size: 9.5px; font-weight: 500; color: var(--text-muted); letter-spacing: .02em; }
+.auto-row-akcje { display: flex; flex-shrink: 0; }
+.auto-form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.auto-form-2 .form-group { min-width: 0; }
+.auto-form-info { font-size: 13px; color: var(--text-muted); margin-top: -8px; }
+.auto-form-info b, .auto-form-wynik b { color: var(--text); }
+.auto-form-wynik { padding: 11px 14px; border-radius: var(--r); font-size: 13.5px; color: var(--text-sub);
+  background: color-mix(in oklab, var(--accent) 12%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent); }
+.auto-karta { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.auto-karta-glowa { display: flex; align-items: center; gap: 12px; }
+.auto-karta-glowa > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.auto-karta-glowa strong { font-size: 16px; }
+.auto-karta-glowa span { font-size: 12.5px; color: var(--text-muted); }
+.auto-karta-ikona { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; background: var(--accent-soft); color: var(--accent); }
+.auto-terminy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.auto-termin { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: var(--r-sm); background: var(--surface2); border: 1px solid var(--border); min-width: 0; }
+.auto-termin span { font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--text-muted); }
+.auto-termin strong { font-size: 13px; }
+.auto-termin em { font-style: normal; font-size: 11.5px; color: var(--text-muted); }
+.auto-termin.blisko { border-color: color-mix(in oklab, var(--warn) 55%, transparent); }
+.auto-termin.blisko em { color: var(--warn); }
+.auto-termin.po { border-color: color-mix(in oklab, var(--expense) 60%, transparent); }
+.auto-termin.po em { color: #F0625F; }
+.auto-dane { padding: 16px; }
+.auto-wskazowka.uwaga { color: var(--warn); }

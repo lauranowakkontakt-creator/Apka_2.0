@@ -378,7 +378,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {upcoming.map(e => (
-              <Row key={e.id} color={person.color || '#5FBF98'}>
+              <Row key={`${e.id}-${e.date}`} color={person.color || '#5FBF98'}>
                 <div style={{ fontSize: 11, color: person.color || '#5FBF98', fontWeight: 700, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {format(parseISO(e.date), 'd MMM', { locale: pl })}
                 </div>
@@ -396,7 +396,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
                 </summary>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
                   {past.map(e => (
-                    <Row key={e.id} color={person.color || '#5FBF98'} muted>
+                    <Row key={`${e.id}-${e.date}`} color={person.color || '#5FBF98'} muted>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                         {format(parseISO(e.date), 'd MMM yy', { locale: pl })}
                       </div>

@@ -5,7 +5,8 @@
 > na emulatorach Firebase. Własny projekt Firebase dojdzie później.
 
 Osobista aplikacja PWA: budżet, nawyki, to-do, kalendarz, modlitwa, Biblia,
-osoby, sen, wdzięcznik i wspomnik — w jednym miejscu, na telefonie.
+osoby, sen, wdzięcznik, nastrój i auto (tankowania gazu i benzyny ze spalaniem,
+naprawy, terminy OC i przeglądu) — w jednym miejscu, na telefonie.
 
 React 18 + Vite + Firebase (Auth i Firestore). Hostowana na GitHub Pages.
 
@@ -47,7 +48,7 @@ serwerem.
 | `npm run dev` | sam serwer Vite (bez emulatorów apka się nie zaloguje) |
 | `npm run lint` | ESLint — łapie użycie nieistniejących nazw |
 | `npm test` | testy jednostkowe (`node --test`, bez dodatkowych bibliotek) |
-| `npm run e2e` | testy w przeglądarce (Playwright) na wersji demo: scenariusze Nastroju klikane jak przez człowieka + kontrola, czy nic na siebie nie nachodzi, nie wystaje w bok i nie łamie słów w połowie — na telefonie, małym telefonie i komputerze |
+| `npm run e2e` | testy w przeglądarce (Playwright) na wersji demo: scenariusze Nastroju i Auta oraz połączenia między modułami, klikane jak przez człowieka + kontrola, czy nic na siebie nie nachodzi, nie wystaje w bok i nie łamie słów w połowie — na telefonie, małym telefonie i komputerze |
 | `npm run build` | build produkcyjny do `dist/` |
 | `npm run check` | **lint + testy + build.** To jest bramka przed pushem |
 | `npm run preview` | podgląd zbudowanej wersji lokalnie |

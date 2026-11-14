@@ -417,6 +417,22 @@ export function seedDemoData(put, Timestamp) {
   put(base('settings'), 'mood', { emotions: [], factors: [{ id: 'egzamin', label: 'egzamin', color: '#E6C04A' }], ratingCats: [],
     okresy: [{ id: 'o1', label: 'sesja', color: '#5FBF98', from: isoAgo(30), to: isoAgo(18) }] })
 
+  // ── Auto: gaz do pełna co ~400 km, benzyna rzadko; naprawy; terminy ─────
+  let licznik = 148200
+  for (let b = 84; b >= 0; b -= 7) {
+    const km = int(340, 460); licznik += km
+    const litry = Math.round(km * (9.2 + rnd() * 1.6)) / 100, cenaLpg = 2.95 + rnd() * 0.3
+    put(base('carFuel'), id('gaz'), { date: isoAgo(b), fuel: 'lpg', liters: Math.round(litry * 100) / 100, price: Math.round(litry * cenaLpg * 100) / 100, odometer: licznik, full: b !== 35, note: b === 21 ? 'Trasa do Babci' : '', createdAt: ts(daysAgo(b)) })
+    if (b % 28 === 0) {
+      const lpb = Math.round(km * 4 * (0.8 + rnd() * 0.4)) / 100
+      put(base('carFuel'), id('pb'), { date: isoAgo(b), fuel: 'pb', liters: lpb, price: Math.round(lpb * 6.45 * 100) / 100, odometer: licznik, full: true, note: '', createdAt: ts(daysAgo(b)) })
+    }
+  }
+  put(base('carFuel'), id('gaz'), { date: isoAgo(3), fuel: 'lpg', liters: 12, price: 36.6, odometer: null, full: false, note: 'Bez licznika — liczy się tylko do wydatków', createdAt: ts(daysAgo(3)) })
+  ;[[70, 'Wymiana oleju i filtrów', 380, 148650], [41, 'Opony zimowe — wymiana', 160, 149900], [12, 'Klocki hamulcowe przód', 420, 151300], [200, 'Przegląd instalacji gazowej', 150, null]]
+    .forEach(([b, title, cost, odometer]) => put(base('carRepairs'), id('naprawa'), { date: isoAgo(b), title, cost, odometer, note: title.startsWith('Opony') ? 'Letnie w piwnicy, półka po lewej' : '', createdAt: ts(daysAgo(b)) }))
+  put(base('settings'), 'car', { name: 'Opel Astra 1.6 LPG', plate: 'WA 12345', year: '2014', ocDo: iso(new Date(today.getTime() + 18 * DAY)), przegladDo: iso(new Date(today.getTime() + 140 * DAY)), acDo: '', notes: 'Olej 5W-30 · opony 205/55 R16' })
+
   // ── Notatki ──────────────────────────────────────────────────────────────
   ;[['Lista książek', 'Quo Vadis\nLalka\nMistrz i Małgorzata', ['książki'], true],
     ['Pomysły na prezenty', 'Mama — storczyk\nKuba — gra planszowa', ['prezenty', 'rodzina'], false],

@@ -51,3 +51,42 @@ test('kubelekSnu — granice przedziałów', () => {
   assert.equal(kubelekSnu(480), '8 h i więcej')
   assert.equal(kubelekSnu(0), null)
 })
+
+const { pozycjePobudek, pobudkaWCzasieSnu, opisPobudek } = await import('../src/utils/sleepLogic.js')
+
+test('pozycjePobudek — podana godzina stoi dokładnie w swoim miejscu nocy', () => {
+  const p = pozycjePobudek({ id: 'a', start: '23:00', end: '07:00', wakeups: 2, wakeTimes: ['03:00', '01:00'] })
+  assert.equal(p.length, 2)
+  assert.deepEqual(p.map(x => x.znana), [true, true])
+  assert.equal(p[0].u, 0.5)     // 4 h z 8 h
+  assert.equal(p[1].u, 0.25)    // 2 h z 8 h
+})
+
+test('pozycjePobudek — „nie wiem” daje losowe, ale stałe miejsce w środku nocy', () => {
+  const log = { id: 'b', start: '23:30', end: '06:30', wakeups: 3, wakeTimes: [null, '02:00', null] }
+  const p1 = pozycjePobudek(log), p2 = pozycjePobudek(log)
+  assert.deepEqual(p1, p2, 'to samo przy każdym wywołaniu')
+  assert.deepEqual(p1.map(x => x.znana), [false, true, false])
+  for (const x of p1) assert.ok(x.u > 0 && x.u < 1)
+  assert.notEqual(p1[0].u, p1[2].u, 'dwie nieznane pobudki nie stoją w tym samym miejscu')
+  const inny = pozycjePobudek({ ...log, id: 'c' })
+  assert.notEqual(inny[0].u, p1[0].u, 'inna noc — inne miejsce')
+})
+
+test('pozycjePobudek — stary wpis z samą liczbą pobudek i godzina spoza snu', () => {
+  const stary = pozycjePobudek({ id: 'd', start: '23:00', end: '07:00', wakeups: 2 })
+  assert.deepEqual(stary.map(x => x.znana), [false, false])
+  const poza = pozycjePobudek({ id: 'e', start: '23:00', end: '07:00', wakeups: 1, wakeTimes: ['12:00'] })
+  assert.equal(poza[0].znana, false)
+  assert.deepEqual(pozycjePobudek({ start: '23:00', end: '07:00', wakeups: 0 }), [])
+})
+
+test('pobudkaWCzasieSnu i opisPobudek', () => {
+  assert.ok(pobudkaWCzasieSnu('23:00', '07:00', '02:15'))
+  assert.ok(pobudkaWCzasieSnu('23:00', '07:00', '23:30'))
+  assert.ok(!pobudkaWCzasieSnu('23:00', '07:00', '08:00'))
+  assert.ok(!pobudkaWCzasieSnu('23:00', '07:00', ''))
+  assert.equal(opisPobudek({ wakeups: 2, wakeTimes: ['02:30', null] }), 'pobudki: 2 (02:30)')
+  assert.equal(opisPobudek({ wakeups: 3 }), 'pobudki: 3')
+  assert.equal(opisPobudek({ wakeups: 0 }), '')
+})
