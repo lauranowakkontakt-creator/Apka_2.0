@@ -112,7 +112,7 @@ export default function HabitExtras({
     }
     const udzial = Math.min(1, n / Math.max(1, habits.length))
     return {
-      bg: `color-mix(in oklab, var(--warn) ${Math.round(22 + udzial * 78)}%, var(--surface2))`,
+      bg: `color-mix(in oklab, var(--accent) ${Math.round(22 + udzial * 78)}%, var(--surface2))`,
       border: pz ? `2px solid ${pz.color}` : '1px solid transparent',
       color: udzial > 0.55 ? '#fff' : 'var(--text)',
       ring: d === today,
@@ -141,7 +141,7 @@ export default function HabitExtras({
   }
 
   const ikona = (h, size = 15) => {
-    const color = h.color || 'var(--warn)'
+    const color = h.color || 'var(--accent)'
     return (
       <span className="habit-emoji" style={{
         background: color + '1A', border: `1px solid ${color + '40'}`, color, flexShrink: 0,
@@ -169,10 +169,10 @@ export default function HabitExtras({
               różni je to, co liczymy, nie to, jak to wygląda. */}
           <div className="habit-hero" data-stagger style={{ margin: 0 }}>
             <div className="card card-hover-glow habit-hero-progress" style={{
-              borderTop: '2px solid color-mix(in oklab, var(--warn) 80%, transparent)',
-              background: 'linear-gradient(140deg, var(--surface) 45%, color-mix(in oklab, var(--warn) 7%, var(--surface)) 100%)',
+              borderTop: '2px solid color-mix(in oklab, var(--accent) 80%, transparent)',
+              background: 'linear-gradient(140deg, var(--surface) 45%, color-mix(in oklab, var(--accent) 7%, var(--surface)) 100%)',
             }}>
-              <Ring value={dzien.pct} size={64} thickness={6} color="var(--warn)" label="dziś" />
+              <Ring value={dzien.pct} size={64} thickness={6} color="var(--accent)" label="dziś" />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-sub)', textTransform: 'capitalize', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {dayLabel}
@@ -223,7 +223,7 @@ export default function HabitExtras({
           )}
           {habits.map(h => {
             const done = isDayComplete(h, selectedDay)
-            const color = h.color || 'var(--warn)'
+            const color = h.color || 'var(--accent)'
             const p = optionalProgress(h, start, end)
             return (
               <div key={h.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 11 }}>
@@ -302,7 +302,7 @@ export default function HabitExtras({
             <div className="card" style={{ padding: 14, display: 'flex', flexWrap: 'wrap', gap: 16 }}>
               {amountTotals(habits, start, end).map(t => (
                 <div key={t.unit}>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--warn)' }}>{t.label}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--accent)' }}>{t.label}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>
                     w tym okresie
                   </div>
@@ -311,7 +311,7 @@ export default function HabitExtras({
             </div>
           )}
           <StatTiles tiles={[
-            { Icon: IconCheck, value: sum.done, label: 'zaliczeń', color: 'var(--warn)' },
+            { Icon: IconCheck, value: sum.done, label: 'zaliczeń', color: 'var(--accent)' },
             { Icon: IconFlag,  value: `${sum.active}/${sum.count}`, label: 'ruszyło' },
             { Icon: IconStar,  value: sum.bestDay ? sum.bestDay.count : '—',
               label: sum.bestDay ? `najlepszy ${fmtDzien(sum.bestDay.date)}` : 'brak zaliczeń' },
@@ -329,14 +329,14 @@ export default function HabitExtras({
                   {[0, 0.35, 0.6, 0.85, 1].map((v, i) => (
                     <div key={i} style={{
                       width: 9, height: 9, borderRadius: 2,
-                      background: v === 0 ? 'var(--surface2)' : `color-mix(in oklab, var(--warn) ${Math.round(22 + v * 78)}%, var(--surface2))`,
+                      background: v === 0 ? 'var(--surface2)' : `color-mix(in oklab, var(--accent) ${Math.round(22 + v * 78)}%, var(--surface2))`,
                     }} />
                   ))}
                   <span style={{ fontSize: 8.5, color: 'var(--text-muted)' }}>więcej</span>
                 </div>
               </>
             ) : (
-              <BarChartSVG data={optionalBuckets(habits, period, kotwica)} accent="var(--warn)" height={130}
+              <BarChartSVG data={optionalBuckets(habits, period, kotwica)} accent="var(--accent)" height={130}
                 fmt={(v) => `${v} ${v === 1 ? 'raz' : 'razy'}`} />
             )}
           </div>
@@ -346,7 +346,7 @@ export default function HabitExtras({
           <div data-stagger style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10 }}>
             {habits.map(h => {
               const p = optionalProgress(h, start, end)
-              const color = h.color || 'var(--warn)'
+              const color = h.color || 'var(--accent)'
               const okres = habitPeriodLabel(p.first, p.last)
               return (
                 <div key={h.id} className="card hover" style={{ padding: 14, cursor: 'pointer' }}
@@ -381,7 +381,7 @@ export default function HabitExtras({
                         </div>
                         {m.best && (
                           <div>
-                            <div className="mono" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--warn)' }}>
+                            <div className="mono" style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)' }}>
                               {formatAmount(m.best.value, m.unit)}
                             </div>
                             <div style={{ fontSize: 8.5, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.1em', marginTop: 2 }}>rekord</div>

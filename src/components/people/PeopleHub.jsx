@@ -21,6 +21,7 @@ import { getCategory, dreamPeopleIds } from '../../utils/dreams'
 import { debtsForPerson, debtSummary, todosForPerson, linkCountsByPerson } from '../../utils/personLinks'
 import { fmt } from '../../utils/currency'
 import { bladSubskrypcji } from '../../utils/polaczenie'
+import { MODULE_ACCENTS } from '../../utils/moduleColors'
 
 const TODAY = () => format(new Date(), 'yyyy-MM-dd')
 const initials = (name) => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -317,7 +318,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {activeInt.map(i => (
-              <Row key={i.id} color="#C9A24A">
+              <Row key={i.id} color={MODULE_ACCENTS.prayer}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{i.title}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
