@@ -18,6 +18,7 @@ import MoodEntryForm from './MoodEntryForm'
 import MoodInsights from './MoodInsights'
 import SleepView from './SleepView'
 import CycleView from './CycleView'
+import { StatystykiSnu, StatystykiCyklu } from './StatystykiSnuICyklu'
 import { chwileWpisu, posortujChwile } from '../../utils/moodEntry'
 import { MOODS, MoodFace, kicker, to10, fmt10, TODAY, moodDla, findEmotion, findRatingCat, findFactor, useMoodSettings } from './wspolne'
 
@@ -105,21 +106,23 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
 
   return (
     <div className="mood-dashboard">
-      {view === 'stats' ? (
+      {view === 'stats' && (
         <div className="rev-subhead">
           <button className="rev-back" onClick={() => setView('main')} title="Wróć" aria-label="Wróć"><IconChevronLeft size={18} /></button>
           <div className="rev-subhead-title">Analiza i statystyki</div>
         </div>
-      ) : (
-        <SegTabs items={[{ id: 'mood', label: 'Nastrój' }, { id: 'sleep', label: 'Sen' }, { id: 'cycle', label: 'Cykl' }]}
-          active={tab} onChange={setTab} style={{ marginBottom: 12 }} />
       )}
+      {/* Te same zakładki także w analizie — statystyki snu i cyklu, nie tylko nastroju */}
+      <SegTabs items={[{ id: 'mood', label: 'Nastrój' }, { id: 'sleep', label: 'Sen' }, { id: 'cycle', label: 'Cykl' }]}
+        active={tab} onChange={setTab} style={{ marginBottom: 12 }} />
 
-      {(view === 'stats' || tab === 'mood') && (
+      {tab === 'mood' && (
         <MoodPage logs={logs} sleepLogs={sleepLogs} okresy={okresy} people={osoby} ust={ust} zapiszUst={zapiszUst}
           onDelete={handleDelete} selDate={selDate} setSelDate={setSelDate} view={view} onCycle={() => setTab('cycle')} onSleep={() => setTab('sleep')}
           onAddEntry={otworz} onEdit={(log) => otworz(log.date, null, log)} />
       )}
+      {view === 'stats' && tab === 'sleep' && <StatystykiSnu sleepLogs={sleepLogs} moodLogs={logs} />}
+      {view === 'stats' && tab === 'cycle' && <StatystykiCyklu okresy={okresy} moodLogs={logs} />}
       {view === 'main' && tab === 'sleep' && <SleepView user={user} logs={sleepLogs} formularz={senForm} setFormularz={setSenForm} />}
       {view === 'main' && tab === 'cycle' && <CycleView user={user} okresy={okresy} moodLogs={logs} formularz={cyklForm} setFormularz={setCyklForm} />}
 

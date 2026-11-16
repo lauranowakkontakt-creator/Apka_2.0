@@ -594,10 +594,10 @@ export default function HabitsDashboard({ user, setHeaderExtras }) {
                       const showHeaders = routines.length > 0 && groupByRoutine(mandatory, routines, x => x.h.routineId).some(g => g.id != null)
                       if (!showHeaders) return grid(sortedMandatory)
 
-                      let groups = groupByRoutine(sortedMandatory, routines, x => x.h.routineId)
+                      // Rutyny zawsze w kolejności ustawionej strzałkami w „Rutynach".
+                      // Zrobiona rutyna zostaje na swoim miejscu, tylko się zwija.
+                      const groups = groupByRoutine(sortedMandatory, routines, x => x.h.routineId)
                       const isSectionDone = (g) => g.items.length > 0 && g.items.every(isItemDone)
-                      // Zrobione segmenty (całe rutyny) na sam dół.
-                      groups = [...groups].sort((a, b) => (isSectionDone(a) ? 1 : 0) - (isSectionDone(b) ? 1 : 0))
 
                       return groups.map(g => {
                         const doneN = g.items.filter(isItemDone).length
