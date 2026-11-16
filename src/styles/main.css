@@ -1491,6 +1491,19 @@ input, select, textarea {
 /* Fix select on iOS: remove inner shadow */
 select { -webkit-appearance: none; appearance: none; }
 
+/* appearance:none chowa natywną strzałkę, przez co pole wyboru (np. jednostka
+   nawyku) wyglądało jak zwykły tekst. Subtelny szewron pokazuje, że da się je
+   rozwinąć — w każdym module. !important, bo .form-input i style inline
+   ustawiają `background` skrótem, który zeruje obrazek tła. */
+select:not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 12px 12px !important;
+  padding-right: 32px !important;
+  cursor: pointer;
+}
+
 /* Habit week view: prevent horizontal overflow on very small phones */
 @media (max-width: 360px) {
   .week-header, .habit-row {
