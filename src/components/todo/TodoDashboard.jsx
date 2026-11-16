@@ -313,7 +313,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
       )}
 
       {showForm && (
-        <TodoForm user={user} lists={lists} people={people} editData={editTodo} defaultListId={activeList} defaultDueDate={formDefaultDue}
+        <TodoForm user={user} lists={lists} people={people} todos={todos} editData={editTodo} defaultListId={activeList} defaultDueDate={formDefaultDue}
           onClose={() => { setShowForm(false); setEditTodo(null); setFormDefaultDue('') }} />
       )}
       {showListForm && <ListForm user={user} onClose={() => setShowListForm(false)} />}

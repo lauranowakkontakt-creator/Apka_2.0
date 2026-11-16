@@ -1,14 +1,15 @@
 import { db } from '../../firebase/config'
 import { RECUR_LABEL } from '../../utils/calendarRecurrence'
-import { PRIORITY, RECURRENCE } from '../../utils/todoLogic'
-import { CatIcon, IconCheck, IconClose, IconPlus, IconTrash } from '../Icons'
+import { PRIORITY, RECURRENCE, osobyDoWyboru } from '../../utils/todoLogic'
+import { CatIcon, IconClose, IconPlus, IconTrash } from '../Icons'
 import PersonBubble from '../PersonBubble'
+import ListForm from './ListForm'
 import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 // Formularz zadania: dodawanie i edycja, z podzadaniami i cyklicznością.
 
-export default function TodoForm({ user, lists, people = [], editData, defaultListId, defaultDueDate, onClose }) {
+export default function TodoForm({ user, lists, people = [], todos = [], editData, defaultListId, defaultDueDate, onClose }) {
   const [title, setTitle]       = useState(editData?.title || '')
   const [note, setNote]         = useState(editData?.note || '')
   const [listId, setListId]     = useState(editData?.listId || defaultListId || '')
@@ -18,6 +19,10 @@ export default function TodoForm({ user, lists, people = [], editData, defaultLi
   const [subtasks, setSubtasks] = useState(editData?.subtasks || [])
   const [peopleIds, setPeopleIds] = useState(editData?.peopleIds || [])
   const [subInput, setSubInput] = useState('')
+  const [personQuery, setPersonQuery] = useState('')
+  const [showAllPeople, setShowAllPeople] = useState(false)
+  const [showListForm, setShowListForm] = useState(false)
+  const sortedPeople = useMemo(() => osobyDoWyboru(people, todos), [people, todos])
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState('')
 
@@ -74,6 +79,19 @@ export default function TodoForm({ user, lists, people = [], editData, defaultLi
               maxLength={200} placeholder="Dodatkowe szczegóły..." />
           </div>
           <div className="form-group">
+            <label>Lista</label>
+            <div className="account-chips">
+              <button type="button" className={`account-chip ${!listId ? 'active' : ''}`} onClick={() => setListId('')}>Bez listy</button>
+              {lists.map(l => (
+                <button key={l.id} type="button"
+                  className={`account-chip ${listId === l.id ? 'active' : ''}`}
+                  style={listId === l.id ? { borderColor: l.color, background: l.color + '22' } : {}}
+                  onClick={() => setListId(l.id)}><CatIcon categoryId={null} emoji={l.icon} size={13} /> {l.name}</button>
+              ))}
+              <button type="button" className="account-chip" onClick={() => setShowListForm(true)}><IconPlus size={12} /> Nowa lista</button>
+            </div>
+          </div>
+          <div className="form-group">
             <label>Priorytet</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {PRIORITY.map(p => (
@@ -127,50 +145,57 @@ export default function TodoForm({ user, lists, people = [], editData, defaultLi
             </div>
           </div>
 
-          {people.length > 0 && (
-            <div className="form-group">
-              <label>Osoby, których dotyczy (opcjonalnie)</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {people.map(p => {
-                  const on = peopleIds.includes(p.id)
-                  return (
-                    <button type="button" key={p.id} onClick={() => togglePerson(p.id)} style={{
-                      display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px 5px 5px', borderRadius: 999,
-                      cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
-                      border: `1px solid ${on ? (p.color || 'var(--accent)') : 'var(--border)'}`,
-                      background: on ? (p.color || 'var(--accent)') + '1e' : 'var(--surface2)',
-                      color: on ? (p.color || 'var(--accent)') : 'var(--text-sub)',
-                    }}>
-                      <PersonBubble person={p} size={24} />
-                      {p.name}
-                      {on && <IconCheck size={13} />}
-                    </button>
-                  )
-                })}
+          {people.length > 0 && (() => {
+            // Wybrane zawsze na wierzchu; podpowiedzi: przy wpisywaniu wszyscy pasujący,
+            // inaczej najbliżsi (bliscy, najczęściej w zadaniach) zwinięci do kilku.
+            const q = personQuery.trim().toLowerCase()
+            const wybrane = sortedPeople.filter(p => peopleIds.includes(p.id))
+            const reszta = sortedPeople.filter(p => !peopleIds.includes(p.id))
+            const pasujace = q ? reszta.filter(p => [p.name, ...(p.aliases || [])].some(x => String(x || '').toLowerCase().includes(q))) : reszta
+            const pokazane = q || showAllPeople ? pasujace : pasujace.slice(0, 6)
+            const chip = (p, on) => (
+              <button type="button" key={p.id} onClick={() => { togglePerson(p.id); setPersonQuery('') }} style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '4px 9px 4px 4px', borderRadius: 999,
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 500,
+                border: `1px solid ${on ? (p.color || 'var(--accent)') : 'var(--border)'}`,
+                background: on ? (p.color || 'var(--accent)') + '1e' : 'var(--surface2)',
+                color: on ? (p.color || 'var(--accent)') : 'var(--text-sub)',
+              }}>
+                <PersonBubble person={p} size={20} />
+                {p.name}
+                {on && <IconClose size={11} />}
+              </button>
+            )
+            return (
+              <div className="form-group">
+                <label>Osoby, których dotyczy (opcjonalnie)</label>
+                {wybrane.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>{wybrane.map(p => chip(p, true))}</div>
+                )}
+                {people.length > 6 && (
+                  <input type="search" className="form-input" value={personQuery} onChange={e => setPersonQuery(e.target.value)}
+                    placeholder="Szukaj osoby…" style={{ marginBottom: 8 }} />
+                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: showAllPeople && !q ? 200 : undefined, overflowY: showAllPeople && !q ? 'auto' : undefined }}>
+                  {pokazane.map(p => chip(p, false))}
+                  {q && pokazane.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nikogo nie znaleziono</span>}
+                </div>
+                {!q && pasujace.length > 6 && (
+                  <button type="button" onClick={() => setShowAllPeople(v => !v)} style={{ background: 'none', border: 'none', padding: '6px 0 0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>
+                    {showAllPeople ? 'Zwiń listę' : `Pokaż wszystkich (${pasujace.length})`}
+                  </button>
+                )}
               </div>
-            </div>
-          )}
+            )
+          })()}
 
-          {lists.length > 0 && (
-            <div className="form-group">
-              <label>Lista</label>
-              <div className="account-chips">
-                <button type="button" className={`account-chip ${!listId ? 'active' : ''}`} onClick={() => setListId('')}>Bez listy</button>
-                {lists.map(l => (
-                  <button key={l.id} type="button"
-                    className={`account-chip ${listId === l.id ? 'active' : ''}`}
-                    style={listId === l.id ? { borderColor: l.color, background: l.color + '22' } : {}}
-                    onClick={() => setListId(l.id)}><CatIcon categoryId={null} emoji={l.icon} size={13} /> {l.name}</button>
-                ))}
-              </div>
-            </div>
-          )}
           {error && <p className="form-error">{error}</p>}
           <button type="submit" className="btn-save" disabled={saving}>
             {saving ? 'Zapisywanie...' : editData ? 'Zapisz zmiany' : 'Dodaj zadanie'}
           </button>
         </form>
       </div>
+      {showListForm && <ListForm user={user} onClose={() => setShowListForm(false)} />}
     </div>
   )
 }

@@ -87,3 +87,15 @@ export function statystykiOkresu(todos, zakres) {
 
   return { zrobioneWOkresie, wszystkieWOkresie, procentUkonczenia }
 }
+
+// Kolejność osób w formularzu zadania: najpierw bliscy (krąg „close” albo brak pola),
+// w każdym kręgu ci, z którymi masz najwięcej zadań, potem alfabetycznie.
+export function osobyDoWyboru(people, todos = []) {
+  const ile = {}
+  for (const t of todos) for (const id of t.peopleIds || []) ile[id] = (ile[id] || 0) + 1
+  const dalszy = (p) => (p?.circle === 'far' ? 1 : 0)
+  return [...people].sort((a, b) =>
+    dalszy(a) - dalszy(b) ||
+    (ile[b.id] || 0) - (ile[a.id] || 0) ||
+    String(a.name || '').localeCompare(String(b.name || ''), 'pl'))
+}

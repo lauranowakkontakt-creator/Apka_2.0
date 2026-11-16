@@ -144,3 +144,16 @@ test('zadaniaUkonczone nie rusza tablicy wejściowej', () => {
   zadaniaUkonczone(todos)
   assert.deepEqual(todos.map(t => t.id), ['a', 'b'])
 })
+
+test('osobyDoWyboru: bliscy przed dalszymi, potem wg liczby zadań i alfabetu', async () => {
+  const { osobyDoWyboru } = await import('../src/utils/todoLogic.js')
+  const people = [
+    { id: 'z', name: 'Zosia', circle: 'far' },
+    { id: 'a', name: 'Ania' },
+    { id: 'b', name: 'Basia', circle: 'close' },
+    { id: 'c', name: 'Celina' },
+  ]
+  const todos = [{ peopleIds: ['c'] }, { peopleIds: ['c', 'z'] }, { peopleIds: ['z'] }, { peopleIds: ['z'] }]
+  assert.deepEqual(osobyDoWyboru(people, todos).map(p => p.id), ['c', 'a', 'b', 'z'])
+  assert.deepEqual(osobyDoWyboru([]), [])
+})
