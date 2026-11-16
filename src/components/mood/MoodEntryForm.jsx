@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { IconChevronRight, IconChevronLeft, IconPlus, IconTrash } from '../Icons'
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc, Timestamp } from 'firebase/firestore'
 import { format } from 'date-fns'
@@ -256,6 +256,19 @@ function ChwilaForm({ chwila, initialMood, isToday, ust, people, dodajWlasne, us
   const [factors, setFactors]   = useState(() => new Set(chwila?.factors || []))
   const [osoby, setOsoby]       = useState(() => new Set(chwila?.peopleIds || []))
   const [wszyscy, setWszyscy]   = useState(false)
+  const timeRef = useRef(null)
+
+  // Ręcznie wpisana godzina nie zawsze trafia do stanu przed kliknięciem „Zapisz”
+  // (Safari i część przeglądarek zgłaszają zmianę dopiero po wyjściu z pola),
+  // więc przy zapisie bierzemy to, co faktycznie widać w polu. Niepełny wpis
+  // (np. same godziny) daje pustą wartość — wtedy zostaje ostatnia poprawna.
+  const odczytajGodzine = () => {
+    const el = timeRef.current
+    if (!el) return time
+    const v = el.value
+    if (/^\d{2}:\d{2}/.test(v)) return v.slice(0, 5)
+    return el.validity?.badInput ? time : v
+  }
 
   const przelacz = (setter) => (id) => setter(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   const dodaj = (pole, stale, setter) => (nazwa) => { const id = dodajWlasne(pole, stale)(nazwa); if (id) setter(prev => new Set(prev).add(id)) }
@@ -264,7 +277,7 @@ function ChwilaForm({ chwila, initialMood, isToday, ust, people, dodajWlasne, us
   const bliscy = people.filter(p => p.circle !== 'far')
   const widoczni = wszyscy || !bliscy.length ? people : people.filter(p => p.circle !== 'far' || osoby.has(p.id))
   const gotowa = () => value ? {
-    id: chwila?.id || nowaChwilaId(), time: time || null, value,
+    id: chwila?.id || nowaChwilaId(), time: odczytajGodzine() || null, value,
     emotions: [...emotions], factors: [...factors], peopleIds: [...osoby],
   } : null
 
@@ -276,7 +289,8 @@ function ChwilaForm({ chwila, initialMood, isToday, ust, people, dodajWlasne, us
           {kicker(isToday && !chwila ? 'Jak się masz teraz?' : 'Jak się czułaś?')}
           <label className="mood-time">
             <span>godz.</span>
-            <input type="time" value={time} onChange={e => setTime(e.target.value)} aria-label="Godzina chwili" />
+            <input ref={timeRef} type="time" value={time} aria-label="Godzina chwili"
+              onChange={e => setTime(e.target.value)} onInput={e => setTime(e.target.value)} onBlur={e => setTime(e.target.value)} />
           </label>
         </div>
         <div className="mood-faces">
