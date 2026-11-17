@@ -7,10 +7,11 @@ import { toast } from '../Toast'
 import IntentionForm from './IntentionForm'
 import PrayerFilterBar from './PrayerFilterBar'
 import RequestCard from './RequestCard'
+import ZakonczProsbe from './ZakonczProsbe'
 import { TODAY, toggleChecklistItem } from './wspolne'
 import { addDays, format, parseISO, subDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import { Timestamp, arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { useEffect, useMemo, useState } from 'react'
 
 // Widok „Dziś" — prośby na dany dzień, z możliwością cofania się w tył.
@@ -20,6 +21,7 @@ import { useEffect, useMemo, useState } from 'react'
 export default function TodayView({ user, intentions, people, carMode }) {
   const [viewDate, setViewDate] = useState(TODAY())
   const [editItem, setEditItem] = useState(null)
+  const [konczona, setKonczona] = useState(null) // prośba w oknie „Zakończyć?”
   // Filtry przeżywają odświeżenie — po wejściu w moduł lista wygląda tak,
   // jak się ją zostawiło, a nie zawsze od zera.
   const [filters, setFilters]   = useState(loadFilters)
@@ -73,8 +75,7 @@ export default function TodayView({ user, intentions, people, carMode }) {
     await updateDoc(doc(db, 'users', user.uid, 'prayerIntentions', item.id), { notes: arrayRemove(note) })
   }
 
-  const archiveItem = async (item) =>
-    updateDoc(doc(db, 'users', user.uid, 'prayerIntentions', item.id), { status: 'ended', endedAt: Timestamp.now() })
+  const archiveItem = (item) => setKonczona(item)
 
   const deleteItem = async (id) => {
     const ok = await confirmDialog({ title: 'Usunąć prośbę?' })
@@ -170,7 +171,10 @@ export default function TodayView({ user, intentions, people, carMode }) {
         : sorted.map(item => karta(item))}
 
       {editItem && (
-        <IntentionForm user={user} editData={editItem} personId={editItem.personId} allIntentions={intentions} onClose={() => setEditItem(null)} />
+        <IntentionForm user={user} editData={editItem} personId={editItem.personId} people={people} allIntentions={intentions} onClose={() => setEditItem(null)} />
+      )}
+      {konczona && (
+        <ZakonczProsbe user={user} item={konczona} person={people.find(p => p.id === konczona.personId)} onClose={() => setKonczona(null)} />
       )}
 
       {/* Archived intentions that were prayed on this date */}

@@ -2,7 +2,8 @@ import { db } from '../../firebase/config'
 import { archiwalneNotatki, odmianaNotatek, przeszukiwalneTeksty, zawartoscArchiwalna } from '../../utils/prayerArchive'
 import { findPrio } from '../../utils/prayerStats'
 import { confirmDialog } from '../ConfirmModal'
-import { CatIcon, IconCalendar, IconCheck, IconEdit, IconPrayer, IconRepeat, IconTrash } from '../Icons'
+import { CatIcon, IcStones, IconCalendar, IconCheck, IconEdit, IconPrayer, IconRepeat, IconTrash } from '../Icons'
+import ZakonczProsbe from './ZakonczProsbe'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
@@ -15,6 +16,7 @@ export default function ArchiveView({ user, intentions, people }) {
   const [search, setSearch]       = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [notesId, setNotesId]     = useState(null)
+  const [doWspomnika, setDoWspomnika] = useState(null) // prośba dopisywana do Wspomnika
 
   const ended = intentions.filter(i => i.status === 'ended')
 
@@ -36,7 +38,7 @@ export default function ArchiveView({ user, intentions, people }) {
 
   const restoreItem = async (item) => {
     await updateDoc(doc(db, 'users', user.uid, 'prayerIntentions', item.id), {
-      status: 'active', endedAt: null, autoArchived: null
+      status: 'active', endedAt: null, autoArchived: null, answered: null, answeredAt: null
     })
   }
 
@@ -121,6 +123,7 @@ export default function ArchiveView({ user, intentions, people }) {
                       onNotatki={() => setNotesId(v => v === item.id ? null : item.id)}
                       onPrzywroc={() => restoreItem(item)}
                       onUsun={() => deleteItem(item)}
+                      onWspomnik={() => setDoWspomnika(item)}
                     />
                   ))}
                 </div>
@@ -129,6 +132,11 @@ export default function ArchiveView({ user, intentions, people }) {
           })}
         </>
       )}
+      {doWspomnika && (
+        <ZakonczProsbe user={user} item={doWspomnika} tylkoWspomnik
+          person={people.find(p => p.id === doWspomnika.personId)}
+          onClose={() => setDoWspomnika(null)} />
+      )}
     </div>
   )
 }
@@ -136,7 +144,7 @@ export default function ArchiveView({ user, intentions, people }) {
 // Pojedyncza prośba w archiwum. Osobny komponent, bo pokazuje już cztery
 // rodzaje treści (opis albo lista, notatka końcowa, dziennik notatek, historia
 // modlitw) i wciśnięty w pętlę widoku robił się nieczytelny.
-function KartaArchiwum({ item, historiaOtwarta, notatkiOtwarte, onHistoria, onNotatki, onPrzywroc, onUsun }) {
+function KartaArchiwum({ item, historiaOtwarta, notatkiOtwarte, onHistoria, onNotatki, onPrzywroc, onUsun, onWspomnik }) {
   const { notatki, lista, maOpis } = zawartoscArchiwalna(item)
   const prio = findPrio(item.priority || 3)
 
@@ -148,6 +156,9 @@ function KartaArchiwum({ item, historiaOtwarta, notatkiOtwarte, onHistoria, onNo
     }}>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
         <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>{item.title}</p>
+        {item.answered && (
+          <span className="pray-answered-badge"><IconCheck size={9} /> wysłuchana</span>
+        )}
         {item.autoArchived && (
           <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'var(--surface3)', color: 'var(--text-muted)' }}>auto</span>
         )}
@@ -201,6 +212,11 @@ function KartaArchiwum({ item, historiaOtwarta, notatkiOtwarte, onHistoria, onNo
           {item.prayedDates?.length > 0 && (
             <button className="t-btn" title="Historia" onClick={onHistoria}>
               <IconCalendar size={11} />
+            </button>
+          )}
+          {!item.remembranceId && (
+            <button className="t-btn" title="Bóg wysłuchał — zapisz we Wspomniku" onClick={onWspomnik}>
+              <IcStones size={12} />
             </button>
           )}
           <button className="t-btn" title="Przywróć" onClick={onPrzywroc}>

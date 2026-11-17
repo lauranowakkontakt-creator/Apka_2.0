@@ -7,6 +7,7 @@ import ArchiveView from './ArchiveView'
 import PeopleView from './PeopleView'
 import PersonDetailView from './PersonDetailView'
 import PersonForm from './PersonForm'
+import IntentionForm from './IntentionForm'
 import PrayerMenu from './PrayerMenu'
 import StatsView from './StatsView'
 import TodayView from './TodayView'
@@ -25,6 +26,7 @@ export default function PrayerDashboard({ user, setHeaderExtras }) {
   const [loading, setLoading]       = useState(true)
   const [showPersonForm, setShowPersonForm] = useState(false)
   const [editPerson, setEditPerson] = useState(null)
+  const [nowaProsba, setNowaProsba] = useState(false)
   useFallbackTimeout(() => setLoading(false))
   const [tab, setTab]               = useState('people')
   const [selectedPerson, setSelectedPerson] = useState(null)
@@ -80,13 +82,14 @@ export default function PrayerDashboard({ user, setHeaderExtras }) {
     return s
   }, [allPrayedDates])
 
-  // Górna belka („Apka"): [＋ Dodaj osobę][⋮ Statystyki / Archiwum / Tryb auto].
+  // Górna belka („Apka"): [＋ Nowa prośba][⋮ Statystyki / Archiwum / Tryb auto].
+  // Osobę dodaje się przyciskiem na liście Osób albo wprost w formularzu prośby.
   // Hook przed early-returnem (zasady hooków).
   useEffect(() => {
     setHeaderExtras?.(
       <>
         <PrayerMenu onAction={(id) => { setTab(id); setSelectedPerson(null) }} />
-        <button className="hdr-btn accent" title="Dodaj osobę" onClick={() => { setEditPerson(null); setShowPersonForm(true) }}><IconPlus size={17} /></button>
+        <button className="hdr-btn accent" title="Nowa prośba" onClick={() => setNowaProsba(true)}><IconPlus size={17} /></button>
       </>
     )
     return () => setHeaderExtras?.(null)
@@ -135,6 +138,7 @@ export default function PrayerDashboard({ user, setHeaderExtras }) {
           ? <PersonDetailView
               user={user}
               person={selectedPerson}
+              people={people}
               intentions={intentions}
               carMode={carMode}
               onBack={() => setSelectedPerson(null)}
@@ -157,6 +161,16 @@ export default function PrayerDashboard({ user, setHeaderExtras }) {
       )}
       {tab === 'archive' && (
         <ArchiveView user={user} intentions={intentions} people={people} />
+      )}
+
+      {nowaProsba && (
+        <IntentionForm
+          user={user}
+          personId={tab === 'people' ? selectedPerson?.id : null}
+          people={people}
+          allIntentions={intentions}
+          onClose={() => setNowaProsba(false)}
+        />
       )}
 
       {showPersonForm && (

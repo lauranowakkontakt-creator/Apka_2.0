@@ -781,3 +781,15 @@ test('Apka 2.0 nie łączy się z bazą starej Apki (aplikacja-0)', () => {
   const cfg = read('src/firebase/config.js')
   assert.match(cfg, /LOCAL_PROJECT_ID = 'demo-/, 'projekt lokalny musi mieć prefiks demo-')
 })
+
+test('Modlitwa: plus w belce dodaje prośbę z wyborem osoby i datami od–do', () => {
+  const dash = read('src/components/prayer/PrayerDashboard.jsx')
+  assert.match(dash, /title="Nowa prośba"/, 'plus w belce nie otwiera nowej prośby')
+  const form = read('src/components/prayer/IntentionForm.jsx')
+  assert.match(form, /osobyDoModlitwy\(/, 'formularz prośby nie ma wyboru osoby')
+  assert.match(form, /oknoModlitwy\(od, doKiedy\)/, 'formularz nie zapisuje okna od–do')
+  for (const f of ['TodayView', 'PersonDetailView']) {
+    assert.match(read(`src/components/prayer/${f}.jsx`), /<ZakonczProsbe/, `${f}: zakończenie prośby nie pyta o wysłuchanie`)
+  }
+  assert.match(read('src/components/prayer/ArchiveView.jsx'), /tylkoWspomnik/, 'z archiwum nie da się dopisać do Wspomnika')
+})

@@ -1,21 +1,35 @@
 import { db } from '../../firebase/config'
 import { collectTags, normalizeTags, parseTags, tagsToText, toggleTag } from '../../utils/prayerFilters'
 import { NOTE_MODES, checklistToText, normalizeNoteMode, parseChecklist, pruneDone } from '../../utils/prayerList'
-import { PRIORITY_CFG, findPrio } from '../../utils/prayerStats'
-import { IconClose } from '../Icons'
+import { PERSON_COLORS, PRIORITY_CFG, findPrio } from '../../utils/prayerStats'
+import { dataPL, oknoModlitwy, osobyDoModlitwy, pasujeOsoba } from '../../utils/prayerAnswered'
+import { IconClose, IconPlus } from '../Icons'
+import PersonBubble from '../PersonBubble'
+import { TODAY } from './wspolne'
 import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
-import { useState } from 'react'
+import { addDays, format, parseISO } from 'date-fns'
+import { useMemo, useState } from 'react'
 
-// Formularz prośby: dodawanie i edycja.
+// Formularz prośby: dodawanie i edycja. Osobę wybiera się tutaj (albo zostawia
+// pustą), więc prośbę da się dodać prosto z plusa w górnej belce.
 
-export default function IntentionForm({ user, editData, personId, onClose, allIntentions = [] }) {
+const plusDni = (n) => format(addDays(parseISO(TODAY()), n), 'yyyy-MM-dd')
+
+export default function IntentionForm({ user, editData, personId, onClose, allIntentions = [], people = [] }) {
   const [title, setTitle]       = useState(editData?.title || '')
   const [note, setNote]         = useState(editData?.note || '')
   // Opis może być zwykłym tekstem albo listą do odhaczania.
   const [noteMode, setNoteMode] = useState(normalizeNoteMode(editData?.noteMode))
   const [listText, setListText] = useState(checklistToText(editData?.checklist || []))
   const [priority, setPriority] = useState(editData?.priority || 3)
-  const [dateTo, setDateTo]     = useState(editData?.dateTo || '')
+  const [osobaId, setOsobaId]   = useState(personId || editData?.personId || null)
+  const [szukaj, setSzukaj]     = useState('')
+  const [wszyscy, setWszyscy]   = useState(false)
+  const [nowaOsoba, setNowaOsoba] = useState(null) // null = schowane, '' = pole otwarte
+  // Okno modlitwy: od kiedy prośba pokazuje się w „Dziś” i do kiedy (potem archiwum).
+  const [od, setOd]             = useState(editData?.scheduleFrom || '')
+  const [doKiedy, setDoKiedy]   = useState(editData?.scheduleTo || editData?.dateTo || '')
+  const osoby = useMemo(() => osobyDoModlitwy(people, allIntentions), [people, allIntentions])
   // Tagi trzymamy jako listę, a pole tekstowe jest tylko wygodnym wejściem —
   // klikanie w podpowiedzi i dopisywanie ręczne muszą dawać ten sam wynik.
   const [tags, setTags]         = useState(normalizeTags(editData?.tags || []))
@@ -36,8 +50,8 @@ export default function IntentionForm({ user, editData, personId, onClose, allIn
       note: noteMode === 'text' ? note.trim() : '',
       checklist,
       checklistDone: pruneDone(checklist, editData?.checklistDone || []),
-      personId: personId || editData?.personId || null,
-      priority, dateTo: dateTo || null,
+      personId: osobaId || null,
+      priority, ...oknoModlitwy(od, doKiedy),
       tags: normalizeTags([...tags, ...parseTags(tagText)]),
       updatedAt: Timestamp.now()
     }
@@ -57,6 +71,34 @@ export default function IntentionForm({ user, editData, personId, onClose, allIn
   // powstaje „Zdrowie", „zdrowie mamy" i „ZDROWIE" jako trzy osobne tematy.
   const podpowiedzi = collectTags(allIntentions).filter(t => t.tag)
 
+  const dodajOsobe = async () => {
+    const name = String(nowaOsoba || '').trim()
+    if (!name) return
+    try {
+      const ref = await addDoc(collection(db, 'users', user.uid, 'calendarPeople'), {
+        name, note: '', icon: 'IcUsers',
+        color: PERSON_COLORS[Math.floor(Math.random() * PERSON_COLORS.length)],
+        createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+      })
+      setOsobaId(ref.id); setNowaOsoba(null); setSzukaj('')
+    } catch { setError('Nie udało się dodać osoby') }
+  }
+
+  // Wybrana osoba na wierzchu; przy wpisywaniu — wszyscy pasujący,
+  // inaczej kilka najbliższych i „Pokaż wszystkich”.
+  const wybrana   = osoby.find(p => p.id === osobaId) || null
+  const pasujace  = osoby.filter(p => p.id !== osobaId && pasujeOsoba(p, szukaj))
+  const pokazane  = szukaj.trim() || wszyscy ? pasujace : pasujace.slice(0, 8)
+  const chipOsoby = (p, on) => (
+    <button type="button" key={p.id} className={`pray-person-chip${on ? ' on' : ''}`}
+      style={{ '--pc': p.color || 'var(--accent)' }}
+      onClick={() => { setOsobaId(on ? null : p.id); setSzukaj('') }}>
+      <PersonBubble person={p} size={22} />
+      {p.name}
+      {on && <IconClose size={11} />}
+    </button>
+  )
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
@@ -70,6 +112,48 @@ export default function IntentionForm({ user, editData, personId, onClose, allIn
         <label>Prośba</label>
         <input type="text" className="form-input" value={title} onChange={e => setTitle(e.target.value)}
           maxLength={150} placeholder="O co się modlisz?" />
+      </div>
+
+      <div className="form-group" style={{ margin: 0 }}>
+        <label>Za kogo (opcjonalnie)</label>
+        {wybrana ? (
+          <div className="pray-person-chips">{chipOsoby(wybrana, true)}</div>
+        ) : (
+          <>
+            {osoby.length > 8 && (
+              <input type="search" className="form-input" value={szukaj} onChange={e => setSzukaj(e.target.value)}
+                placeholder="Szukaj osoby…" />
+            )}
+            <div className="pray-person-chips">
+              {pokazane.map(p => chipOsoby(p, false))}
+              {szukaj.trim() && pokazane.length === 0 && (
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nikogo nie znaleziono</span>
+              )}
+              {nowaOsoba === null && (
+                <button type="button" className="pray-person-chip add"
+                  onClick={() => setNowaOsoba(szukaj.trim())}>
+                  <IconPlus size={13} /> Nowa osoba
+                </button>
+              )}
+            </div>
+            {!szukaj.trim() && pasujace.length > 8 && (
+              <button type="button" className="pray-link-btn" onClick={() => setWszyscy(v => !v)}>
+                {wszyscy ? 'Zwiń listę' : `Pokaż wszystkich (${pasujace.length})`}
+              </button>
+            )}
+            {nowaOsoba !== null && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input type="text" className="form-input" autoFocus value={nowaOsoba} maxLength={60}
+                  onChange={e => setNowaOsoba(e.target.value)} placeholder="Imię, np. Ciocia Ania"
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); dodajOsobe() } }}
+                  style={{ flex: 1 }} />
+                <button type="button" className="btn-save" style={{ width: 'auto', margin: 0, padding: '0 14px' }}
+                  disabled={!nowaOsoba.trim()} onClick={dodajOsobe}>Dodaj</button>
+                <button type="button" aria-label="Anuluj" className="icon-btn" onClick={() => setNowaOsoba(null)}><IconClose size={14} /></button>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <div className="form-group" style={{ margin: 0 }}>
@@ -138,9 +222,29 @@ export default function IntentionForm({ user, editData, personId, onClose, allIn
       </div>
 
       <div className="form-group" style={{ margin: 0 }}>
-        <label>Auto-archiwizuj po dacie (opcjonalnie)</label>
-        <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-        {dateTo && <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>Prośba zarchiwizuje się automatycznie po {dateTo}</p>}
+        <label>Kiedy się modlić (opcjonalnie)</label>
+        <div className="pray-dates">
+          <div className="pray-date">
+            <span>Od kiedy</span>
+            <input type="date" className="form-input" value={od} onChange={e => setOd(e.target.value)} />
+          </div>
+          <div className="pray-date">
+            <span>Do kiedy</span>
+            <input type="date" className="form-input" value={doKiedy} min={od || undefined}
+              onChange={e => setDoKiedy(e.target.value)} />
+          </div>
+        </div>
+        <div className="pray-person-chips">
+          <button type="button" className="chip" onClick={() => { setOd(TODAY()); setDoKiedy(plusDni(6)) }}>Tydzień</button>
+          <button type="button" className="chip" onClick={() => { setOd(TODAY()); setDoKiedy(plusDni(29)) }}>Miesiąc</button>
+          <button type="button" className="chip" onClick={() => { setOd(TODAY()); setDoKiedy(plusDni(53)) }}>Nowenna pompejańska</button>
+          {(od || doKiedy) && <button type="button" className="chip" onClick={() => { setOd(''); setDoKiedy('') }}>Bez dat</button>}
+        </div>
+        <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>
+          {!od && !doKiedy
+            ? 'Bez dat prośba jest w „Dziś” codziennie, aż ją zakończysz.'
+            : `Prośba pokaże się w „Dziś”${od ? ` od ${dataPL(od)}` : ''}${doKiedy ? ` do ${dataPL(doKiedy)}, potem sama przejdzie do archiwum` : ''}.`}
+        </p>
       </div>
 
       {error && <p className="form-error" style={{ margin: 0 }}>{error}</p>}

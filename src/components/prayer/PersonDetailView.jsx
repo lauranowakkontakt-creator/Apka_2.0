@@ -4,16 +4,18 @@ import { CatIcon, IconCheck, IconChevronDown, IconChevronLeft, IconChevronRight,
 import { toast } from '../Toast'
 import IntentionForm from './IntentionForm'
 import RequestCard from './RequestCard'
+import ZakonczProsbe from './ZakonczProsbe'
 import { TODAY, toggleChecklistItem } from './wspolne'
-import { Timestamp, arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { useState } from 'react'
 
 // Szczegóły jednej osoby: jej prośby, notatki i historia modlitwy.
 
-export default function PersonDetailView({ user, person, intentions, carMode, onBack }) {
+export default function PersonDetailView({ user, person, people = [], intentions, carMode, onBack }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editItem, setEditItem]       = useState(null)
   const [showEnded, setShowEnded]     = useState(false)
+  const [konczona, setKonczona]       = useState(null)
 
   const mine   = intentions.filter(i => i.personId === person.id)
   const active = mine.filter(i => i.status === 'active' || !i.status).sort((a, b) => {
@@ -63,11 +65,7 @@ export default function PersonDetailView({ user, person, intentions, carMode, on
     })
   }
 
-  const archiveItem = async (item) => {
-    await updateDoc(doc(db, 'users', user.uid, 'prayerIntentions', item.id), {
-      status: 'ended', endedAt: Timestamp.now()
-    })
-  }
+  const archiveItem = (item) => setKonczona(item)
 
   const deleteItem = async (id) => {
     const ok = await confirmDialog({ title: 'Usunąć prośbę?' })
@@ -118,6 +116,7 @@ export default function PersonDetailView({ user, person, intentions, carMode, on
           user={user}
           editData={editItem}
           personId={person.id}
+          people={people}
           allIntentions={intentions}
           onClose={() => { setShowAddForm(false); setEditItem(null) }}
         />
@@ -151,6 +150,9 @@ export default function PersonDetailView({ user, person, intentions, carMode, on
             </div>
           )}
         </div>
+      )}
+      {konczona && (
+        <ZakonczProsbe user={user} item={konczona} person={person} onClose={() => setKonczona(null)} />
       )}
     </div>
   )

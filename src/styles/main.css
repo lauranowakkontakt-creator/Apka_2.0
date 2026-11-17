@@ -3950,3 +3950,36 @@ textarea:focus-visible, a:focus-visible, summary:focus-visible,
   background: var(--accent-soft); color: var(--text);
 }
 .wsp-reader-verse svg { color: var(--accent); flex-shrink: 0; margin-top: 3px; }
+
+/* ===== MODLITWA: wybór osoby, okno dat, „Bóg wysłuchał” ===== */
+.pray-person-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pray-person-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px 4px 4px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 500; min-height: 32px;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text-sub);
+}
+.pray-person-chip.on {
+  border-color: var(--pc); color: var(--pc); font-weight: 600;
+  background: color-mix(in oklab, var(--pc) 14%, transparent);
+}
+.pray-person-chip.add { padding-left: 11px; border-style: dashed; color: var(--accent); }
+.pray-link-btn {
+  align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 600; color: var(--accent);
+}
+.pray-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pray-date { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pray-date > span { font-size: 11px; color: var(--text-muted); }
+.pray-date .form-input { min-width: 0; width: 100%; }
+.pray-answered-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #DA6FB0; }
+.pray-archive-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 11px; border-radius: var(--radius, 10px); cursor: pointer; font-family: inherit; font-size: 13.5px;
+  background: transparent; border: 1px solid var(--border); color: var(--text-sub);
+}
+.pray-answered-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600;
+  background: rgba(218,111,176,.16); color: #DA6FB0;
+}

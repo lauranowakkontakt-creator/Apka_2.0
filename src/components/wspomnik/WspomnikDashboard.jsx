@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { collection, query, orderBy, addDoc, updateDoc, deleteDoc, doc, Timestamp, limit } from 'firebase/firestore'
+import { collection, query, orderBy, deleteDoc, doc, limit } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
@@ -7,13 +7,14 @@ import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import {
   WSPOMNIK_COLLECTION, CATEGORIES, categoryLabel, sortEntries, filterEntries,
-  groupByYear, wspomnikStats, onThisDay, yearsAgoLabel, buildEntry,
+  groupByYear, wspomnikStats, onThisDay, yearsAgoLabel,
 } from '../../utils/wspomnikLogic'
 import { pickBySeed, daySeed, neighbors } from '../../utils/browsing'
 import StatTiles from '../StatTiles'
 import { IconPlus, IconTrash, IconSearch, IconClose, IconEdit,
   IconChevronLeft, IconChevronRight, IconRepeat, IcStones, IconBook } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
+import WspomnikForm from './WspomnikForm'
 import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
@@ -200,91 +201,6 @@ export default function WspomnikDashboard({ user, setHeaderExtras }) {
           onClose={() => setForm(null)}
         />
       )}
-    </div>
-  )
-}
-
-/* Formularz: dodawanie i edycja wspomnienia */
-function WspomnikForm({ user, editData, onClose }) {
-  const [title, setTitle]       = useState(editData?.title || '')
-  const [text, setText]         = useState(editData?.text || '')
-  const [date, setDate]         = useState(editData?.date || TODAY())
-  const [category, setCategory] = useState(editData?.category || null)
-  const [verse, setVerse]       = useState(editData?.verse || '')
-  const [saving, setSaving]     = useState(false)
-  const [error, setError]       = useState('')
-
-  const handleSubmit = async (e) => {
-    e?.preventDefault()
-    const data = buildEntry({ title, text, date, category, verse })
-    if (!data) { setError('Napisz krótko, co Bóg zrobił'); return }
-    if (!data.date) { setError('Wybierz datę'); return }
-    setSaving(true)
-    try {
-      if (editData) {
-        await updateDoc(doc(db, 'users', user.uid, 'remembrances', editData.id), { ...data, updatedAt: Timestamp.now() })
-      } else {
-        await addDoc(collection(db, 'users', user.uid, 'remembrances'), { ...data, createdAt: Timestamp.now() })
-      }
-      onClose()
-    } catch {
-      setError('Nie udało się zapisać')
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <div className="modal-header">
-          <h3>{editData ? 'Edytuj wspomnienie' : 'Co Bóg zrobił?'}</h3>
-          <button aria-label="Zamknij" className="modal-close" onClick={onClose}><IconClose size={16} /></button>
-        </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label>W skrócie</label>
-            <input type="text" className="form-input" autoFocus value={title}
-              onChange={e => setTitle(e.target.value)} maxLength={150}
-              placeholder="np. Dostałam pracę, o którą się modliłam" />
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label>Cała historia (opcjonalnie)</label>
-            <textarea className="form-input" rows={5} value={text}
-              onChange={e => setText(e.target.value)} maxLength={5000}
-              placeholder="Jak to było? Co się działo wcześniej, jak Bóg zadziałał..."
-              style={{ resize: 'vertical', minHeight: 110, fontFamily: 'inherit', lineHeight: 1.55 }} />
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label>Kiedy</label>
-            <input type="date" className="form-input" value={date} onChange={e => setDate(e.target.value)} />
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label>Rodzaj (opcjonalnie)</label>
-            <div className="wsp-filters">
-              {CATEGORIES.map(c => (
-                <button key={c.id} type="button" className={`chip${category === c.id ? ' active' : ''}`}
-                  onClick={() => setCategory(category === c.id ? null : c.id)}>{c.label}</button>
-              ))}
-            </div>
-          </div>
-
-          <div className="form-group" style={{ margin: 0 }}>
-            <label>Słowo, werset (opcjonalnie)</label>
-            <input type="text" className="form-input" value={verse}
-              onChange={e => setVerse(e.target.value)} maxLength={300}
-              placeholder="np. Flp 4,19 — Bóg mój zaspokoi każdą waszą potrzebę" />
-          </div>
-
-          {error && <p className="form-error" style={{ margin: 0 }}>{error}</p>}
-
-          <button type="submit" className="btn-save" disabled={saving}>
-            {saving ? 'Zapisywanie...' : editData ? 'Zapisz' : 'Zapisz wspomnienie'}
-          </button>
-        </form>
-      </div>
     </div>
   )
 }

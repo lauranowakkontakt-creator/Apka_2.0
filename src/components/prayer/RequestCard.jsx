@@ -3,6 +3,7 @@ import { checklistProgress, hasChecklist, dniTemu } from '../../utils/prayerList
 import { daysSince, findPrio, getNeglect } from '../../utils/prayerStats'
 import { CatIcon, IconCalendar, IconCheck, IconEdit, IconPrayer, IconTrash } from '../Icons'
 import { TODAY } from './wspolne'
+import { opisOkna } from '../../utils/prayerAnswered'
 import { useState } from 'react'
 
 // Karta pojedynczej prośby wraz z listą do odhaczania.
@@ -164,9 +165,9 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
               <IconCalendar size={10} /> z kalendarza{item.eventDate ? ` · ${item.eventDate}` : ''}
               {item.scheduleFrom && ` · modlitwa ${item.scheduleFrom}–${item.scheduleTo}`}
             </p>
-          ) : item.dateTo && (
+          ) : opisOkna(item) && (
             <p style={{ margin: '2px 0 0', fontSize: fs.badge, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <IconCalendar size={10} /> do {item.dateTo}
+              <IconCalendar size={10} /> {opisOkna(item)}
             </p>
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -247,7 +248,7 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
           <button type="button" onClick={() => onArchive(item)} style={{
             padding: '8px 10px', borderRadius: 8, fontSize: 11, cursor: 'pointer',
             border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)'
-          }}>Archiwizuj</button>
+          }}>Zakończ</button>
         )}
       </div>
 
