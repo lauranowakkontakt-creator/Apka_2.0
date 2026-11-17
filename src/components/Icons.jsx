@@ -785,6 +785,8 @@ export const IcFishingRod   = (p) => (<Icon {...p}><path d="M4 21L18 4v11"/><pat
 // Różne
 export const IcChurch       = (p) => (<Icon {...p}><path d="M12 2v4M10 4h4"/><path d="M7 21V11l5-4 5 4v10"/><path d="M3 21h18M3 21v-6l4-3M21 21v-6l-4-3M10 21v-4a2 2 0 0 1 4 0v4"/></Icon>)
 export const IcDove         = (p) => (<Icon {...p}><path d="M3 15c3 0 5-1 7-4l3-5a3 3 0 0 1 5 1l2 1-2 1v3a7 7 0 0 1-7 7H6z"/><path d="M10 11C8 9 7 6 8 3c3 1 5 3 5 6"/></Icon>)
+// Kamienie ułożone jeden na drugim — „Ebenezer”, kamień pamięci (1 Sm 7,12). Ikona Wspomnika.
+export const IcStones      = (p) => (<Icon {...p}><ellipse cx="12" cy="18" rx="8" ry="3"/><ellipse cx="12" cy="11.5" rx="5.5" ry="2.5"/><ellipse cx="12" cy="6" rx="3" ry="2"/></Icon>)
 export const IcInfinity     = (p) => (<Icon {...p}><path d="M12 12c-2-3-4-4.5-6-4.5a4.5 4.5 0 0 0 0 9c2 0 4-1.5 6-4.5s4-4.5 6-4.5a4.5 4.5 0 0 1 0 9c-2 0-4-1.5-6-4.5z"/></Icon>)
 
 // ── Kolejne ikony (do 30 w każdej kategorii) ─────────────────────────────────
@@ -1159,6 +1161,7 @@ export const ICON_CATALOG = [
   { key: 'IcCompass',     label: 'kompas',         group: 'Wiara i inne', Component: IcCompass },
   { key: 'IcChurch',      label: 'kościół',        group: 'Wiara i inne', Component: IcChurch },
   { key: 'IcDove',        label: 'gołąb',          group: 'Wiara i inne', Component: IcDove },
+  { key: 'IcStones',      label: 'kamienie',       group: 'Wiara i inne', Component: IcStones },
   { key: 'IcInfinity',    label: 'nieskończoność', group: 'Wiara i inne', Component: IcInfinity },
   { key: 'IcBible',       label: 'Biblia',         group: 'Wiara i inne', Component: IcBible },
   { key: 'IcAngel',       label: 'anioł',          group: 'Wiara i inne', Component: IcAngel },

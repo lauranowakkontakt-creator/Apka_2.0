@@ -169,14 +169,26 @@ test('Wdzięcznik: przypominajka i przeglądanie wpisów', () => {
   assert.match(src, /reader-nav/, `${f}: brak strzałek w podglądzie`)
 })
 
-test('Wspomnik zniknął z aplikacji — bez sierot po module', () => {
-  // Moduł usunięty na życzenie. Kolekcja 'memories' zostaje w kopii danych
-  // (dataExport), żeby stare wpisy nie wyparowały z backupu.
-  assert.ok(!existsSync(join(ROOT, 'src/components/memories')), 'katalog modułu nadal istnieje')
-  assert.ok(!existsSync(join(ROOT, 'src/utils/memoryLogic.js')), 'logika Wspomnika nadal istnieje')
+test('Stary Wspomnik (kolekcja memories) nie wraca — zostaje tylko w kopii', () => {
+  // Pierwszy Wspomnik usunięto na życzenie. Jego kolekcja 'memories' zostaje
+  // w kopii danych (dataExport), żeby stare wpisy nie wyparowały z backupu.
+  assert.ok(!existsSync(join(ROOT, 'src/components/memories')), 'katalog starego modułu nadal istnieje')
+  assert.ok(!existsSync(join(ROOT, 'src/utils/memoryLogic.js')), 'logika starego Wspomnika nadal istnieje')
   for (const [name, src] of [['App.jsx', APP], ['Pulpit.jsx', PULPIT]]) {
-    assert.ok(!/memories|Wspomnik/i.test(src), `${name} nadal odwołuje się do Wspomnika`)
+    assert.ok(!/memories/.test(src), `${name} nadal czyta starą kolekcję memories`)
   }
+})
+
+test('Wspomnik — co Bóg zrobił: moduł, kafelek, przypominajka, kopia', () => {
+  assert.ok(moduleIds.includes('wspomnik'), 'brak Wspomnika w buildModules')
+  assert.match(APP, /lazy\(\(\) => import\('\.\/components\/wspomnik\/WspomnikDashboard'\)\)/)
+  assert.match(PULPIT, /shows\('wspomnik'\)/, 'brak kafelka Wspomnika na Pulpicie')
+  const wsp = read('src/components/wspomnik/WspomnikDashboard.jsx')
+  assert.match(wsp, /pickBySeed/, 'brak przypominajki')
+  assert.match(wsp, /onThisDay\(/, 'brak „tego dnia” sprzed lat')
+  assert.match(wsp, /neighbors\(/, 'brak przeglądania strzałkami')
+  assert.match(read('src/utils/dataExport.js'), /'remembrances'/, 'wspomnienia nie trafiają do kopii')
+  assert.ok(!/streak/i.test(read('src/utils/wspomnikLogic.js')), 'Wspomnik nie liczy serii')
 })
 
 test('To-do: „Ukończone zadania" z menu otwierają osobny ekran', () => {

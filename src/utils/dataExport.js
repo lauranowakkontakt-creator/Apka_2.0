@@ -9,7 +9,7 @@ const COLLECTIONS = [
   'moodLogs', 'sleepLogs', 'cycleLogs', 'todos', 'todoLists',
   'calendarEvents', 'calendarPeople', 'calendarCategories',
   'prayerIntentions', 'prayerPeople', 'bibleNotes',
-  'notes', 'gratitude', 'memories',
+  'notes', 'gratitude', 'memories', 'remembrances',
   'carFuel', 'carRepairs',
 ]
 // Pojedyncze dokumenty
