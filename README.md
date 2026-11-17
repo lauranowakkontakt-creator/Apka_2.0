@@ -5,7 +5,7 @@
 > na emulatorach Firebase. Własny projekt Firebase dojdzie później.
 
 Osobista aplikacja PWA: budżet, nawyki, to-do, kalendarz, modlitwa, Biblia,
-osoby, sen, wdzięcznik, nastrój i auto (tankowania gazu i benzyny ze spalaniem,
+osoby, sen, wdzięcznik, wspomnik (co Bóg zrobił), nastrój i auto (tankowania gazu i benzyny ze spalaniem,
 naprawy, terminy OC i przeglądu) — w jednym miejscu, na telefonie.
 
 React 18 + Vite + Firebase (Auth i Firestore). Hostowana na GitHub Pages.

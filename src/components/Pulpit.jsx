@@ -7,7 +7,7 @@ import { pl } from 'date-fns/locale'
 import {
   IconBudget, IconHabits, IconTodo, IconPrayer, IconBook,
   IconFlame, IconChevronRight, IconCheck, IconClock, IconBills,
-  IcSun, IcCar,
+  IcSun, IcCar, IcStones,
 } from './Icons'
 import { Ring } from './ChartPrimitives'
 import { fmt, getCurrencyCode, CURRENCIES } from '../utils/currency'
@@ -15,6 +15,7 @@ import { isInvestment, sumByCurrency } from '../utils/investmentMath'
 import { BIBLE_BOOKS, TOTAL_CHAPTERS, chapterKey } from '../utils/bibleData'
 import { dayScore, isRequiredHabit } from '../utils/habitLogic'
 import { gratitudeStats } from '../utils/gratitudeLogic'
+import { wspomnikStats, onThisDay, sortEntries, wspomnieniaWord } from '../utils/wspomnikLogic'
 import { bladSubskrypcji } from '../utils/polaczenie'
 import { spalanie, terminyAuta, fmt1 } from '../utils/carLogic'
 import { MODULE_ACCENTS } from '../utils/moduleColors'
@@ -44,6 +45,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
   const [payments, setPayments]     = useState([])
   const [bible, setBible]           = useState({ counts: {} })
   const [gratitude, setGratitude]   = useState([])
+  const [wspomnienia, setWspomnienia] = useState([])
   const [tankowania, setTankowania] = useState([])
   const [auto, setAuto]             = useState({})
 
@@ -75,6 +77,8 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
         s => setPayments(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('regularPayments')),
       onSnapshot(query(collection(db, 'users', user.uid, 'gratitude'), orderBy('date', 'desc'), limit(400)),
         s => setGratitude(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('gratitude')),
+      onSnapshot(query(collection(db, 'users', user.uid, 'remembrances'), orderBy('date', 'desc'), limit(1000)),
+        s => setWspomnienia(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('remembrances')),
       onSnapshot(query(collection(db, 'users', user.uid, 'carFuel'), orderBy('date', 'desc'), limit(300)),
         s => setTankowania(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('carFuel')),
       onSnapshot(doc(db, 'users', user.uid, 'settings', 'car'),
@@ -177,6 +181,13 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
     const stats = gratitudeStats(gratitude, today)
     return { ...stats, todayCount: gratitude.filter(e => e.date === today).length }
   }, [gratitude, today])
+
+  /* ── WSPOMNIK ── ile zapisanych i czy coś wydarzyło się „tego dnia” lata temu */
+  const wspStat = useMemo(() => ({
+    ...wspomnikStats(wspomnienia, today),
+    tegoDnia: onThisDay(wspomnienia, today)[0] || null,
+    ostatnie: sortEntries(wspomnienia)[0] || null,
+  }), [wspomnienia, today])
 
   const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd')
 
@@ -364,6 +375,20 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
             {gratStat.todayCount > 0
               ? `${gratStat.month} w tym miesiącu`
               : 'Za co dziękujesz?'}
+          </div>
+        </PulpitCard>
+        )}
+
+        {/* WSPOMNIK */}
+        {shows('wspomnik') && (
+        <PulpitCard accent={MODULE_ACCENTS.wspomnik} Icon={IcStones} label="Wspomnik" onClick={() => onNavigate('wspomnik')}>
+          <div className="pulpit-value" style={{ fontSize: 26 }}>
+            {wspStat.total}<span className="pulpit-value-dim"> {wspomnieniaWord(wspStat.total)}</span>
+          </div>
+          <div className="pulpit-sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {wspStat.tegoDnia
+              ? `Tego dnia: ${wspStat.tegoDnia.title}`
+              : wspStat.ostatnie ? wspStat.ostatnie.title : 'Co Bóg zrobił?'}
           </div>
         </PulpitCard>
         )}

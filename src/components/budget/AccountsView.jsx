@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { collection, orderBy, query, deleteDoc, doc, updateDoc, where, Timestamp } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
@@ -413,7 +413,6 @@ function InvestmentUpdateModal({ account, onSave, onClose }) {
 }
 
 function AccountHistory({ user, account, accounts = [], privateMode, onBack, onEdit }) {
-  const [transactions, setTx] = useState([])
   const [loading, setLoading] = useState(true)
   useFallbackTimeout(() => setLoading(false))
   const [months, setMonths]   = useState(1) // 1 | 3 | 12 | 0 (all)
@@ -421,28 +420,25 @@ function AccountHistory({ user, account, accounts = [], privateMode, onBack, onE
   const [editTx, setEditTx]   = useState(null)
   const cur = account.currency || 'PLN'
 
+  // Wszystkie transakcje konta — jedno proste zapytanie po accountId.
+  // Wcześniej było tu „where accountId + orderBy date”, a takie zapytanie
+  // Firestore obsługuje tylko z indeksem złożonym. Indeks jest opisany
+  // w firestore.indexes.json, ale wdrożenie strony go nie wgrywa, więc baza
+  // odmawiała (failed-precondition) i wisiał baner „Nie udało się pobrać
+  // części danych (accounts)”. Okres i sortowanie liczymy więc u siebie.
+  const [allTx, setAllTx] = useState([])
   useEffect(() => {
-    let q
-    if (months === 0) {
-      q = query(
-        collection(db, 'users', user.uid, 'transactions'),
-        where('accountId', '==', account.id),
-        orderBy('date', 'desc')
-      )
-    } else {
-      const start = startOfMonth(subMonths(new Date(), months - 1))
-      q = query(
-        collection(db, 'users', user.uid, 'transactions'),
-        where('accountId', '==', account.id),
-        where('date', '>=', Timestamp.fromDate(start)),
-        orderBy('date', 'desc')
-      )
-    }
+    const q = query(collection(db, 'users', user.uid, 'transactions'), where('accountId', '==', account.id))
     return onSnapshot(q, snap => {
-      setTx(sortTransactionsByDate(snap.docs.map(d => ({ id: d.id, ...d.data(), date: (d.data().date?.toDate?.() ?? d.data().createdAt?.toDate?.() ?? new Date()) }))))
+      setAllTx(snap.docs.map(d => ({ id: d.id, ...d.data(), date: (d.data().date?.toDate?.() ?? d.data().createdAt?.toDate?.() ?? new Date()) })))
       setLoading(false)
-    }, bladSubskrypcji('accounts'))
-  }, [user.uid, account.id, months])
+    }, bladSubskrypcji('transactions', { przyBledzie: () => setLoading(false) }))
+  }, [user.uid, account.id])
+
+  const transactions = useMemo(() => {
+    const start = months === 0 ? null : startOfMonth(subMonths(new Date(), months - 1))
+    return sortTransactionsByDate(start ? allTx.filter(t => t.date >= start) : allTx)
+  }, [allTx, months])
 
   // Przelewy między własnymi kontami to nie przychód ani wydatek
   const totalIn  = transactions.filter(t => t.type === 'income' && !isTransfer(t)).reduce((s,t) => s+t.amount, 0)

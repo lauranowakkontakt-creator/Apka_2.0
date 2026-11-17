@@ -14,6 +14,7 @@ const BibleDashboard = lazy(() => import('./components/bible/BibleDashboard'))
 const PeopleHub = lazy(() => import('./components/people/PeopleHub'))
 const DreamDashboard = lazy(() => import('./components/dream/DreamDashboard'))
 const GratitudeDashboard = lazy(() => import('./components/gratitude/GratitudeDashboard'))
+const WspomnikDashboard = lazy(() => import('./components/wspomnik/WspomnikDashboard'))
 const MoodDashboard = lazy(() => import('./components/mood/MoodDashboard'))
 const AutoDashboard = lazy(() => import('./components/auto/AutoDashboard'))
 // Te same importy co wyżej — bundler łączy je w jeden chunk; lista służy do
@@ -28,6 +29,7 @@ const MODULY_DO_DOCIAGNIECIA = [
   () => import('./components/people/PeopleHub'),
   () => import('./components/dream/DreamDashboard'),
   () => import('./components/gratitude/GratitudeDashboard'),
+  () => import('./components/wspomnik/WspomnikDashboard'),
   () => import('./components/mood/MoodDashboard'),
   () => import('./components/auto/AutoDashboard'),
 ]
@@ -35,7 +37,7 @@ import SettingsDrawer from './components/SettingsDrawer'
 import MoreSheet from './components/MoreSheet'
 import ErrorBoundary from './components/ErrorBoundary'
 import PasekPolaczenia from './components/PasekPolaczenia'
-import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun, IconMood, IcCar } from './components/Icons'
+import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun, IconMood, IcCar, IcStones } from './components/Icons'
 import { getModuleIcons, resolveIcon } from './utils/iconPrefs'
 import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from './utils/moduleLayout'
 import { getCurrencyCode } from './utils/currency'
@@ -80,6 +82,7 @@ function buildModules() {
     { id: 'people',   label: 'Osoby',     Icon: resolveIcon(prefs.people,   IconUsers) },
     { id: 'dream',    label: 'Sen',       Icon: resolveIcon(prefs.dream,    IconMoon) },
     { id: 'gratitude',label: 'Wdzięcznik',Icon: resolveIcon(prefs.gratitude, IcSun) },
+    { id: 'wspomnik', label: 'Wspomnik',  Icon: resolveIcon(prefs.wspomnik, IcStones) },
     { id: 'mood',     label: 'Nastrój',   Icon: resolveIcon(prefs.mood, IconMood) },
     { id: 'auto',     label: 'Auto',      Icon: resolveIcon(prefs.auto, IcCar) },
   ]
@@ -319,6 +322,7 @@ export default function App() {
             {activeModule === 'people'   && <PeopleHub user={user} onOpenDream={openDream} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'dream'    && <DreamDashboard user={user} focusId={dreamFocus} onFocusConsumed={() => setDreamFocus(null)} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'gratitude'&& <GratitudeDashboard user={user} setHeaderExtras={setHeaderExtras} />}
+            {activeModule === 'wspomnik' && <WspomnikDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'mood'     && <MoodDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'auto'     && <AutoDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             </Suspense>

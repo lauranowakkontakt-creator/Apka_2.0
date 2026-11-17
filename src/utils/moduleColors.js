@@ -19,6 +19,7 @@
 //     266       Biblia       niebieski
 //     290       Pulpit       lawenda
 //     320       Sen          fiolet
+//     345       Wspomnik     malina
 export const MODULE_ACCENTS = {
   home:      '#9E8EEF',
   budget:    '#33C3A6',
@@ -30,6 +31,7 @@ export const MODULE_ACCENTS = {
   people:    '#D98B5F',
   dream:     '#C480D4',
   gratitude: '#E8A33D',
+  wspomnik:  '#DA6FB0',
   mood:      '#E8607A',
   auto:      '#58ACED',
 }

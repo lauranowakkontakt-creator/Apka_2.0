@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { collection, query, addDoc, updateDoc, deleteDoc, doc, Timestamp, orderBy } from 'firebase/firestore'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
@@ -7,6 +7,8 @@ import { fmt, parseAmount } from '../../utils/currency'
 import { IconEdit, IconTrash, IconClose, IconUsers, IconCheck, IconArrowUp, IconArrowDown, IconChevronDown } from '../Icons'
 import { confirmDialog } from '../ConfirmModal'
 import { bladSubskrypcji } from '../../utils/polaczenie'
+import { osobyDoDlugow, pasujeDoSzukania, dopasujOsobe } from '../../utils/personLinks'
+import PersonBubble from '../PersonBubble'
 
 const INCOME_COLOR  = '#5FBF98' // var(--income)
 const EXPENSE_COLOR = '#E0673E' // var(--expense)
@@ -18,6 +20,7 @@ export default function Debtors({ user, onClose }) {
   const [showForm, setShowForm] = useState(false)
   const [editDebt, setEditDebt] = useState(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [people, setPeople]     = useState([])
 
   useEffect(() => {
     // Najnowsze wpisy na górze (desc), a nie na samym dole.
@@ -26,6 +29,13 @@ export default function Debtors({ user, onClose }) {
       setDebts(snap.docs.map(d => ({ id: d.id, ...d.data() })))
       setLoading(false)
     }, bladSubskrypcji('debtors'))
+  }, [user.uid])
+
+  // Wspólna baza osób (ta sama co w Osobach, Kalendarzu i Modlitwie) —
+  // dług przypięty do osoby widać potem na jej karcie w Osobach.
+  useEffect(() => {
+    const q = query(collection(db, 'users', user.uid, 'calendarPeople'), orderBy('createdAt', 'asc'))
+    return onSnapshot(q, snap => setPeople(snap.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('calendarPeople'))
   }, [user.uid])
 
   const handleDelete = async (id) => {
@@ -51,6 +61,7 @@ export default function Debtors({ user, onClose }) {
     const theyOwe = debt.direction === 'theyOwe'
     const color = theyOwe ? INCOME_COLOR : EXPENSE_COLOR
     const DirIcon = theyOwe ? IconArrowDown : IconArrowUp
+    const osoba = debt.personId ? people.find(p => p.id === debt.personId) : null
     return (
       <div key={debt.id} style={{
         background: 'var(--surface)', border: '1px solid var(--border)',
@@ -64,10 +75,10 @@ export default function Debtors({ user, onClose }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: debt.settled ? 'var(--text-muted)' : color,
           }}>
-            <DirIcon size={19} />
+            {osoba ? <PersonBubble person={osoba} size={30} /> : <DirIcon size={19} />}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: debt.settled ? 'line-through' : 'none' }}>{debt.name}</p>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: debt.settled ? 'line-through' : 'none' }}>{osoba?.name || debt.name}</p>
             <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
               {theyOwe ? 'winien(-a) mi' : 'jestem winna'}
               {debt.notes ? ` · ${debt.notes}` : ''}
@@ -164,14 +175,21 @@ export default function Debtors({ user, onClose }) {
         </div>
       </div>
       {showForm && (
-        <DebtForm user={user} editData={editDebt} onClose={() => { setShowForm(false); setEditDebt(null) }} />
+        <DebtForm user={user} editData={editDebt} people={people} debts={debts} onClose={() => { setShowForm(false); setEditDebt(null) }} />
       )}
     </>
   )
 }
 
-function DebtForm({ user, editData, onClose }) {
+function DebtForm({ user, editData, people = [], debts = [], onClose }) {
   const [name, setName]           = useState(editData?.name || '')
+  const [personId, setPersonId]   = useState(editData?.personId || null)
+  const [wszyscy, setWszyscy]     = useState(false)
+  const osoby   = useMemo(() => osobyDoDlugow(people, debts), [people, debts])
+  const wybrana = osoby.find(p => p.id === personId) || null
+  // Pole imienia działa też jako szukajka: wpisujesz „An” i zostaje Ania.
+  const pasujace = osoby.filter(p => p.id !== personId && pasujeDoSzukania(p, name))
+  const pokazane = name.trim() || wszyscy ? pasujace : pasujace.slice(0, 8)
   const [direction, setDirection] = useState(editData?.direction || 'theyOwe')
   const [amount, setAmount]       = useState(editData?.amount?.toString() || '')
   const [notes, setNotes]         = useState(editData?.notes || '')
@@ -180,11 +198,14 @@ function DebtForm({ user, editData, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!name.trim()) { setError('Wpisz imię / nazwę'); return }
+    const nazwa = wybrana?.name || name.trim()
+    if (!nazwa) { setError('Wybierz osobę albo wpisz imię / nazwę'); return }
     if (!(parseAmount(amount) > 0)) { setError('Podaj kwotę'); return }
     setSaving(true)
     const data = {
-      name: name.trim(),
+      name: nazwa,
+      // Ręcznie wpisane imię osoby z bazy też ją przypina — nie trzeba klikać.
+      personId: wybrana?.id || dopasujOsobe(people, nazwa) || null,
       direction,
       amount: parseAmount(amount),
       notes: notes.trim(),
@@ -211,9 +232,38 @@ function DebtForm({ user, editData, onClose }) {
         <form onSubmit={handleSubmit} className="form">
 
           <div className="form-group">
-            <label>Imię / nazwa</label>
-            <input type="text" className="form-input" value={name} onChange={e => setName(e.target.value)}
-              placeholder="np. Ania, Sklep, Mama..." autoFocus maxLength={50} />
+            <label>Kto</label>
+            {wybrana ? (
+              <div className="pray-person-chips">
+                <button type="button" className="pray-person-chip on" style={{ '--pc': wybrana.color || 'var(--accent)' }}
+                  title="Zmień osobę" onClick={() => { setPersonId(null); setName('') }}>
+                  <PersonBubble person={wybrana} size={22} /> {wybrana.name} <IconClose size={11} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <input type="text" className="form-input" value={name} onChange={e => setName(e.target.value)}
+                  placeholder={osoby.length ? 'Wybierz niżej albo wpisz, np. Sklep' : 'np. Ania, Sklep, Mama...'} maxLength={50} />
+                {osoby.length > 0 && (
+                  <div className="pray-person-chips">
+                    {pokazane.map(p => (
+                      <button type="button" key={p.id} className="pray-person-chip" style={{ '--pc': p.color || 'var(--accent)' }}
+                        onClick={() => { setPersonId(p.id); setName(p.name) }}>
+                        <PersonBubble person={p} size={22} /> {p.name}
+                      </button>
+                    ))}
+                    {name.trim() && pokazane.length === 0 && (
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Nie ma takiej osoby — zapisze się jako „{name.trim()}”</span>
+                    )}
+                  </div>
+                )}
+                {!name.trim() && pasujace.length > 8 && (
+                  <button type="button" className="pray-link-btn" onClick={() => setWszyscy(v => !v)}>
+                    {wszyscy ? 'Zwiń listę' : `Pokaż wszystkich (${pasujace.length})`}
+                  </button>
+                )}
+              </>
+            )}
           </div>
 
           <div className="form-group">

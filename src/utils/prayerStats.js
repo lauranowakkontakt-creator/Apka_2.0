@@ -92,7 +92,8 @@ export function statystykiOsob(people, intentions, dzisiaj, teraz = new Date()) 
         ...p,
         totalPrays: daty.length,
         totalIntentions: moje.length,
-        activeCount: moje.filter(jestAktywna).length,
+        // Zaplanowane na później (okno jeszcze się nie zaczęło) nie są zaległe.
+        activeCount: moje.filter(i => jestAktywna(i) && !(i.scheduleFrom && i.scheduleFrom > dzisiaj)).length,
         days: daysSince(daty, teraz),
         prayedToday: daty.includes(dzisiaj),
       }

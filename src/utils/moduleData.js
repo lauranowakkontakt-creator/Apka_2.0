@@ -24,6 +24,7 @@ export const MODULE_DATA = {
   people: { label: 'Osoby', what: 'osoby (znikną też z kalendarza, modlitwy i snów)', collections: ['calendarPeople'], docs: [] },
   dream: { label: 'Sen', what: 'sny, kategorie, symbole i ćwiczenia pamięci', collections: ['dreams', 'dreamCategories', 'dreamSymbols', 'dreamMemory'], docs: [] },
   gratitude: { label: 'Wdzięcznik', what: 'wpisy wdzięczności', collections: ['gratitude'], docs: [] },
+  wspomnik: { label: 'Wspomnik', what: 'zapisane wspomnienia o tym, co Bóg zrobił', collections: ['remembrances'], docs: [] },
   auto: {
     label: 'Auto', what: 'tankowania, naprawy oraz dane auta z terminami OC i przeglądu',
     collections: ['carFuel', 'carRepairs'], docs: [['settings', 'car']],

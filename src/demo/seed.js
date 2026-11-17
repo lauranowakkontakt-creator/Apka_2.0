@@ -388,6 +388,24 @@ export function seedDemoData(put, Timestamp) {
     for (let k = 0; k < int(1, 3); k++) put(base('gratitude'), id('dzieki'), { date: isoAgo(b), text: pick(THANKS), createdAt: ts(withTime(daysAgo(b))) })
   }
 
+  // ── Wspomnik ────────────────────────────────────────────────────────────
+  const DEEDS = [
+    ['Dostałam pracę, o którą się modliłam', 'modlitwa', 'Flp 4,19'],
+    ['Mama wyszła ze szpitala szybciej, niż mówili lekarze', 'uzdrowienie', ''],
+    ['Pieniądze na czynsz przyszły w ostatniej chwili', 'zaopatrzenie', 'Mt 6,26'],
+    ['Pogodziłam się z siostrą', 'przemiana', ''],
+    ['Nic się nie stało w tym wypadku na drodze', 'ochrona', 'Ps 91,11'],
+    ['Jasna odpowiedź w sprawie przeprowadzki', 'prowadzenie', ''],
+    [LONG, 'inne', ''],
+  ]
+  DEEDS.forEach(([title, category, verse], i) => {
+    const b = i === 0 ? 365 : int(3, 900)
+    put(base('remembrances'), id('wsp'), {
+      date: isoAgo(b), title, category, verse, createdAt: ts(withTime(daysAgo(b))),
+      text: chance(0.6) ? 'Długo się o to modliłam i już traciłam nadzieję. A potem wszystko ułożyło się w kilka dni.' : '',
+    })
+  })
+
   // ── Nastrój ──────────────────────────────────────────────────────────────
   const MOODS = [['awful', 'okropny', 1, '#E05A2B'], ['bad', 'źle', 2, '#F59E0B'], ['ok', 'ok', 3, '#94A3B8'], ['good', 'dobrze', 4, '#5FBF98'], ['great', 'świetnie', 5, '#3B82F6']]
   const MOOD_PEOPLE = people.slice(0, 4).map(p => p.id)
