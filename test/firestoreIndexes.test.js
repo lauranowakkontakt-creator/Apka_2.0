@@ -94,3 +94,12 @@ test('historia pojedynczego konta ma swój indeks (accountId + date)', () => {
     pola: [{ fieldPath: 'accountId', order: 'ASCENDING' }, { fieldPath: 'date', order: 'DESCENDING' }],
   }), 'bez tego indeksu historia konta wywala się na failed-precondition')
 })
+
+test('historia konta nie zależy od indeksu złożonego', () => {
+  // Wdrożenie strony nie wgrywa indeksów do Firebase, więc zapytanie
+  // „accountId + orderBy date” padało na telefonie z banerem (accounts).
+  const kod = readFileSync(join(ROOT, 'src/components/budget/AccountsView.jsx'), 'utf8')
+  const historia = wywolaniaQuery(kod).filter(q => /'transactions'/.test(q))
+  assert.ok(historia.length > 0, 'nie znaleziono zapytania o transakcje konta')
+  for (const q of historia) assert.ok(!/orderBy\(/.test(q), `zapytanie znów sortuje w bazie: ${q}`)
+})
