@@ -40,3 +40,32 @@ export function linkCountsByPerson(people, debts, todos) {
   })
   return m
 }
+
+// Bez ogonków i wielkości liter — „zośka” = „Zośka”, „lukasz” = „Łukasz”.
+const plain = (s) => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l')
+
+// Osoby do wyboru przy długu: bliscy przed dalszymi, częściej w długach wyżej,
+// dalej alfabetycznie.
+export function osobyDoDlugow(people, debts) {
+  const ile = {}
+  for (const d of debts || []) if (d?.personId) ile[d.personId] = (ile[d.personId] || 0) + 1
+  const dalszy = (p) => (p?.circle === 'far' ? 1 : 0)
+  return [...(people || [])].sort((a, b) =>
+    dalszy(a) - dalszy(b) ||
+    (ile[b.id] || 0) - (ile[a.id] || 0) ||
+    String(a.name || '').localeCompare(String(b.name || ''), 'pl'))
+}
+
+export const pasujeDoSzukania = (p, q) => {
+  const t = plain(q)
+  return !t || plain([p?.name, ...(p?.aliases || [])].join(' ')).includes(t)
+}
+
+// Imię wpisane ręcznie, które jest dokładnie imieniem (albo ksywką) jednej
+// osoby z bazy → id tej osoby. Przy dwóch pasujących nie zgadujemy.
+export function dopasujOsobe(people, name) {
+  const t = plain(name)
+  if (!t) return null
+  const hit = (people || []).filter(p => [p?.name, ...(p?.aliases || [])].some(x => plain(x) === t))
+  return hit.length === 1 ? hit[0].id : null
+}

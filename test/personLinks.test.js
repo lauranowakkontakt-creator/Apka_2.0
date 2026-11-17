@@ -73,3 +73,15 @@ test('linkCountsByPerson — dług bez personId nie psuje liczników', () => {
   const m = linkCountsByPerson(people, debts, todos)
   assert.ok(!('null' in m))
 })
+
+test('dług: wybór i dopasowanie osoby', async () => {
+  const { osobyDoDlugow, pasujeDoSzukania, dopasujOsobe } = await import('../src/utils/personLinks.js')
+  const people = [{ id: 'z', name: 'Zosia' }, { id: 'f', name: 'Daleki', circle: 'far' }, { id: 'a', name: 'Ania', aliases: ['Anka'] }, { id: 'l', name: 'Łukasz' }]
+  assert.deepEqual(osobyDoDlugow(people, [{ personId: 'z' }]).map(p => p.id), ['z', 'a', 'l', 'f'])
+  assert.ok(pasujeDoSzukania(people[3], 'luk'))
+  assert.ok(!pasujeDoSzukania(people[0], 'an'))
+  assert.equal(dopasujOsobe(people, ' anka '), 'a')
+  assert.equal(dopasujOsobe(people, 'lukasz'), 'l')
+  assert.equal(dopasujOsobe(people, 'Sklep'), null)
+  assert.equal(dopasujOsobe([...people, { id: 'a2', name: 'Ania' }], 'Ania'), null)
+})
