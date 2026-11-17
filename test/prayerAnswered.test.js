@@ -56,3 +56,23 @@ test('wysłuchana prośba → szkic wspomnienia', () => {
 test('data po polsku', () => {
   assert.equal(dataPL('2026-11-07'), '7.11.2026')
 })
+
+test('zaplanowane: tylko aktywne z oknem, które jeszcze się nie zaczęło', async () => {
+  const { czyZaplanowana, zaplanowane, zaIleDni } = await import('../src/utils/prayerAnswered.js')
+  const dzis = '2026-11-17'
+  assert.ok(czyZaplanowana({ scheduleFrom: '2026-11-29' }, dzis))
+  assert.ok(!czyZaplanowana({ scheduleFrom: '2026-11-17' }, dzis))
+  assert.ok(!czyZaplanowana({ scheduleFrom: '2026-11-29', status: 'ended' }, dzis))
+  assert.ok(!czyZaplanowana({ dateTo: '2026-12-01' }, dzis))
+  assert.deepEqual(zaplanowane([
+    { id: 'b', scheduleFrom: '2026-12-05' }, { id: 'x' }, { id: 'a', scheduleFrom: '2026-11-20' },
+  ], dzis).map(i => i.id), ['a', 'b'])
+  assert.equal(zaIleDni('2026-11-18', dzis), 'jutro')
+  assert.equal(zaIleDni('2026-11-29', dzis), 'za 12 dni')
+})
+
+test('statystyki osób: zaplanowana prośba nie robi z osoby zaległej', async () => {
+  const { statystykiOsob } = await import('../src/utils/prayerStats.js')
+  const r = statystykiOsob([{ id: 'm', name: 'M' }], [{ personId: 'm', scheduleFrom: '2026-11-29' }], '2026-11-17')
+  assert.equal(r[0].activeCount, 0)
+})

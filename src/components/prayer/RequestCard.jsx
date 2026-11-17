@@ -3,7 +3,7 @@ import { checklistProgress, hasChecklist, dniTemu } from '../../utils/prayerList
 import { daysSince, findPrio, getNeglect } from '../../utils/prayerStats'
 import { CatIcon, IconCalendar, IconCheck, IconEdit, IconPrayer, IconTrash } from '../Icons'
 import { TODAY } from './wspolne'
-import { opisOkna } from '../../utils/prayerAnswered'
+import { czyZaplanowana, dataPL, opisOkna, zaIleDni } from '../../utils/prayerAnswered'
 import { useState } from 'react'
 
 // Karta pojedynczej prośby wraz z listą do odhaczania.
@@ -53,7 +53,9 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
   const prayedToday = item.prayedDates?.includes(date)
   const days       = daysSince(item.prayedDates)
   const neglect    = getNeglect(prayedToday ? 0 : days)
-  const isNeglected = !prayedToday && neglect.level >= 4
+  // Zaplanowana na później — nie jest zaniedbana, tylko jeszcze nie jej czas.
+  const zaplanowana = czyZaplanowana(item, date)
+  const isNeglected = !prayedToday && !zaplanowana && neglect.level >= 4
 
   const submitNote = () => {
     if (!noteText.trim()) return
@@ -142,6 +144,9 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
                 L{neglect.level} · {neglect.label}
               </span>
             )}
+            {zaplanowana && (
+              <span className="pray-planned-badge">zaplanowana · {zaIleDni(item.scheduleFrom, date)}</span>
+            )}
           </div>
           {showPerson && person && (
             <p style={{ margin: '2px 0 0', fontSize: fs.sub, color: '#8b5cf6' }}>
@@ -162,8 +167,8 @@ export default function RequestCard({ item, user, carMode, onTogglePrayed, onAdd
           )}
           {item.eventId ? (
             <p style={{ margin: '2px 0 0', fontSize: fs.badge, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 3 }}>
-              <IconCalendar size={10} /> z kalendarza{item.eventDate ? ` · ${item.eventDate}` : ''}
-              {item.scheduleFrom && ` · modlitwa ${item.scheduleFrom}–${item.scheduleTo}`}
+              <IconCalendar size={10} /> z kalendarza
+              {item.eventDate ? ` · ${dataPL(item.eventDate)}` : ''}{opisOkna(item) && ` · modlitwa ${opisOkna(item)}`}
             </p>
           ) : opisOkna(item) && (
             <p style={{ margin: '2px 0 0', fontSize: fs.badge, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3 }}>

@@ -5,6 +5,7 @@ import { CatIcon, IconArchive, IconCheck, IconChevronDown, IconChevronRight, Ico
 import { TODAY } from './wspolne'
 import { differenceInDays, parseISO } from 'date-fns'
 import { useMemo, useState } from 'react'
+import { czyZaplanowana } from '../../utils/prayerAnswered'
 import { dniTemu } from '../../utils/prayerList'
 
 // Lista osób, za które się modlisz — wejście do modułu Modlitwa.
@@ -17,7 +18,8 @@ export default function PeopleView({ user, people, intentions, carMode, onSelect
   const archivedPeople = people.filter(p => p.hiddenInPrayer)
 
   const withStats = useMemo(() => people.filter(p => !p.hiddenInPrayer).map(p => {
-    const active = intentions.filter(i => i.personId === p.id && (i.status === 'active' || !i.status))
+    // Zaplanowane na później nie liczą się jako zaległe — ich czas jeszcze nie przyszedł.
+    const active = intentions.filter(i => i.personId === p.id && (i.status === 'active' || !i.status) && !czyZaplanowana(i, today))
     const all    = intentions.filter(i => i.personId === p.id)
     const allDates = all.flatMap(i => i.prayedDates || [])
     const lastDate = allDates.length ? [...allDates].sort().reverse()[0] : null

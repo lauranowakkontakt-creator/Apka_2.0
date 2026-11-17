@@ -5,6 +5,7 @@ import { toast } from '../Toast'
 import IntentionForm from './IntentionForm'
 import RequestCard from './RequestCard'
 import ZakonczProsbe from './ZakonczProsbe'
+import { czyZaplanowana } from '../../utils/prayerAnswered'
 import { TODAY, toggleChecklistItem } from './wspolne'
 import { arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { useState } from 'react'
@@ -28,6 +29,10 @@ export default function PersonDetailView({ user, person, people = [], intentions
     return (b.priority || 3) - (a.priority || 3)
   })
   const ended = mine.filter(i => i.status === 'ended')
+  // Zaplanowane na później — osobno pod aktywnymi, żeby nie wisiały jako zaległe.
+  const planned = active.filter(i => czyZaplanowana(i, TODAY()))
+    .sort((a, b) => (a.scheduleFrom < b.scheduleFrom ? -1 : 1))
+  const current = active.filter(i => !czyZaplanowana(i, TODAY()))
 
   // Nieudany zapis musi być widoczny. Bez tego odbicie kciukiem w aucie kończyło
   // się ciszą: kafelek zostawał szary i nie było wiadomo, czy to nie zadziałało,
@@ -84,17 +89,17 @@ export default function PersonDetailView({ user, person, people = [], intentions
           <p style={{ margin: 0, fontSize: carMode ? 26 : 17, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{person.name}</p>
           {person.note && <p style={{ margin: 0, fontSize: carMode ? 14 : 12, color: 'var(--text-muted)' }}>{person.note}</p>}
         </div>
-        <span style={{ fontSize: carMode ? 14 : 12, color: '#8b5cf6', flexShrink: 0 }}>{active.length} aktywnych</span>
+        <span style={{ fontSize: carMode ? 14 : 12, color: '#8b5cf6', flexShrink: 0 }}>{current.length} aktywnych{planned.length ? ` · ${planned.length} zaplanowanych` : ''}</span>
       </div>
 
-      {active.length === 0 && !showAddForm && (
+      {current.length === 0 && planned.length === 0 && !showAddForm && (
         <div className="list-empty">
           <p>Brak aktywnych próśb</p>
           <p className="list-empty-hint">Dodaj pierwszą prośbę modlitewną</p>
         </div>
       )}
 
-      {active.map(item => (
+      {current.map(item => (
         <RequestCard
           key={item.id}
           item={item}
@@ -110,6 +115,27 @@ export default function PersonDetailView({ user, person, people = [], intentions
           onDelete={deleteItem}
         />
       ))}
+      {planned.length > 0 && (
+        <div className="pray-planned-section">
+          <div className="pray-planned-head">W przyszłości · {planned.length}</div>
+          {planned.map(item => (
+            <RequestCard
+              key={item.id}
+              item={item}
+              user={user}
+              carMode={carMode}
+              onTogglePrayed={togglePrayed}
+              onAddNote={addNote}
+              onToggleChecklistItem={(it, id) => toggleChecklistItem(user.uid, it, id)}
+              onEditNote={editNote}
+              onDeleteNote={deleteNote}
+              onArchive={archiveItem}
+              onEdit={() => { setEditItem(item); setShowAddForm(true) }}
+              onDelete={deleteItem}
+            />
+          ))}
+        </div>
+      )}
 
       {showAddForm ? (
         <IntentionForm

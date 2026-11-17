@@ -11,6 +11,8 @@ import IntentionForm from './IntentionForm'
 import PrayerMenu from './PrayerMenu'
 import StatsView from './StatsView'
 import TodayView from './TodayView'
+import PlannedView from './PlannedView'
+import { zaplanowane } from '../../utils/prayerAnswered'
 import { TODAY } from './wspolne'
 import { format, subDays } from 'date-fns'
 import { Timestamp, collection, doc, orderBy, query, updateDoc } from 'firebase/firestore'
@@ -68,6 +70,7 @@ export default function PrayerDashboard({ user, setHeaderExtras }) {
     if (!i.scheduleFrom && !i.scheduleTo) return true
     return today >= (i.scheduleFrom || '0000-01-01') && today <= (i.scheduleTo || '9999-12-31')
   })
+  const ileZaplanowanych = zaplanowane(liveIntentions, today).length
   const prayedToday      = dueToday.filter(i => i.prayedDates?.includes(today)).length
 
   const allPrayedDates = useMemo(() => new Set(liveIntentions.flatMap(i => i.prayedDates || [])), [liveIntentions])
@@ -126,7 +129,11 @@ export default function PrayerDashboard({ user, setHeaderExtras }) {
             <div className="mod-header-stat"><IconPrayer size={14} style={{ color: 'var(--warn)' }} /><span>{prayedToday}/{dueToday.length}</span></div>
           </div>
           <SegTabs
-            items={[{ id: 'people', label: 'Osoby' }, { id: 'today', label: 'Dziś' }]}
+            items={[
+              { id: 'people', label: 'Osoby' },
+              { id: 'today', label: 'Dziś' },
+              { id: 'planned', label: ileZaplanowanych ? `Zaplanowane · ${ileZaplanowanych}` : 'Zaplanowane' },
+            ]}
             active={tab} onChange={switchTab}
             size={carMode ? 'lg' : undefined}
           />
@@ -155,6 +162,9 @@ export default function PrayerDashboard({ user, setHeaderExtras }) {
       )}
       {tab === 'today' && (
         <TodayView user={user} intentions={intentions} people={people} carMode={carMode} />
+      )}
+      {tab === 'planned' && (
+        <PlannedView user={user} intentions={intentions} people={people} carMode={carMode} />
       )}
       {tab === 'stats' && (
         <StatsView intentions={intentions} people={people} allPrayedDates={allPrayedDates} streak={streak} />

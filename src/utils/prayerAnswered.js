@@ -86,3 +86,26 @@ export function wspomnienieZProsby(item, person, today, jakSieStalo = '') {
     verse: '',
   }
 }
+
+// ── Prośby zaplanowane na później ──────────────────────────────────────────
+// Prośba z oknem, które jeszcze się nie zaczęło (np. z wydarzenia za dwa
+// tygodnie), nie jest „zaniedbana” — po prostu jej czas jeszcze nie przyszedł.
+// Można się za nią modlić wcześniej, ale nie trzeba: nie świeci na czerwono,
+// nie liczy się do zaległości i ma własną zakładkę „Zaplanowane”.
+export const czyZaplanowana = (item, dzien) =>
+  (item?.status === 'active' || !item?.status) && !!item?.scheduleFrom && item.scheduleFrom > dzien
+
+// Zaplanowane od najbliższego startu.
+export function zaplanowane(intentions = [], dzien) {
+  return intentions
+    .filter(i => czyZaplanowana(i, dzien))
+    .sort((a, b) => (a.scheduleFrom < b.scheduleFrom ? -1 : a.scheduleFrom > b.scheduleFrom ? 1 : 0))
+}
+
+// „jutro”, „za 3 dni”, „za 12 dni”.
+export function zaIleDni(od, dzien) {
+  const n = Math.round((Date.parse(`${od}T00:00:00Z`) - Date.parse(`${dzien}T00:00:00Z`)) / 86400000)
+  if (n <= 0) return 'dziś'
+  if (n === 1) return 'jutro'
+  return `za ${n} dni`
+}
