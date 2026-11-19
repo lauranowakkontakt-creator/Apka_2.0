@@ -1,12 +1,13 @@
 import { db } from '../../firebase/config'
 import { bladSubskrypcji } from '../../utils/polaczenie'
-import { nextOccurrence, pOrder, zadaniaUkonczone } from '../../utils/todoLogic'
+import { nextOccurrence, pOrder, posortujListy, zadaniaUkonczone } from '../../utils/todoLogic'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { confirmDialog } from '../ConfirmModal'
-import { CatIcon, IconChevronDown, IconChevronLeft, IconChevronRight, IconEdit, IconPlus, IconStar } from '../Icons'
+import { CatIcon, IconChevronDown, IconChevronLeft, IconChevronRight, IconEdit, IconPlus, IconSettings, IconStar } from '../Icons'
 import StatTiles from '../StatTiles'
 import { toast } from '../Toast'
 import ListForm from './ListForm'
+import ListManager from './ListManager'
 import TodoCalendar from './TodoCalendar'
 import TodoForm from './TodoForm'
 import TodoItem from './TodoItem'
@@ -35,6 +36,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
   const [showDone, setShowDone]     = useState(false)
   const [showListForm, setShowListForm] = useState(false)
   const [editList, setEditList]       = useState(null)
+  const [showListManager, setShowListManager] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showLists, setShowLists]   = useState(false)
@@ -50,7 +52,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
 
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'todoLists'), orderBy('createdAt', 'asc'))
-    return onSnapshot(q, snap => setLists(snap.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('todoLists'))
+    return onSnapshot(q, snap => setLists(posortujListy(snap.docs.map(d => ({ id: d.id, ...d.data() })))), bladSubskrypcji('todoLists'))
   }, [user.uid])
 
   useEffect(() => {
@@ -123,6 +125,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
     // przy zwiniętej sekcji i długiej liście kliknięcie nie dawało nic widocznego.
     if (id === 'done')    setView('done')
     if (id === 'newlist') setShowListForm(true)
+    if (id === 'lists')   setShowListManager(true)
   }
   useEffect(() => {
     setHeaderExtras?.(
@@ -139,6 +142,8 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
 
   if (loading) return <div className="list-loading">Ładowanie...</div>
 
+  // Usunięta lista nie może zostać wybranym filtrem — inaczej ekran byłby pusty.
+  const usunietaLista = (id) => setActiveList(a => (a === id ? null : a))
   const activeListObj = lists.find(l => l.id === activeList)
   const activeListColor = activeListObj?.color || 'var(--sky)'
 
@@ -246,6 +251,9 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
                 <button onClick={() => setShowListForm(true)} style={{ ...listRow(false), color: 'var(--text-muted)', borderTop: '1px solid var(--border)', borderRadius: 0, marginTop: 2, paddingTop: 8 }}>
                   <IconPlus size={13} /> Nowa lista
                 </button>
+                <button onClick={() => setShowListManager(true)} style={{ ...listRow(false), color: 'var(--text-muted)' }}>
+                  <IconSettings size={13} /> Zarządzaj listami
+                </button>
               </div>
             )}
           </div>
@@ -316,8 +324,9 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
         <TodoForm user={user} lists={lists} people={people} todos={todos} editData={editTodo} defaultListId={activeList} defaultDueDate={formDefaultDue}
           onClose={() => { setShowForm(false); setEditTodo(null); setFormDefaultDue('') }} />
       )}
-      {showListForm && <ListForm user={user} onClose={() => setShowListForm(false)} />}
-      {editList && <ListForm user={user} onClose={() => setEditList(null)} editData={editList} />}
+      {showListForm && <ListForm user={user} order={lists.length} onClose={() => setShowListForm(false)} />}
+      {editList && <ListForm user={user} onClose={() => setEditList(null)} editData={editList} onUsunieta={usunietaLista} />}
+      {showListManager && <ListManager user={user} lists={lists} todos={todos} onUsunieta={usunietaLista} onClose={() => setShowListManager(false)} />}
     </div>
   )
 }

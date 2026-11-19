@@ -99,3 +99,30 @@ export function osobyDoWyboru(people, todos = []) {
     (ile[b.id] || 0) - (ile[a.id] || 0) ||
     String(a.name || '').localeCompare(String(b.name || ''), 'pl'))
 }
+
+// ─── Listy (kategorie) zadań ─────────────────────────────────────────────────
+
+/**
+ * Listy w kolejności ustawionej przez użytkownika (`order`). Stare listy bez
+ * tego pola stoją tam, gdzie były (miejsce = kolejność dodania), a nowa lista
+ * dostaje `order` = liczba list, więc trafia na koniec.
+ */
+export function posortujListy(lists) {
+  return lists
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => (a.l.order ?? a.i) - (b.l.order ?? b.i) || a.i - b.i)
+    .map(x => x.l)
+}
+
+/**
+ * Przesunięcie listy o jedno miejsce (kierunek -1 w górę, +1 w dół).
+ * Zwraca zmiany do zapisania: `[{ id, order }]` tylko dla list, którym się zmieniło miejsce.
+ */
+export function przesunListe(lists, id, kierunek) {
+  const lista = posortujListy(lists)
+  const i = lista.findIndex(l => l.id === id)
+  const j = i + kierunek
+  if (i < 0 || j < 0 || j >= lista.length) return []
+  ;[lista[i], lista[j]] = [lista[j], lista[i]]
+  return lista.map((l, order) => ({ id: l.id, order })).filter(({ id, order }) => lists.find(l => l.id === id).order !== order)
+}

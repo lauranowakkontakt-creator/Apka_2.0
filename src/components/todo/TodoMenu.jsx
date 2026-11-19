@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { IconMoreVert, IconChart, IconSearch, IconCheck, IconPlus } from '../Icons'
+import { IconMoreVert, IconChart, IconSearch, IconCheck, IconPlus, IconTag } from '../Icons'
 
 // Menu „trzy kropki" dla To-do — spójne wizualnie z BudgetMenu/HabitMenu.
-// Kryje: analizę, wyszukiwanie, ukończone i nową listę, żeby belka była czysta.
+// Kryje: analizę, wyszukiwanie, ukończone, listy i nową listę, żeby belka była czysta.
 export default function TodoMenu({ onAction }) {
   const [open, setOpen] = useState(false)
   const ref = useRef()
@@ -17,6 +17,7 @@ export default function TodoMenu({ onAction }) {
     { id: 'stats',   Icon: IconChart,  label: 'Analiza i statystyki' },
     { id: 'search',  Icon: IconSearch, label: 'Szukaj zadań' },
     { id: 'done',    Icon: IconCheck,  label: 'Ukończone zadania' },
+    { id: 'lists',   Icon: IconTag,    label: 'Zarządzaj listami' },
     { id: 'newlist', Icon: IconPlus,   label: 'Nowa lista' },
   ]
 
