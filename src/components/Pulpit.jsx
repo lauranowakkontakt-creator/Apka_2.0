@@ -7,7 +7,7 @@ import { pl } from 'date-fns/locale'
 import {
   IconBudget, IconHabits, IconTodo, IconPrayer, IconBook,
   IconFlame, IconChevronRight, IconCheck, IconClock, IconBills,
-  IcSun, IcCar, IcStones,
+  IcSun, IcCar, IcStones, IcSparkles,
 } from './Icons'
 import { Ring } from './ChartPrimitives'
 import { fmt, getCurrencyCode, CURRENCIES } from '../utils/currency'
@@ -18,6 +18,7 @@ import { gratitudeStats } from '../utils/gratitudeLogic'
 import { wspomnikStats, onThisDay, sortEntries, wspomnieniaWord } from '../utils/wspomnikLogic'
 import { bladSubskrypcji } from '../utils/polaczenie'
 import { spalanie, terminyAuta, fmt1 } from '../utils/carLogic'
+import { podsumowanie as podsumowanieIpl, dawnoTemu } from '../utils/iplLogic'
 import { MODULE_ACCENTS } from '../utils/moduleColors'
 
 const TODAY = () => format(new Date(), 'yyyy-MM-dd')
@@ -48,6 +49,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
   const [wspomnienia, setWspomnienia] = useState([])
   const [tankowania, setTankowania] = useState([])
   const [auto, setAuto]             = useState({})
+  const [iplWpisy, setIplWpisy]     = useState([])
 
   useEffect(() => {
     const subs = [
@@ -83,6 +85,8 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
         s => setTankowania(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('carFuel')),
       onSnapshot(doc(db, 'users', user.uid, 'settings', 'car'),
         s => setAuto(s.data() || {}), bladSubskrypcji('settings/car', { przyBledzie: () => setAuto({}) })),
+      onSnapshot(query(collection(db, 'users', user.uid, 'iplZabiegi'), orderBy('date', 'desc'), limit(2000)),
+        s => setIplWpisy(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('iplZabiegi')),
     ]
     return () => subs.forEach(u => u())
   }, [user.uid])
@@ -95,6 +99,9 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
     const termin = terminyAuta(auto, today).find(t => t.stan !== 'brak') || null
     return { glowne: lpg ?? pb, paliwo: lpg != null ? 'gazu' : pb != null ? 'benzyny' : null, termin }
   }, [tankowania, auto, today])
+
+  /* ── IPL ── */
+  const iplStat = useMemo(() => podsumowanieIpl(iplWpisy, today), [iplWpisy, today])
 
   /* ── BUDŻET ── */
   const budget = useMemo(() => {
@@ -417,6 +424,18 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
           </div>
           <div className="pulpit-sub" style={{ color: autoStat.termin?.stan === 'po' ? 'var(--expense)' : autoStat.termin?.stan === 'blisko' ? 'var(--warn)' : 'var(--text-muted)' }}>
             {autoStat.termin ? `${autoStat.termin.label} ${autoStat.termin.opis}` : autoStat.paliwo ? `spalanie ${autoStat.paliwo}` : 'dodaj tankowanie'}
+          </div>
+        </PulpitCard>
+        )}
+
+        {/* IPL */}
+        {shows('ipl') && (
+        <PulpitCard accent={MODULE_ACCENTS.ipl} Icon={IcSparkles} label="IPL" onClick={() => onNavigate('ipl')}>
+          <div className="pulpit-value" style={{ fontSize: 26 }}>
+            {iplStat.strefyZrobione}<span className="pulpit-value-dim"> / {iplStat.strefyRazem} stref</span>
+          </div>
+          <div className="pulpit-sub">
+            {iplStat.ostatniDzien ? `ostatnio ${dawnoTemu(iplStat.dniOdOstatniego)}` : 'dodaj pierwszy zabieg'}
           </div>
         </PulpitCard>
         )}

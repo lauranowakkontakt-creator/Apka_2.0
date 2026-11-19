@@ -8,7 +8,8 @@
 //
 //   barwa (°)   moduł
 //      11       Nastrój      róż
-//      50       Osoby        pomarańcz
+//      32       IPL          koral
+//      53       Osoby        pomarańcz
 //      73       Wdzięcznik   bursztyn
 //      98       Modlitwa     złoto
 //     128       Nawyki       limonka
@@ -28,10 +29,11 @@ export const MODULE_ACCENTS = {
   calendar:  '#6CCC8C',
   prayer:    '#CDB851',
   bible:     '#6F94EE',
-  people:    '#D98B5F',
+  people:    '#D78C5C',
   dream:     '#C480D4',
   gratitude: '#E8A33D',
   wspomnik:  '#DA6FB0',
   mood:      '#E8607A',
   auto:      '#58ACED',
+  ipl:       '#ED826E',
 }

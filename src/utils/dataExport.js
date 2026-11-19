@@ -11,6 +11,7 @@ const COLLECTIONS = [
   'prayerIntentions', 'prayerPeople', 'bibleNotes',
   'notes', 'gratitude', 'memories', 'remembrances',
   'carFuel', 'carRepairs',
+  'iplZabiegi',
 ]
 // Pojedyncze dokumenty
 const SINGLE_DOCS = [

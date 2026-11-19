@@ -451,6 +451,16 @@ export function seedDemoData(put, Timestamp) {
     .forEach(([b, title, cost, odometer]) => put(base('carRepairs'), id('naprawa'), { date: isoAgo(b), title, cost, odometer, note: title.startsWith('Opony') ? 'Letnie w piwnicy, półka po lewej' : '', createdAt: ts(daysAgo(b)) }))
   put(base('settings'), 'car', { name: 'Opel Astra 1.6 LPG', plate: 'WA 12345', year: '2014', ocDo: iso(new Date(today.getTime() + 18 * DAY)), przegladDo: iso(new Date(today.getTime() + 140 * DAY)), acDo: '', notes: 'Olej 5W-30 · opony 205/55 R16' })
 
+  // ── IPL: zabiegi co ~2 tygodnie, owłosienie z czasem maleje ──────────────
+  const IPL_NOGI = ['udo-g-p', 'udo-g-l', 'udo-d-p', 'udo-d-l', 'kolano-p', 'kolano-l', 'podudzie-p', 'podudzie-l', 'stopa-p', 'stopa-l']
+  const IPL_RESZTA = [['pacha-p', 'pacha-l'], ['bikini-p', 'bikini-l', 'intymne'], ['przedramie-p', 'przedramie-l'], ['wasik', 'broda']]
+  ;[98, 84, 70, 56, 42, 28, 14, 2].forEach((b, i) => {
+    const hair = Math.max(0, 3 - Math.floor(i / 2))
+    const zrob = (zone, h, regrowth, note = '') => put(base('iplZabiegi'), id('ipl'), { zone, date: isoAgo(b), hair: h, regrowth, note, createdAt: ts(daysAgo(b)) })
+    IPL_NOGI.forEach(z => zrob(z, hair, i === 0 ? null : int(1, 3), i === 7 && z === 'kolano-p' ? 'Skóra lekko zaczerwieniona' : ''))
+    IPL_RESZTA.forEach((strefy, k) => { if (i % (k + 1) === 0 || k === 0) strefy.forEach(z => zrob(z, Math.min(3, hair + 1), i === 0 ? null : 2)) })
+  })
+
   // ── Notatki ──────────────────────────────────────────────────────────────
   ;[['Lista książek', 'Quo Vadis\nLalka\nMistrz i Małgorzata', ['książki'], true],
     ['Pomysły na prezenty', 'Mama — storczyk\nKuba — gra planszowa', ['prezenty', 'rodzina'], false],
