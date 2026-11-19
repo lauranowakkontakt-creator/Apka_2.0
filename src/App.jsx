@@ -44,6 +44,7 @@ import { getCurrencyCode } from './utils/currency'
 import { useSynchronizujIkonyKategorii } from './utils/useSynchronizujIkony'
 import { useRegularPaymentsProcessor } from './utils/regularPayments'
 import { useModalA11y } from './utils/useModalA11y'
+import { usePolaDaty } from './utils/usePolaDaty'
 import { MODULE_ACCENTS } from './utils/moduleColors'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
@@ -134,6 +135,7 @@ export default function App() {
   // Auto-księgowanie regularnych płatności w tle — działa zawsze, nie tylko w zakładce „Regularne"
   useRegularPaymentsProcessor(user?.uid)
   useModalA11y()
+  usePolaDaty()
 
   // Płynność: po zalogowaniu, w wolnej chwili, dociągamy kod pozostałych
   // modułów — przejście do nich nie czeka wtedy na pobranie.
