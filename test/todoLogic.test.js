@@ -157,3 +157,20 @@ test('osobyDoWyboru: bliscy przed dalszymi, potem wg liczby zadań i alfabetu', 
   assert.deepEqual(osobyDoWyboru(people, todos).map(p => p.id), ['c', 'a', 'b', 'z'])
   assert.deepEqual(osobyDoWyboru([]), [])
 })
+
+const { posortujListy, przesunListe } = await import('../src/utils/todoLogic.js')
+
+test('posortujListy: ustawiona kolejność; stare listy bez niej w kolejności dodania, nowa na końcu', () => {
+  assert.deepEqual(posortujListy([{ id: 'a', order: 2 }, { id: 'b', order: 0 }, { id: 'c', order: 1 }]).map(x => x.id), ['b', 'c', 'a'])
+  // dwie stare listy + nowa z order = 2
+  assert.deepEqual(posortujListy([{ id: 'a' }, { id: 'b' }, { id: 'c', order: 2 }]).map(x => x.id), ['a', 'b', 'c'])
+})
+
+test('przesunListe: zamienia sąsiadów i zapisuje tylko to, co się zmieniło', () => {
+  const l = [{ id: 'a', order: 0 }, { id: 'b', order: 1 }, { id: 'c', order: 2 }]
+  assert.deepEqual(przesunListe(l, 'c', -1), [{ id: 'c', order: 1 }, { id: 'b', order: 2 }])
+  assert.deepEqual(przesunListe(l, 'a', -1), [])
+  assert.deepEqual(przesunListe(l, 'c', 1), [])
+  // Stare listy bez `order` dostają kolejność przy pierwszym przesunięciu.
+  assert.deepEqual(przesunListe([{ id: 'a' }, { id: 'b' }], 'b', -1), [{ id: 'b', order: 0 }, { id: 'a', order: 1 }])
+})

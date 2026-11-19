@@ -1,38 +1,46 @@
 import { db } from '../../firebase/config'
 import { IconClose } from '../Icons'
 import { IconPicker, ColorPicker } from '../Pickers'
-import { Timestamp, addDoc, collection, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { usunListe } from './listyZapis'
 import { useState } from 'react'
 
 // Formularz listy zadań.
 
-export default function ListForm({ user, onClose, editData }) {
+export default function ListForm({ user, onClose, editData, order, onUsunieta }) {
   const [name, setName]         = useState(editData?.name || '')
   const [iconKey, setIconKey]   = useState(editData?.icon || 'IcBriefcase')
   const [color, setColor]       = useState(editData?.color || '#6366f1')
   const [saving, setSaving]     = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
+  const [blad, setBlad]         = useState('')
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!name.trim()) return
-    setSaving(true)
-    if (editData) {
-      await updateDoc(doc(db, 'users', user.uid, 'todoLists', editData.id), {
-        name: name.trim(), icon: iconKey, color
-      })
-    } else {
-      await addDoc(collection(db, 'users', user.uid, 'todoLists'), {
-        name: name.trim(), icon: iconKey, color, createdAt: Timestamp.now()
-      })
-    }
-    onClose()
+    setSaving(true); setBlad('')
+    try {
+      if (editData) {
+        await updateDoc(doc(db, 'users', user.uid, 'todoLists', editData.id), {
+          name: name.trim(), icon: iconKey, color
+        })
+      } else {
+        await addDoc(collection(db, 'users', user.uid, 'todoLists'), {
+          name: name.trim(), icon: iconKey, color, createdAt: Timestamp.now(),
+          ...(order != null ? { order } : {}),
+        })
+      }
+      onClose()
+    } catch { setBlad('Nie udało się zapisać listy'); setSaving(false) }
   }
 
   const handleDelete = async () => {
     if (!confirmDelete) { setConfirmDelete(true); return }
-    await deleteDoc(doc(db, 'users', user.uid, 'todoLists', editData.id))
-    onClose()
+    setSaving(true); setBlad('')
+    // Zadania z listy zostają — trafiają do „Bez listy”.
+    try { await usunListe(user.uid, editData.id); onUsunieta?.(editData.id); onClose() }
+    catch { setBlad('Nie udało się usunąć listy'); setSaving(false) }
   }
 
   return (
@@ -56,6 +64,7 @@ export default function ListForm({ user, onClose, editData }) {
             <label>Kolor</label>
             <ColorPicker value={color} onChange={setColor} />
           </div>
+          {blad && <p style={{ color: 'var(--expense)', fontSize: 13, margin: 0 }}>{blad}</p>}
           <button type="submit" className="btn-save" disabled={saving || !name.trim()}>
             {saving ? 'Zapisywanie...' : editData ? 'Zapisz zmiany' : 'Utwórz listę'}
           </button>
@@ -65,7 +74,7 @@ export default function ListForm({ user, onClose, editData }) {
               background: confirmDelete ? 'var(--expense)22' : 'transparent', color: confirmDelete ? 'var(--expense)' : 'var(--text-muted)',
               cursor: 'pointer', fontSize: 14, marginTop: 4,
             }}>
-              {confirmDelete ? 'Kliknij ponownie aby potwierdzić usunięcie' : 'Usuń listę'}
+              {confirmDelete ? 'Kliknij ponownie, aby usunąć (zadania trafią do „Bez listy”)' : 'Usuń listę'}
             </button>
           )}
         </form>

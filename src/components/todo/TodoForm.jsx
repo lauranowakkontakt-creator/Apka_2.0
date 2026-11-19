@@ -195,7 +195,7 @@ export default function TodoForm({ user, lists, people = [], todos = [], editDat
           </button>
         </form>
       </div>
-      {showListForm && <ListForm user={user} onClose={() => setShowListForm(false)} />}
+      {showListForm && <ListForm user={user} order={lists.length} onClose={() => setShowListForm(false)} />}
     </div>
   )
 }
