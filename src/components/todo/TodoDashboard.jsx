@@ -1,8 +1,7 @@
 import { db } from '../../firebase/config'
 import { bladSubskrypcji } from '../../utils/polaczenie'
-import { nextOccurrence, pOrder, posortujListy, zadaniaUkonczone } from '../../utils/todoLogic'
+import { nextOccurrenceAfter, pOrder, posortujListy, zadaniaUkonczone } from '../../utils/todoLogic'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
-import { confirmDialog } from '../ConfirmModal'
 import { CatIcon, IconChevronDown, IconChevronLeft, IconChevronRight, IconEdit, IconPlus, IconSettings, IconStar } from '../Icons'
 import StatTiles from '../StatTiles'
 import { toast } from '../Toast'
@@ -15,7 +14,9 @@ import TodoMenu from './TodoMenu'
 import TodoStats from './TodoStats'
 import { format, isToday, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import { Timestamp, collection, deleteDoc, doc, orderBy, query, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc, orderBy, query } from 'firebase/firestore'
+import { updateDoc } from '../../utils/zapis'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { useEffect, useState } from 'react'
 
@@ -66,7 +67,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
     // Zadanie cykliczne: zamiast „zrobione" przesuwamy na kolejny termin i odznaczamy podzadania
     if (!todo.done && todo.recurrence) {
       const base = todo.dueDate ? parseISO(todo.dueDate) : new Date()
-      const next = nextOccurrence(base, todo.recurrence)
+      const next = nextOccurrenceAfter(base, todo.recurrence)
       await updateDoc(doc(db, 'users', user.uid, 'todos', todo.id), {
         dueDate: format(next, 'yyyy-MM-dd'),
         subtasks: (todo.subtasks || []).map(s => ({ ...s, done: false })),
@@ -90,9 +91,7 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
   }
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć zadanie?' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'todos', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'todos', id), 'Usunięto zadanie')
   }
 
   // Wybrane (gwiazdka) zawsze na górze, dalej jak dotąd: termin, potem priorytet.
@@ -148,7 +147,6 @@ export default function TodoDashboard({ user, setHeaderExtras }) {
   const activeListColor = activeListObj?.color || 'var(--sky)'
 
   const dueToday = active.filter(t => t.dueDate && isToday(parseISO(t.dueDate)))
-  const highCount = active.filter(t => t.priority === 'high').length
 
   const listRow = (isActive, color) => ({
     display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8,

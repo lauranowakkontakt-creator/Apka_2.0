@@ -4,7 +4,8 @@ import { PRIORITY, RECURRENCE, osobyDoWyboru } from '../../utils/todoLogic'
 import { CatIcon, IconClose, IconPlus, IconTrash } from '../Icons'
 import PersonBubble from '../PersonBubble'
 import ListForm from './ListForm'
-import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { useMemo, useState } from 'react'
 
 // Formularz zadania: dodawanie i edycja, z podzadaniami i cyklicznością.

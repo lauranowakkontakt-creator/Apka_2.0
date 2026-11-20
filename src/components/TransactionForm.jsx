@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { collection, doc, Timestamp, orderBy, query, getDoc, getDocs, limit, increment, writeBatch } from 'firebase/firestore'
+import { collection, doc, Timestamp, orderBy, query, getDoc, getDocs, limit, increment } from 'firebase/firestore'
+import { writeBatch } from '../utils/zapis'
 import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
 import { format } from 'date-fns'
@@ -141,7 +142,7 @@ export default function TransactionForm({ user, onClose, editData, defaultType, 
     if (!acc) return
     syncedAcc.current = accountId
     if (acc.currency) setCurrency(acc.currency)
-  }, [accountId, accounts]) // eslint-disable-line
+  }, [accountId, accounts])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

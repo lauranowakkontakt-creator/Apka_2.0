@@ -6,7 +6,8 @@ import { CatIcon, IcStones, IconCalendar, IconCheck, IconEdit, IconPrayer, IconR
 import ZakonczProsbe from './ZakonczProsbe'
 import { format, parseISO } from 'date-fns'
 import { pl } from 'date-fns/locale'
-import { deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from '../../utils/zapis'
 import { useMemo, useState } from 'react'
 import { MODULE_ACCENTS } from '../../utils/moduleColors'
 

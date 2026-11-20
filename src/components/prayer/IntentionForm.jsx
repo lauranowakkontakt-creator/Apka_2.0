@@ -6,7 +6,8 @@ import { dataPL, oknoModlitwy, osobyDoModlitwy, pasujeOsoba } from '../../utils/
 import { IconClose, IconPlus } from '../Icons'
 import PersonBubble from '../PersonBubble'
 import { TODAY } from './wspolne'
-import { Timestamp, addDoc, collection, doc, updateDoc } from 'firebase/firestore'
+import { Timestamp, collection, doc } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { addDays, format, parseISO } from 'date-fns'
 import { useMemo, useState } from 'react'
 

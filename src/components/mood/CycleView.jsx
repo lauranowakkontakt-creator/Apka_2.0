@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { collection, addDoc, deleteDoc, updateDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, doc, Timestamp } from 'firebase/firestore'
+import { addDoc, deleteDoc, updateDoc } from '../../utils/zapis'
 import { format, startOfMonth, getDaysInMonth, addMonths, addDays } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { db } from '../../firebase/config'

@@ -1,5 +1,6 @@
 import { db } from '../../firebase/config'
-import { collection, doc, getDocs, query, where, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDocs, query, where } from 'firebase/firestore'
+import { writeBatch } from '../../utils/zapis'
 
 // Zapis list zadań, wspólny dla okna listy i zarządzania listami.
 

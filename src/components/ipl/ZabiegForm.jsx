@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { collection, doc, updateDoc, writeBatch, Timestamp } from 'firebase/firestore'
+import { collection, doc, Timestamp } from 'firebase/firestore'
+import { updateDoc, writeBatch } from '../../utils/zapis'
 import { db } from '../../firebase/config'
 import { toast } from '../Toast'
 import { IconClose } from '../Icons'

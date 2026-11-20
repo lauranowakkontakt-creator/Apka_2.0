@@ -24,7 +24,8 @@ Najbardziej newralgiczne, bo tu było najwięcej cichych awarii.
 - [ ] **Wyjście z trybu samolotowego** → pasek znika **sam**, bez odświeżania
 - [ ] **Start apki od zera bez sieci** → moduły pokazują dane z poprzedniej
       wizyty; żaden nie wisi na „Ładowanie…"
-- [ ] **Dodanie wpisu offline, potem włączenie sieci** → wpis dojeżdża do bazy
+- [ ] **Dodanie wpisu offline** → formularz zamyka się od razu (nie wisi na
+      „Zapisywanie…"), wpis widać na liście; po włączeniu sieci dojeżdża do bazy
 - [ ] Ustawienia → *Gdy coś nie działa* → Diagnostyka: są wpisy, „Kopiuj logi"
       naprawdę wkleja się gdzie indziej
 
@@ -55,11 +56,23 @@ W dowolnym formularzu z kwotą — transakcja, dług, cel oszczędnościowy:
 - [ ] Obrót ekranu i powrót — tekst nie puchnie
 - [ ] Modal/szuflada: tło pod spodem **nie** przewija się razem z zawartością
 - [ ] Da się powiększyć gestem (dostępność)
+- [ ] **„Wstecz" na Androidzie** przy otwartym formularzu zamyka formularz,
+      nie apkę; kolejne „wstecz" wraca z modułu na Pulpit, a dopiero z Pulpitu
+      wychodzi z apki
+- [ ] Na komputerze **Esc** zamyka otwarte okno, ustawienia i „Więcej"
 
 ## 6. Dane
 
 - [ ] Ustawienia → Kopia danych → eksport tworzy plik z sensowną zawartością
 - [ ] Import tej kopii odtwarza dane
+- [ ] Import kopii na pustej bazie odtwarza **wszystkie moduły** (nie tylko
+      Finanse); drugi import tej samej kopii nie dodaje nic
+- [ ] Zmiana waluty głównej albo kursu na jednym urządzeniu pojawia się
+      na drugim bez ustawiania od nowa
+- [ ] Płatność regularna AUTO, apka nieotwierana przez miesiąc → po otwarciu
+      zaległy miesiąc jest w historii pod datą płatności, saldo konta się zgadza
+- [ ] Usunięcie zadania / transakcji: wpis znika od razu, „Cofnij" na dole
+      przywraca go (przy transakcji wraca też saldo konta)
 
 ## 7. Wydajność (po większych zmianach)
 

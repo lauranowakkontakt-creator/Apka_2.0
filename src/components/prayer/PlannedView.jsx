@@ -6,7 +6,8 @@ import IntentionForm from './IntentionForm'
 import RequestCard from './RequestCard'
 import ZakonczProsbe from './ZakonczProsbe'
 import { TODAY, toggleChecklistItem } from './wspolne'
-import { arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, doc } from 'firebase/firestore'
+import { deleteDoc, updateDoc } from '../../utils/zapis'
 import { useMemo, useState } from 'react'
 
 // Zakładka „Zaplanowane” — prośby, których okno modlitwy jeszcze się nie

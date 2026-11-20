@@ -1,6 +1,7 @@
 import PersonBubble from '../PersonBubble'
 import { useState, useEffect, useMemo } from 'react'
-import { collection, query, addDoc, updateDoc, doc, Timestamp, orderBy } from 'firebase/firestore'
+import { collection, query, doc, Timestamp, orderBy } from 'firebase/firestore'
+import { addDoc, updateDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
@@ -24,7 +25,6 @@ import { bladSubskrypcji } from '../../utils/polaczenie'
 import { MODULE_ACCENTS } from '../../utils/moduleColors'
 
 const TODAY = () => format(new Date(), 'yyyy-MM-dd')
-const initials = (name) => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
 export default function PeopleHub({ user, onOpenDream, setHeaderExtras }) {
   const [people, setPeople]         = useState([])

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { doc, setDoc } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
+import { setDoc } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
@@ -10,7 +11,6 @@ import { useDragReorder, DragHandle } from '../DragReorder'
 import { przenies } from '../../utils/dragReorder'
 import { IconPicker, ColorPicker } from '../Pickers'
 import { confirmDialog } from '../ConfirmModal'
-import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
 export default function CategoriesView({ user, onClose }) {

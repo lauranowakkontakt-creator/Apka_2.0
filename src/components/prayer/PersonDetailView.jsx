@@ -1,5 +1,5 @@
 import { db } from '../../firebase/config'
-import { confirmDialog } from '../ConfirmModal'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import { CatIcon, IconCheck, IconChevronDown, IconChevronLeft, IconChevronRight, IconPrayer, IconTrash } from '../Icons'
 import { toast } from '../Toast'
 import IntentionForm from './IntentionForm'
@@ -7,7 +7,8 @@ import RequestCard from './RequestCard'
 import ZakonczProsbe from './ZakonczProsbe'
 import { czyZaplanowana } from '../../utils/prayerAnswered'
 import { TODAY, toggleChecklistItem } from './wspolne'
-import { arrayRemove, arrayUnion, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, doc } from 'firebase/firestore'
+import { updateDoc } from '../../utils/zapis'
 import { useState } from 'react'
 
 // Szczegóły jednej osoby: jej prośby, notatki i historia modlitwy.
@@ -73,9 +74,7 @@ export default function PersonDetailView({ user, person, people = [], intentions
   const archiveItem = (item) => setKonczona(item)
 
   const deleteItem = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć prośbę?' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'prayerIntentions', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'prayerIntentions', id), 'Usunięto prośbę')
   }
 
   return (

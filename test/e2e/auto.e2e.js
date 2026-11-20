@@ -66,9 +66,14 @@ test('tankowanie: edycja zmienia wynik, usunięcie go zabiera', async () => {
   await strona.locator('.modal .btn-save').click(); await strona.waitForTimeout(400)
   assert.equal(await kafelek(strona, 'Gaz'), '10,0')
   await strona.locator('.auto-row', { hasText: '50,0 l' }).locator('button[aria-label="Usuń tankowanie"]').click()
-  await strona.locator('.modal-overlay[data-own-esc] button', { hasText: 'Usuń' }).click(); await strona.waitForTimeout(400)
+  await strona.waitForTimeout(400)   // usuwa od razu, bez pytania — jest tylko „Cofnij”
+  assert.equal(await strona.locator('.modal-overlay').count(), 0, 'usunięcie tankowania nie powinno pytać')
   assert.equal(await kafelek(strona, 'Gaz'), '–')
   assert.equal(await strona.locator('.auto-row').count(), 1)
+  // „Cofnij” przywraca dokładnie ten wpis
+  await strona.getByRole('button', { name: 'Cofnij' }).click(); await strona.waitForTimeout(500)
+  assert.equal(await strona.locator('.auto-row').count(), 2)
+  assert.equal(await kafelek(strona, 'Gaz'), '10,0')
   assert.deepEqual(bledy, [])
   await strona.close()
 })

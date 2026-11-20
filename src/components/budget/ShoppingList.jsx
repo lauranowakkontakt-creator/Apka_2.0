@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { collection, query, addDoc, updateDoc, deleteDoc, doc, Timestamp, orderBy, setDoc, increment, writeBatch } from 'firebase/firestore'
+import { collection, query, doc, Timestamp, orderBy, increment } from 'firebase/firestore'
+import { addDoc, updateDoc, setDoc, writeBatch } from '../../utils/zapis'
 import { onSnapshot } from '../../utils/subskrypcje'
 import { db } from '../../firebase/config'
+import { usunZCofnieciem } from '../../utils/usunZCofnieciem'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { format } from 'date-fns'
-import { pl } from 'date-fns/locale'
 import { DonutStat } from '../ChartPrimitives'
 import { fmt, getCurrencyCode, parseAmount } from '../../utils/currency'
 import { EXPENSE_CATEGORIES } from '../TransactionForm'
@@ -12,7 +13,6 @@ import { CatIcon, IconTrash, IconClose, IconTag, IconShopping, IconCheck } from 
 import { DEFAULT_COLOR } from '../../utils/palette'
 import { IconPicker, ColorPicker } from '../Pickers'
 import { confirmDialog } from '../ConfirmModal'
-import { toast } from '../Toast'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 
 const COLORS = ['#C94B28','#6366f1','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#14b8a6']
@@ -49,9 +49,7 @@ export default function ShoppingList({ user }) {
   const bought  = items.filter(i => i.status === 'bought')
 
   const handleDelete = async (id) => {
-    const ok = await confirmDialog({ title: 'Usunąć produkt?', confirmLabel: 'Usuń' })
-    if (!ok) return
-    await deleteDoc(doc(db, 'users', user.uid, 'shoppingItems', id))
+    await usunZCofnieciem(doc(db, 'users', user.uid, 'shoppingItems', id), 'Usunięto produkt')
   }
 
   const handleBuy = async (item, actualPrice) => {
