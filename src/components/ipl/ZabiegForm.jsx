@@ -29,11 +29,13 @@ export default function ZabiegForm({ user, wpisy, ukryte = [], startStrefy = [],
   }
 
   // Podpowiedź dla jednej wybranej strefy: kiedy był poprzedni raz.
-  const poprzedni = strefy.length === 1 && !wpis ? statStrefy(wpisy, strefy[0], date) : null
+  const poprzedni = strefy.length === 1 && !wpis ? statStrefy(wpisy, strefy[0], date || TODAY()) : null
 
   const zapisz = async (e) => {
     e.preventDefault()
     if (strefy.length === 0) { toast.error('Zaznacz co najmniej jedną strefę'); return }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { toast.error('Wpisz pełną datę zabiegu'); return }
+    if (date > TODAY()) { toast.error('Data zabiegu nie może być z przyszłości'); return }
     setSaving(true)
     try {
       if (wpis) {
@@ -59,7 +61,9 @@ export default function ZabiegForm({ user, wpisy, ukryte = [], startStrefy = [],
         <form className="form" onSubmit={zapisz}>
           <div className="form-group">
             <label htmlFor="ipl-data">Data</label>
-            <input id="ipl-data" type="date" className="form-input" value={date} max={TODAY()} onChange={e => e.target.value && setDate(e.target.value)} />
+            {/* Bez odrzucania pustej wartości: przy wpisywaniu ręcznie pole bywa chwilowo
+                puste, a odrzucenie jej sprawiało, że React cofał je do dzisiejszej daty. */}
+            <input id="ipl-data" type="date" className="form-input" value={date} max={TODAY()} onChange={e => setDate(e.target.value)} />
           </div>
 
           {wpis ? (
