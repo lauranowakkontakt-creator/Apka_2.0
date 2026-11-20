@@ -17,6 +17,7 @@ import { confirmDialog } from '../ConfirmModal'
 import { toast } from '../Toast'
 import { sortTransactionsByDate } from '../../utils/txSort'
 import { byAccountOrder } from '../../utils/accountOrder'
+import { wliczaneKonta, migrujWykluczoneKonta, przelaczWykluczenie } from '../../utils/wykluczoneKonta'
 import { isTransfer } from '../../utils/categories'
 import { isInvestment, investmentStats, sumByCurrency, mergeTotals, historyWithDeltas, investmentChartData } from '../../utils/investmentMath'
 import { LineAreaSVG } from '../ChartPrimitives'
@@ -38,15 +39,12 @@ export default function AccountsView({ user, privateMode }) {
   const [editAccount, setEditAccount] = useState(null)
   const [selected, setSelected]   = useState(null)
   const [showReorder, setShowReorder] = useState(false)
-  const storageKey = `excludedAccounts_${user.uid}`
-  const [excludedFromTotal, setExcludedFromTotal] = useState(() => {
-    try { const s = localStorage.getItem(`excludedAccounts_${user.uid}`); return s ? JSON.parse(s) : [] } catch { return [] }
-  })
-
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'accounts'), orderBy('createdAt', 'asc'))
     return onSnapshot(q, snap => {
-      setAccounts(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      setAccounts(lista)
+      migrujWykluczoneKonta(user.uid, lista)
       setLoading(false)
     }, bladSubskrypcji('accounts'))
   }, [user.uid])
@@ -58,20 +56,17 @@ export default function AccountsView({ user, privateMode }) {
   const orderedRegular      = [...regularAccounts].sort(byAccountOrder)
   const orderedInvestments  = [...investmentAccounts].sort(byAccountOrder)
 
-  const includedRegular      = regularAccounts.filter(a => !excludedFromTotal.includes(a.id))
-  const includedInvestments  = investmentAccounts.filter(a => !excludedFromTotal.includes(a.id))
+  const wliczane = new Set(wliczaneKonta(user.uid, accounts).map(a => a.id))
+  const includedRegular      = regularAccounts.filter(a => wliczane.has(a.id))
+  const includedInvestments  = investmentAccounts.filter(a => wliczane.has(a.id))
 
   const totalsByCurrency     = sumByCurrency(includedRegular)
   const investTotalsByCurrency = sumByCurrency(includedInvestments)
   const grandTotalByCurrency = mergeTotals(totalsByCurrency, investTotalsByCurrency)
 
-  const toggleExcluded = (id, e) => {
+  const toggleExcluded = (acc, e) => {
     e.stopPropagation()
-    setExcludedFromTotal(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-      try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch {}
-      return next
-    })
+    przelaczWykluczenie(user.uid, acc)
   }
 
   const handleDelete = async (id, e) => {
@@ -80,11 +75,6 @@ export default function AccountsView({ user, privateMode }) {
     if (!ok) return
     await deleteDoc(doc(db, 'users', user.uid, 'accounts', id))
     if (selected?.id === id) setSelected(null)
-    setExcludedFromTotal(prev => {
-      const next = prev.filter(x => x !== id)
-      try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch {}
-      return next
-    })
   }
 
   if (loading) return <div className="list-loading">Ładowanie...</div>
@@ -125,7 +115,7 @@ export default function AccountsView({ user, privateMode }) {
   }
 
   const renderAccountRow = (acc, { footer = null } = {}) => {
-    const excluded = excludedFromTotal.includes(acc.id)
+    const excluded = !wliczane.has(acc.id)
     const color = acc.color || '#3B82F6'
     const balance = acc.balance || 0
     const Ic = ACCOUNT_ICON_COMPS[acc.type] || IconBank
@@ -159,7 +149,7 @@ export default function AccountsView({ user, privateMode }) {
             {privateMode ? '••••' : fmtAcc(balance, acc.currency || 'PLN')}
           </div>
           <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-            <button className="t-btn" title={excluded ? 'Uwzględnij w sumie' : 'Wyklucz z sumy'} onClick={(e) => toggleExcluded(acc.id, e)}>
+            <button className="t-btn" title={excluded ? 'Uwzględnij w sumie' : 'Wyklucz z sumy'} onClick={(e) => toggleExcluded(acc, e)}>
               {excluded ? <IconEyeOff size={13} /> : <IconEye size={13} />}
             </button>
             <button aria-label="Edytuj" className="t-btn" onClick={(e) => { e.stopPropagation(); setEditAccount(acc); setShowForm(true) }}><IconEdit size={13} /></button>
@@ -178,7 +168,7 @@ export default function AccountsView({ user, privateMode }) {
     <div className="accounts-view">
       <div className="accounts-total">
         <span className="accounts-total-label">
-          Suma kont{excludedFromTotal.length > 0 ? ` (${includedRegular.length}/${regularAccounts.length})` : ''}
+          Suma kont{includedRegular.length < regularAccounts.length ? ` (${includedRegular.length}/${regularAccounts.length})` : ''}
           {accounts.length > 1 && (
             <button className="t-btn" title="Zmień kolejność kont" onClick={() => setShowReorder(true)}
               style={{ marginLeft: 8, verticalAlign: 'middle' }}>

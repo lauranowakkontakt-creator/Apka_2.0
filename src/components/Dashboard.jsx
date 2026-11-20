@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore'
+import { wliczaneKonta, migrujWykluczoneKonta } from '../utils/wykluczoneKonta'
 import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
 import useFallbackTimeout from '../utils/useFallbackTimeout'
@@ -72,7 +73,11 @@ export default function Dashboard({ user, setHeaderExtras }) {
 
   useEffect(() => {
     const q = query(collection(db, 'users', user.uid, 'accounts'), orderBy('createdAt', 'asc'))
-    return onSnapshot(q, snap => setAccounts(snap.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('accounts'))
+    return onSnapshot(q, snap => {
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      setAccounts(lista)
+      migrujWykluczoneKonta(user.uid, lista)
+    }, bladSubskrypcji('accounts'))
   }, [user.uid])
 
   useEffect(() => {
@@ -104,10 +109,7 @@ export default function Dashboard({ user, setHeaderExtras }) {
   const investedMonth = investedNet(transactions, accById)
   const balance  = income - expenses
 
-  const excludedFromTotal = (() => {
-    try { const s = localStorage.getItem(`excludedAccounts_${user.uid}`); return s ? JSON.parse(s) : [] } catch { return [] }
-  })()
-  const includedAccounts = accounts.filter(a => !excludedFromTotal.includes(a.id))
+  const includedAccounts = wliczaneKonta(user.uid, accounts)
   // Inwestycje (krypto, surowce...) pokazujemy osobno — NIE wliczamy ich do
   // głównego salda kont ani „łącznego majątku" na ekranie głównym.
   const includedRegular     = includedAccounts.filter(a => !isInvestment(a))
@@ -481,7 +483,8 @@ export default function Dashboard({ user, setHeaderExtras }) {
           {/* Summary grid — desktop */}
           <div className="desktop-only">
             <Summary income={income} expenses={expenses} balance={balance} privateMode={privateMode}
-              totalsByCurrency={totalsByCurrency} hasAccounts={includedAccounts.length > 0} />
+              totalsByCurrency={totalsByCurrency} hasAccounts={accounts.length > 0}
+              investTotalsByCurrency={includedInvestments.length > 0 ? investTotalsByCurrency : null} fmtAcc={fmtAcc} />
           </div>
           <TransactionList
             transactions={transactions}

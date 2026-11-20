@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { collection, query, orderBy, doc, limit } from 'firebase/firestore'
+import { wliczaneKonta, migrujWykluczoneKonta } from '../utils/wykluczoneKonta'
 import { onSnapshot } from '../utils/subskrypcje'
 import { db } from '../firebase/config'
 import { format, subDays, addDays, parseISO, isPast, isToday } from 'date-fns'
@@ -61,7 +62,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
         s => setBible({ counts: s.data()?.counts || {} }),
         bladSubskrypcji('bible/progress', { przyBledzie: () => setBible({ counts: {} }) })),
       onSnapshot(query(collection(db, 'users', user.uid, 'accounts'), orderBy('createdAt', 'asc')),
-        s => setAccounts(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('accounts')),
+        s => { const lista = s.docs.map(d => ({ id: d.id, ...d.data() })); setAccounts(lista); migrujWykluczoneKonta(user.uid, lista) }, bladSubskrypcji('accounts')),
       onSnapshot(query(collection(db, 'users', user.uid, 'habits'), orderBy('createdAt', 'asc')),
         s => setHabits(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('habits')),
       onSnapshot(query(collection(db, 'users', user.uid, 'habitPauses'), orderBy('from', 'desc')),
@@ -111,9 +112,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
 
   /* ── BUDŻET ── */
   const budget = useMemo(() => {
-    let excluded = []
-    try { const s = localStorage.getItem(`excludedAccounts_${user.uid}`); excluded = s ? JSON.parse(s) : [] } catch {}
-    const included = accounts.filter(a => !excluded.includes(a.id))
+    const included = wliczaneKonta(user.uid, accounts)
     // Inwestycje liczymy osobno — nie wchodzą do głównej sumy salda kont.
     const byCur = sumByCurrency(included.filter(a => !isInvestment(a)))
     const glowna = getCurrencyCode()
