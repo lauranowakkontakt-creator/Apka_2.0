@@ -7,7 +7,12 @@ export const getModuleIcons = () => {
 
 export const saveModuleIcon = (id, key) => {
   const c = getModuleIcons()
-  localStorage.setItem('mw_module_icons', JSON.stringify({ ...c, [id]: key }))
+  try { localStorage.setItem('mw_module_icons', JSON.stringify({ ...c, [id]: key })) } catch { /* tryb prywatny */ }
+}
+
+// Zastępuje wszystkie ikony naraz (gdy przyszły z innego urządzenia).
+export const replaceModuleIcons = (icons) => {
+  try { localStorage.setItem('mw_module_icons', JSON.stringify(icons || {})) } catch { /* tryb prywatny */ }
 }
 
 export const resolveIcon = (key, Fallback) => {

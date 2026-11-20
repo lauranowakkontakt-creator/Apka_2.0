@@ -83,3 +83,21 @@ test('moveModuleTo — przeciąganie na miejsce innego modułu', () => {
   assert.deepEqual(moveModuleTo(order, 'budget', 'home'), order)
   assert.deepEqual(moveModuleTo(order, 'nieznany', 'todo'), order)
 })
+
+test('innyUklad — ta sama kolejność i ukrycia (w innej kolejności) to ten sam układ', async () => {
+  const { innyUklad } = await import('../src/utils/moduleLayout.js')
+  const a = { order: ['home', 'mood', 'budget'], hidden: ['prayer', 'habits'] }
+  const b = { order: ['home', 'mood', 'budget', 'habits', 'prayer', 'calendar'], hidden: ['habits', 'prayer'] }
+  assert.equal(innyUklad(a, b, ALL), false)
+  assert.equal(innyUklad({ order: ['home', 'budget', 'mood'] }, a, ALL), true)
+  assert.equal(innyUklad({ ...a, hidden: [] }, a, ALL), true)
+})
+
+test('teSameIkony / czyscIkony — puste wpisy i śmieci są pomijane', async () => {
+  const { teSameIkony, czyscIkony } = await import('../src/utils/moduleLayout.js')
+  assert.equal(teSameIkony({ mood: 'star', budget: '' }, { mood: 'star' }), true)
+  assert.equal(teSameIkony({ mood: 'star' }, { mood: 'heart' }), false)
+  assert.deepEqual(czyscIkony({ mood: 'star', x: 5, y: '' }), { mood: 'star' })
+  assert.deepEqual(czyscIkony(null), {})
+  assert.deepEqual(czyscIkony(['a']), {})
+})
