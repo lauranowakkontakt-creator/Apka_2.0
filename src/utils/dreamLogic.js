@@ -42,28 +42,43 @@ export const SYMBOL_COLORS = [
 export const getEmotion  = (id) => DREAM_EMOTIONS.find(e => e.id === id)
 export const getCategory = (id) => DREAM_CATEGORIES.find(c => c.id === id)
 
-// Wbudowane kategorie snów + własne, dopisane przez użytkowniczkę. Własne idą
-// na koniec i normalizujemy im kształt (w bazie leżą jako `label`/`name`), żeby
-// reszta kodu nie musiała wiedzieć, skąd kategoria pochodzi. Id kolidujące
-// z wbudowanym odsiewamy — inaczej wyszukiwanie trafiałoby zawsze we wbudowaną
-// i własna nazwa nigdy by się nie pokazała.
-export function mergeDreamCategories(custom = []) {
-  const builtin = new Set(DREAM_CATEGORIES.map(c => c.id))
-  const extra = (custom || [])
-    .filter(c => c && c.id && !builtin.has(c.id))
-    .map(c => ({
+// Wbudowane pozycje (kategorie / emocje) + własne dopisane przez użytkowniczkę.
+// W bazie dokument o id wbudowanej pozycji to NADPISANIE (zmieniona nazwa/kolor,
+// opcjonalnie `hidden`) — dzięki temu wbudowane też da się edytować, a "Przywróć
+// domyślne" to po prostu usunięcie dokumentu. Pozostałe dokumenty to własne pozycje,
+// idą na koniec z ujednoliconym kształtem (w bazie `label`/`name`).
+function mergeItems(builtin, custom = []) {
+  const byId = new Map(builtin.map(c => [c.id, c]))
+  const over = new Map()
+  const extra = []
+  for (const c of (custom || [])) {
+    if (!c || !c.id) continue
+    if (byId.has(c.id)) { over.set(c.id, c); continue }
+    extra.push({
       id: c.id,
       label: (c.label || c.name || '').trim() || 'Bez nazwy',
       color: c.color || '#9E9E9E',
       custom: true,
-    }))
-  return [...DREAM_CATEGORIES, ...extra]
+    })
+  }
+  const base = builtin.map(b => {
+    const o = over.get(b.id)
+    if (!o) return b
+    const label = (o.label || o.name || '').trim() || b.label
+    return { ...b, label, color: o.color || b.color, edited: true }
+  })
+  return [...base, ...extra]
 }
+
+export const mergeDreamCategories = (custom = []) => mergeItems(DREAM_CATEGORIES, custom)
+export const mergeDreamEmotions = (custom = []) => mergeItems(DREAM_EMOTIONS, custom)
 
 // Szukanie w podanej liście; bez listy spada do wbudowanych, żeby stare
 // wywołania nie wybuchały.
 export const findDreamCategory = (cats, id) =>
   (Array.isArray(cats) && cats.length ? cats : DREAM_CATEGORIES).find(c => c.id === id)
+export const findDreamEmotion = (emos, id) =>
+  (Array.isArray(emos) && emos.length ? emos : DREAM_EMOTIONS).find(c => c.id === id)
 
 // Formy osoby, którymi można ją oznaczyć w śnie: pełne imię, samo imię (pierwszy człon)
 // oraz dowolne ksywki zapisane w polu `aliases`. Bez pustych i duplikatów.
@@ -200,9 +215,20 @@ export function parseSymbols(text, symbols) {
 //    dzięki czemu można tworzyć symbole wielowyrazowe; spacja po ostatnim słowie
 //    kończy tag, więc dalsze pisanie zdania działa normalnie.
 // Zwraca { type, query, start } albo null. `start` to indeks znaku # / @.
-export function detectTrigger(before) {
+export function detectTrigger(before, symbols) {
   const mSymbol = before.match(/#([\p{L}\p{N}]*(?: +[\p{L}\p{N}]+){0,3})$/u)
-  if (mSymbol) return { type: 'symbol', query: mSymbol[1], start: before.length - mSymbol[1].length - 1 }
+  if (mSymbol) {
+    const query = mSymbol[1]
+    // Gdy znamy symbole: wielowyrazowy tag trwa TYLKO dopóki to, co wpisano, jest
+    // początkiem istniejącej nazwy (np. „stary d" → „stary dom"). Inaczej po wybraniu
+    // symbolu kolejne słowa zdania wciąż byłyby wciągane do tagu i blokowały pisanie.
+    if (Array.isArray(symbols) && /\s/.test(query)) {
+      const q = query.toLowerCase()
+      const fits = symbols.some(s => symbolForms(s).some(f => f.toLowerCase().startsWith(q)))
+      if (!fits) return null
+    }
+    return { type: 'symbol', query, start: before.length - query.length - 1 }
+  }
   const mPerson = before.match(/@([\p{L}\p{N}]*)$/u)
   if (mPerson) return { type: 'person', query: mPerson[1], start: before.length - mPerson[1].length - 1 }
   return null

@@ -1,5 +1,5 @@
 import PersonBubble from '../PersonBubble'
-import { findDreamCategory, getEmotion } from '../../utils/dreams'
+import { findDreamCategory, findDreamEmotion } from '../../utils/dreams'
 import { IconCalendar, IconChevronLeft, IconEdit, IconMoon, IconTag, IconTrash, IconUsers } from '../Icons'
 import { Chip, DreamText, fmtDate, SymbolChip } from './wspolne'
 import { DiagramView, MindMapView, SpiralView } from './DreamDrawings'
@@ -10,7 +10,7 @@ import {
 
 // Pojedynczy sen w całości, z podświetlonymi osobami i symbolami.
 
-export default function DreamDetail({ dream, categories, peopleById, symbolsById, onBack, onOpenSymbol, onEdit, onDelete }) {
+export default function DreamDetail({ dream, categories, emotions, peopleById, symbolsById, onBack, onOpenSymbol, onEdit, onDelete }) {
   const cat = findDreamCategory(categories, dream.category)
   const participants = (dream.peopleIds || []).map(id => peopleById[id]).filter(Boolean)
   const mentioned = (dream.mentionIds || []).filter(id => !(dream.peopleIds || []).includes(id))
@@ -59,7 +59,7 @@ export default function DreamDetail({ dream, categories, peopleById, symbolsById
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {cat && <Chip color={cat.color} active>{cat.label}</Chip>}
           {dream.emotions?.map(eid => {
-            const e = getEmotion(eid); if (!e) return null
+            const e = findDreamEmotion(emotions, eid); if (!e) return null
             return <Chip key={eid} color={e.color} active>{e.label}</Chip>
           })}
         </div>

@@ -74,7 +74,7 @@ function SymbolAliases({ user, symbol }) {
   )
 }
 
-export default function SymbolsView({ user, symbols, dreams, counts, categories, peopleById, symbolsById, selectedSymbolId, onSelectSymbol, onOpenDream, onCreateSymbol }) {
+export default function SymbolsView({ user, symbols, dreams, counts, categories, emotions, peopleById, symbolsById, selectedSymbolId, onSelectSymbol, onOpenDream, onCreateSymbol }) {
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [search, setSearch] = useState('')
@@ -154,7 +154,7 @@ export default function SymbolsView({ user, symbols, dreams, counts, categories,
         {its.length === 0 ? (
           <div className="list-empty"><p>Brak snów z tym symbolem</p></div>
         ) : its.map(d => (
-          <DreamCard key={d.id} dream={d} categories={categories} peopleById={peopleById} symbolsById={symbolsById} onClick={() => onOpenDream(d.id)} />
+          <DreamCard key={d.id} dream={d} categories={categories} emotions={emotions} peopleById={peopleById} symbolsById={symbolsById} onClick={() => onOpenDream(d.id)} />
         ))}
       </div>
     )
