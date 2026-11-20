@@ -21,7 +21,7 @@ import { gratitudeStats } from '../utils/gratitudeLogic'
 import { wspomnikStats, onThisDay, sortEntries, wspomnieniaWord } from '../utils/wspomnikLogic'
 import { bladSubskrypcji } from '../utils/polaczenie'
 import { spalanie, terminyAuta, fmt1 } from '../utils/carLogic'
-import { podsumowanie as podsumowanieIpl, dawnoTemu } from '../utils/iplLogic'
+import { podsumowanie as podsumowanieIpl, dawnoTemu, oczyscUkryte } from '../utils/iplLogic'
 import { MODULE_ACCENTS } from '../utils/moduleColors'
 
 const TODAY = () => format(new Date(), 'yyyy-MM-dd')
@@ -53,6 +53,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
   const [tankowania, setTankowania] = useState([])
   const [auto, setAuto]             = useState({})
   const [iplWpisy, setIplWpisy]     = useState([])
+  const [iplUkryte, setIplUkryte]   = useState([])
 
   useEffect(() => {
     const subs = [
@@ -90,6 +91,8 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
         s => setAuto(s.data() || {}), bladSubskrypcji('settings/car', { przyBledzie: () => setAuto({}) })),
       onSnapshot(query(collection(db, 'users', user.uid, 'iplZabiegi'), orderBy('date', 'desc'), limit(2000)),
         s => setIplWpisy(s.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('iplZabiegi')),
+      onSnapshot(doc(db, 'users', user.uid, 'settings', 'ipl'),
+        s => setIplUkryte(oczyscUkryte(s.data()?.ukryte)), bladSubskrypcji('settings/ipl', { przyBledzie: () => setIplUkryte([]) })),
     ]
     return () => subs.forEach(u => u())
   }, [user.uid])
@@ -104,7 +107,7 @@ export default function Pulpit({ user, onNavigate, visibleIds }) {
   }, [tankowania, auto, today])
 
   /* ── IPL ── */
-  const iplStat = useMemo(() => podsumowanieIpl(iplWpisy, today), [iplWpisy, today])
+  const iplStat = useMemo(() => podsumowanieIpl(iplWpisy, today, iplUkryte), [iplWpisy, today, iplUkryte])
 
   /* ── BUDŻET ── */
   const budget = useMemo(() => {

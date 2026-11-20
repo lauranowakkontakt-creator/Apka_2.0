@@ -56,7 +56,15 @@ export const ZONY = [
 export const ZONY_PO_ID = Object.fromEntries(ZONY.map(z => [z.id, z]))
 export const strefa = (id) => ZONY_PO_ID[id] || null
 export const nazwaStrefy = (id) => ZONY_PO_ID[id]?.label || 'Nieznana strefa'
-export const strefyGrupy = (grupa) => ZONY.filter(z => z.group === grupa)
+export const strefyGrupy = (grupa, ukryte = []) => ZONY.filter(z => z.group === grupa && !ukryte.includes(z.id))
+
+// Strefy, które użytkowniczka śledzi. Domyślnie wszystkie; niepotrzebne można
+// wyłączyć w ustawieniach modułu — znikają wtedy z modelu, formularza i liczników,
+// ale zapisane wcześniej zabiegi zostają.
+export const aktywneStrefy = (ukryte = []) => ZONY.filter(z => !ukryte.includes(z.id))
+export const czyAktywna = (id, ukryte = []) => !!ZONY_PO_ID[id] && !ukryte.includes(id)
+/** Zostawia w liście tylko znane strefy (bez duplikatów) — do zapisu ustawienia. */
+export const oczyscUkryte = (ukryte) => [...new Set((Array.isArray(ukryte) ? ukryte : []).filter(id => ZONY_PO_ID[id]))]
 
 // Poziom owłosienia w dniu zabiegu.
 export const OWLOSIENIE = [
@@ -176,7 +184,7 @@ export function grupujZabiegi(wpisy) {
 }
 
 /** Podsumowanie całości do kafelków i Pulpitu. */
-export function podsumowanie(wpisy, dzis) {
+export function podsumowanie(wpisy, dzis, ukryte = []) {
   const ost = ostatniePoStrefach(wpisy)
   const dni = [...new Set(wpisy.map(w => w.date))].sort()
   const ostatniDzien = dni[dni.length - 1] || null
@@ -184,8 +192,8 @@ export function podsumowanie(wpisy, dzis) {
   return {
     zabiegi: dni.length,
     zabiegiMiesiac: dni.filter(d => d.startsWith(miesiac)).length,
-    strefyZrobione: Object.keys(ost).filter(id => ZONY_PO_ID[id]).length,
-    strefyRazem: ZONY.length,
+    strefyZrobione: Object.keys(ost).filter(id => czyAktywna(id, ukryte)).length,
+    strefyRazem: aktywneStrefy(ukryte).length,
     ostatniDzien,
     dniOdOstatniego: ostatniDzien ? dniMiedzy(ostatniDzien, dzis) : null,
     ostatniaLiczbaStref: ostatniDzien ? wpisy.filter(w => w.date === ostatniDzien).length : 0,

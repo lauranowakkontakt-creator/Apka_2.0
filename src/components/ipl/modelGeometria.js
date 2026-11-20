@@ -1,99 +1,155 @@
 // Geometria modelu ciała (widok z przodu) dla modułu IPL.
 //
-// Rysunek ma oś w x = 105. Strona „prawa” osoby jest po LEWEJ stronie rysunku
-// (patrzymy na osobę z przodu), więc znak -1 = prawa, +1 = lewa.
-// Każda strefa to jeden kształt SVG: { d } — ścieżka, opcjonalnie `klip`
-// (nazwa obrysu, do którego strefa jest przycinana, żeby podziały tułowia były
-// proste, a sylwetka gładka) i `typ` ('ellipse' | 'rect') dla prostych figur.
+// Sylwetka składa się z gładkich części (tułów, ręce, nogi), a każda strefa to
+// poziomy „przekrój” takiej części — pas przycięty do jej obrysu. Dzięki temu
+// brzegi stref są gładkie jak sama sylwetka, a podziały proste jak na rysunku
+// anatomicznym.
+//
+// Oś ciała jest w x = SRODEK. Strona „prawa” osoby jest po LEWEJ stronie
+// rysunku (patrzymy na osobę z przodu): znak -1 = prawa, +1 = lewa.
+// Twarz to osobny rysunek z własnym układem współrzędnych (TWARZ).
 
-export const SRODEK = 118
-// Rozstaw poziomy sylwetki (tułów i położenie kończyn) i grubość kończyn — osobno,
-// żeby ramiona i nogi nie robiły się grube, gdy tułów jest szeroki.
-const K = 1.38
-const W = 1.12
-export const WIDOK = { w: 300, h: 556 }
+export const SRODEK = 120
+export const WIDOK = { w: 240, h: 560 }
 
 const r1 = (n) => Math.round(n * 10) / 10
-const pt = (x, y) => `${r1(x)} ${r1(y)}`
+const P = (x, y) => `${r1(x)} ${r1(y)}`
 
-// Kapsuła — odcinek o zadanej grubości na obu końcach, z półokrągłymi końcami.
-// Z niej składamy ręce i nogi.
-function kapsula(ax, ay, aw, bx, by, bw) {
-  const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy)
-  const nx = -dy / len, ny = dx / len
-  const ra = aw / 2, rb = bw / 2
-  const p1 = [ax + nx * ra, ay + ny * ra], p2 = [bx + nx * rb, by + ny * rb]
-  const p3 = [bx - nx * rb, by - ny * rb], p4 = [ax - nx * ra, ay - ny * ra]
-  return `M${pt(...p1)} L${pt(...p2)} A${rb} ${rb} 0 0 0 ${pt(...p3)} L${pt(...p4)} A${ra} ${ra} 0 0 0 ${pt(...p1)} Z`
+// Gładka krzywa przez punkty (Catmull-Rom zamieniony na krzywe Béziera).
+function gladka(pts, zamknieta = true) {
+  const n = pts.length
+  const at = (i) => zamknieta ? pts[(i + n) % n] : pts[Math.max(0, Math.min(n - 1, i))]
+  let d = `M${P(...pts[0])}`
+  const koniec = zamknieta ? n : n - 1
+  for (let i = 0; i < koniec; i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2)
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]
+    d += ` C${P(...c1)} ${P(...c2)} ${P(...p2)}`
+  }
+  return zamknieta ? d + ' Z' : d
 }
 
-// Kapsuła po jednej stronie osi: dx to odległość od środka na zewnątrz.
-const strona = (znak, adx, ay, aw, bdx, by, bw) =>
-  kapsula(SRODEK + znak * adx * K, ay, aw * W, SRODEK + znak * bdx * K, by, bw * W)
-
-const C = (dx) => r1(SRODEK + dx * K)
-
-// Obrys tułowia — gładka sylwetka od szyi po krocze.
-export const OBRYS_TULOWIA =
-  `M${C(-13)} 76 Q${C(-30)} 79 ${C(-40)} 88 ` +
-  `C${C(-41)} 110 ${C(-39)} 130 ${C(-36)} 160 ` +
-  `C${C(-34)} 180 ${C(-30)} 190 ${C(-31)} 200 ` +
-  `C${C(-33)} 215 ${C(-44)} 232 ${C(-44)} 252 ` +
-  `Q${C(-26)} 262 ${C(0)} 268 Q${C(26)} 262 ${C(44)} 252 ` +
-  `C${C(44)} 232 ${C(33)} 215 ${C(31)} 200 ` +
-  `C${C(30)} 190 ${C(34)} 180 ${C(36)} 160 ` +
-  `C${C(39)} 130 ${C(41)} 110 ${C(40)} 88 ` +
-  `Q${C(30)} 79 ${C(13)} 76 Q${C(0)} 80 ${C(-13)} 76 Z`
-
-const pas = (y1, y2) => ({ typ: 'rect', x: SRODEK - 90, y: y1, w: 180, h: y2 - y1, klip: 'tulow' })
-const polowa = (znak, y1, y2) => ({ typ: 'rect', x: znak < 0 ? SRODEK - 90 : SRODEK, y: y1, w: 90, h: y2 - y1, klip: 'tulow' })
-
-// Twarz — powiększona wstawka po prawej, bo na sylwetce byłaby za mała, żeby w nią trafić.
-export const TWARZ = { cx: 256, cy: 82, rx: 38, ry: 50 }
-
-function para(id, budowa) {
-  return { [`${id}-p`]: budowa(-1), [`${id}-l`]: budowa(1) }
+// Kończyna: oś (punkty) i grubość w każdym z nich → gładki obrys z zaokrąglonymi końcami.
+function konczyna(os) {
+  const lewa = [], prawa = []
+  os.forEach(([x, y, w], i) => {
+    const a = os[Math.max(0, i - 1)], b = os[Math.min(os.length - 1, i + 1)]
+    let tx = b[0] - a[0], ty = b[1] - a[1]
+    const dl = Math.hypot(tx, ty) || 1
+    tx /= dl; ty /= dl
+    lewa.push([x - ty * w / 2, y + tx * w / 2])
+    prawa.push([x + ty * w / 2, y - tx * w / 2])
+  })
+  const [x0, y0, w0] = os[0], [x1, y1, w1] = os[os.length - 1]
+  const t0 = [os[1][0] - x0, os[1][1] - y0], t1 = [x1 - os[os.length - 2][0], y1 - os[os.length - 2][1]]
+  const l0 = Math.hypot(...t0) || 1, l1 = Math.hypot(...t1) || 1
+  const czapkaGora = [x0 - t0[0] / l0 * w0 * 0.42, y0 - t0[1] / l0 * w0 * 0.42]
+  const czapkaDol = [x1 + t1[0] / l1 * w1 * 0.55, y1 + t1[1] / l1 * w1 * 0.55]
+  return gladka([czapkaGora, ...lewa, czapkaDol, ...prawa.reverse()])
 }
 
-// d / kształt każdej strefy, w kolejności rysowania (późniejsze leżą na wierzchu).
+const X = (znak, dx) => SRODEK + znak * dx
+
+// Tułów od szyi po biodra — połowa punktów (dx, y), druga to lustro. Dno jest
+// płaskie i leży dokładnie tam, gdzie zaczynają się nogi, więc przejście z bioder
+// w uda nie ma widocznego szwu.
+const DNO_TULOWIA = 298
+const POLOWA_TULOWIA = [
+  [13, 76], [32, 82], [52, 88], [58, 99], [47, 121], [43, 143], [37, 169],
+  [32, 197], [34, 225], [44, 253], [51, 275], [52, DNO_TULOWIA],
+]
+const obrysTulowia = () => {
+  const lewa = POLOWA_TULOWIA.map(([dx, y]) => [X(-1, dx), y])      // od szyi w dół
+  const prawa = POLOWA_TULOWIA.map(([dx, y]) => [X(1, dx), y])
+  // od dołu po lewej, w górę, przez szyję, w dół po prawej; dno zamykamy prostą
+  return `${gladka([...lewa.reverse(), [SRODEK, 80], ...prawa], false)} Z`
+}
+
+const os = {
+  reka: (z) => [
+    [X(z, 56), 106, 22], [X(z, 61), 142, 21], [X(z, 70), 188, 18], [X(z, 80), 226, 15],
+    [X(z, 87), 262, 11], [X(z, 91), 282, 15], [X(z, 94), 304, 14], [X(z, 96), 330, 9],
+  ],
+  noga: (z) => [
+    [X(z, 26), 276, 50], [X(z, 26), 300, 50], [X(z, 27), 336, 46], [X(z, 28), 380, 38], [X(z, 28), 412, 32],
+    [X(z, 28), 450, 34], [X(z, 26), 490, 22], [X(z, 25), 516, 16], [X(z, 27), 536, 22],
+    [X(z, 28), 553, 18],
+  ],
+}
+
+// Szyja: osobna strefa, wchodzi trochę na dekolt.
+const SZYJA = `M${P(X(-1, 10), 58)} L${P(X(-1, 11), 80)} Q${P(SRODEK, 91)} ${P(X(1, 11), 80)} L${P(X(1, 10), 58)} Z`
+
+export const CZESCI = {
+  szyja: SZYJA,
+  tulow: obrysTulowia(),
+  'reka-p': konczyna(os.reka(-1)), 'reka-l': konczyna(os.reka(1)),
+  'noga-p': konczyna(os.noga(-1)), 'noga-l': konczyna(os.noga(1)),
+}
+
+// Głowa — tylko tło, nie do klikania.
+export const GLOWA = { cx: SRODEK, cy: 36, rx: 22, ry: 29 }
+
+const pasX = (z) => (z < 0 ? [SRODEK - 110, SRODEK] : [SRODEK, SRODEK + 110])
+// Pas poziomy między y1 a y2: na całą szerokość albo po jednej stronie.
+const pas = (czesc, y1, y2, znak = 0) => {
+  const [x1, x2] = znak ? pasX(znak) : [SRODEK - 110, SRODEK + 110]
+  return { typ: 'rect', czesc, x: x1, y: y1, w: x2 - x1, h: y2 - y1, srodekX: (x1 + x2) / 2 }
+}
+const para = (id, budowa) => ({ [`${id}-p`]: budowa(-1), [`${id}-l`]: budowa(1) })
+
+// Strefy ciała — w kolejności rysowania (późniejsze leżą na wierzchu).
 export const KSZTALTY = {
-  // ── nogi ──
-  ...para('udo-g', z => ({ d: strona(z, 22, 258, 40, 22, 314, 36) })),
-  ...para('udo-d', z => ({ d: strona(z, 22, 318, 36, 21, 366, 30) })),
-  ...para('kolano', z => ({ d: strona(z, 21, 370, 28, 21, 392, 26) })),
-  ...para('podudzie', z => ({ d: strona(z, 20, 396, 26, 17, 498, 16) })),
-  ...para('stopa', z => ({ d: strona(z, 17, 503, 15, 19, 525, 21) })),
-  ...para('palce-stopa', z => ({ d: strona(z, 19, 529, 21, 19, 541, 19) })),
-
-  // ── ręce ──
-  ...para('ramie', z => ({ d: strona(z, 46, 88, 19, 62, 155, 15) })),
-  ...para('przedramie', z => ({ d: strona(z, 62, 161, 15, 74, 225, 11) })),
-  ...para('dlon', z => ({ d: strona(z, 74, 230, 12, 79, 255, 14) })),
-  ...para('palce-reka', z => ({ d: strona(z, 79, 259, 14, 82, 275, 10) })),
-
-  // ── tułów (przycinany do obrysu) ──
-  dekolt: pas(76, 104),
-  piersi: pas(104, 134),
-  'brzuch-g': pas(134, 172),
-  'brzuch-d': pas(172, 214),
-  ...para('bikini', z => polowa(z, 214, 270)),
-  intymne: { d: `M${C(-13)} 222 L${C(13)} 222 L${C(11)} 245 L${C(0)} 262 L${C(-11)} 245 Z`, klip: 'tulow' },
-
-  // pachy leżą na styku ręki i tułowia — na wierzchu
-  ...para('pacha', z => ({ d: strona(z, 41, 99, 10, 41, 121, 10) })),
-  szyja: { d: `M${C(-11)} 56 L${C(11)} 56 L${C(14)} 79 Q${C(0)} 84 ${C(-14)} 79 Z` },
-
-  // ── twarz (wstawka) ──
-  'policzek-p': { typ: 'ellipse', cx: TWARZ.cx - 25, cy: 95, rx: 11, ry: 19 },
-  'policzek-l': { typ: 'ellipse', cx: TWARZ.cx + 25, cy: 95, rx: 11, ry: 19 },
-  wasik: { typ: 'rect', x: TWARZ.cx - 14, y: 100, w: 28, h: 9, rx: 4.5 },
-  broda: { typ: 'ellipse', cx: TWARZ.cx, cy: 123, rx: 16, ry: 9, klip: 'twarz' },
+  // nogi
+  ...para('udo-g', z => pas(`noga-${z < 0 ? 'p' : 'l'}`, 296, 352, z)),
+  ...para('udo-d', z => pas(`noga-${z < 0 ? 'p' : 'l'}`, 352, 404, z)),
+  ...para('kolano', z => pas(`noga-${z < 0 ? 'p' : 'l'}`, 404, 436, z)),
+  ...para('podudzie', z => pas(`noga-${z < 0 ? 'p' : 'l'}`, 436, 504, z)),
+  ...para('stopa', z => pas(`noga-${z < 0 ? 'p' : 'l'}`, 504, 538, z)),
+  ...para('palce-stopa', z => pas(`noga-${z < 0 ? 'p' : 'l'}`, 538, 560, z)),
+  // ręce
+  ...para('ramie', z => pas(`reka-${z < 0 ? 'p' : 'l'}`, 80, 190, z)),
+  ...para('przedramie', z => pas(`reka-${z < 0 ? 'p' : 'l'}`, 190, 262, z)),
+  ...para('dlon', z => pas(`reka-${z < 0 ? 'p' : 'l'}`, 262, 306, z)),
+  ...para('palce-reka', z => pas(`reka-${z < 0 ? 'p' : 'l'}`, 306, 340, z)),
+  // tułów
+  dekolt: pas('tulow', 70, 108),
+  piersi: pas('tulow', 108, 150),
+  'brzuch-g': pas('tulow', 150, 205),
+  'brzuch-d': pas('tulow', 205, 252),
+  ...para('bikini', z => pas('tulow', 252, 299, z)),
+  intymne: { typ: 'path', czesc: 'tulow', d: `M${P(SRODEK - 17, 254)} L${P(SRODEK + 17, 254)} L${P(SRODEK + 13, 280)} L${P(SRODEK, 299)} L${P(SRODEK - 13, 280)} Z`, srodekX: SRODEK },
+  // pachy — na styku ręki i tułowia
+  ...para('pacha', z => ({ typ: 'ellipse', czesc: 'pacha', cx: X(z, 46), cy: 127, rx: 8, ry: 15, srodekX: X(z, 46) })),
+  szyja: { typ: 'path', czesc: 'szyja', d: SZYJA, srodekX: SRODEK },
 }
 
-// Elementy czysto dekoracyjne (nie do klikania).
-export const GLOWA = { cx: SRODEK, cy: 34, rx: 21, ry: 25 }
+// Klipy: pacha przycina się do sumy tułowia i obu rąk, szyja do własnego kształtu.
+export const KLIPY = {
+  tulow: ['tulow'],
+  'reka-p': ['reka-p'], 'reka-l': ['reka-l'],
+  'noga-p': ['noga-p'], 'noga-l': ['noga-l'],
+  'pacha-p': ['tulow', 'reka-p'], 'pacha-l': ['tulow', 'reka-l'],
+  szyja: ['szyja'],
+}
+export const klipDlaStrefy = (id, k) => k.czesc === 'pacha' ? `pacha-${id.endsWith('-p') ? 'p' : 'l'}` : k.czesc
+
+// ── Twarz — osobny rysunek ──
+export const TWARZ_WIDOK = { w: 120, h: 140 }
+export const TWARZ = { cx: 60 }
+export const OBRYS_TWARZY =
+  'M60 6 C86 6 103 26 103 56 C103 90 85 128 60 135 C35 128 17 90 17 56 C17 26 34 6 60 6 Z'
+
+export const TWARZ_KSZTALTY = {
+  'policzek-p': { typ: 'ellipse', cx: 33, cy: 94, rx: 17, ry: 27, srodekX: 33 },
+  'policzek-l': { typ: 'ellipse', cx: 87, cy: 94, rx: 17, ry: 27, srodekX: 87 },
+  wasik: { typ: 'ellipse', cx: 60, cy: 98, rx: 17, ry: 6, srodekX: 60 },
+  broda: { typ: 'ellipse', cx: 60, cy: 126, rx: 21, ry: 11, srodekX: 60 },
+}
 export const TWARZ_DEKORACJE = {
-  oczy: [[TWARZ.cx - 14, 66], [TWARZ.cx + 14, 66]],
-  nos: `M${TWARZ.cx} 72 L${TWARZ.cx - 4} 90 Q${TWARZ.cx} 93 ${TWARZ.cx + 4} 90`,
-  usta: `M${TWARZ.cx - 9} 112 Q${TWARZ.cx} 116 ${TWARZ.cx + 9} 112`,
+  oczy: [[45, 50], [75, 50]],
+  brwi: ['M37 41 Q45 37 53 40', 'M67 40 Q75 37 83 41'],
+  nos: 'M60 56 L56 83 Q60 87 64 83',
+  usta: 'M49 110 Q60 115 71 110',
 }

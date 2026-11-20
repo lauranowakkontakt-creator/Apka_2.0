@@ -7,11 +7,12 @@ import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 import SegTabs from '../SegTabs'
 import StatTiles from '../StatTiles'
-import { IconPlus } from '../Icons'
-import { ostatniePoStrefach, podsumowanie, dawnoTemu } from '../../utils/iplLogic'
+import { IconPlus, IconSettings } from '../Icons'
+import { ostatniePoStrefach, podsumowanie, dawnoTemu, aktywneStrefy, oczyscUkryte, ZONY } from '../../utils/iplLogic'
 import { TODAY } from './wspolne'
-import IplModel, { NASYCENIE, wypelnienie } from './IplModel'
+import IplModel, { IplTwarz, NASYCENIE, wypelnienie } from './IplModel'
 import ZabiegForm from './ZabiegForm'
+import WyborStref from './WyborStref'
 import StrefaSheet from './StrefaSheet'
 import ZabiegiView from './ZabiegiView'
 import PostepyView from './PostepyView'
@@ -43,12 +44,16 @@ export default function IplDashboard({ user, setHeaderExtras }) {
   const [tryb, setTryb]       = useState('ostatnio')
   const [strefaId, setStrefaId] = useState(null)   // otwarta karta strefy
   const [formularz, setFormularz] = useState(null) // { strefy?: [...], wpis? }
+  const [ukryte, setUkryte]   = useState([])      // strefy wyłączone w ustawieniach
+  const [wybor, setWybor]     = useState(false)    // okno „Śledzone strefy”
 
   useEffect(() => {
     const u = onSnapshot(query(collection(db, 'users', user.uid, 'iplZabiegi'), orderBy('date', 'desc')), s => {
       setWpisy(s.docs.map(d => ({ id: d.id, ...d.data() }))); setLoading(false)
     }, bladSubskrypcji('iplZabiegi', { przyBledzie: () => setLoading(false) }))
-    return () => u()
+    const ust = onSnapshot(doc(db, 'users', user.uid, 'settings', 'ipl'),
+      s => setUkryte(oczyscUkryte(s.data()?.ukryte)), bladSubskrypcji('settings/ipl'))
+    return () => { u(); ust() }
   }, [user.uid])
 
   useEffect(() => {
@@ -62,7 +67,9 @@ export default function IplDashboard({ user, setHeaderExtras }) {
 
   const dzis = TODAY()
   const ostatnie = useMemo(() => ostatniePoStrefach(wpisy), [wpisy])
-  const suma = useMemo(() => podsumowanie(wpisy, dzis), [wpisy, dzis])
+  const suma = useMemo(() => podsumowanie(wpisy, dzis, ukryte), [wpisy, dzis, ukryte])
+  const aktywne = useMemo(() => aktywneStrefy(ukryte), [ukryte])
+  const maTwarz = aktywne.some(z => z.group === 'twarz')
 
   if (loading) return <div className="list-loading">Ładowanie...</div>
 
@@ -82,10 +89,19 @@ export default function IplDashboard({ user, setHeaderExtras }) {
 
       {tab === 'model' && (
         <>
-          <SegTabs items={TRYBY} active={tryb} onChange={setTryb} />
           <div className="card ipl-model-karta">
-            <IplModel ostatnie={ostatnie} tryb={tryb} dzis={dzis} wybrana={strefaId} onPick={setStrefaId} />
-            <Legenda tryb={tryb} />
+            <div className="ipl-gora">
+              {maTwarz && <IplTwarz ostatnie={ostatnie} tryb={tryb} dzis={dzis} wybrana={strefaId} onPick={setStrefaId} ukryte={ukryte} />}
+              <div className="ipl-opcje">
+                <div className="ipl-tryby" role="group" aria-label="Co pokazują kolory">
+                  {TRYBY.map(t => (
+                    <button key={t.id} type="button" className={`ipl-chip${tryb === t.id ? ' active' : ''}`} aria-pressed={tryb === t.id} onClick={() => setTryb(t.id)}>{t.label}</button>
+                  ))}
+                </div>
+                <Legenda tryb={tryb} />
+              </div>
+            </div>
+            <IplModel ostatnie={ostatnie} tryb={tryb} dzis={dzis} wybrana={strefaId} onPick={setStrefaId} ukryte={ukryte} />
           </div>
           {wpisy.length === 0 ? (
             <div className="list-empty">
@@ -97,6 +113,9 @@ export default function IplDashboard({ user, setHeaderExtras }) {
           )}
           <button type="button" className="btn-add-account" onClick={() => setFormularz({ strefy: [] })}>
             <IconPlus size={15} style={{ verticalAlign: '-3px', marginRight: 4 }} /> Dodaj zabieg
+          </button>
+          <button type="button" className="ipl-wybierz" onClick={() => setWybor(true)}>
+            <IconSettings size={15} /> Wybierz śledzone strefy <span>{aktywne.length} z {ZONY.length}</span>
           </button>
         </>
       )}
@@ -119,8 +138,9 @@ export default function IplDashboard({ user, setHeaderExtras }) {
         />
       )}
       {formularz && (
-        <ZabiegForm user={user} wpisy={wpisy} startStrefy={formularz.strefy} wpis={formularz.wpis} onClose={() => setFormularz(null)} />
+        <ZabiegForm user={user} wpisy={wpisy} ukryte={ukryte} startStrefy={formularz.strefy} wpis={formularz.wpis} onClose={() => setFormularz(null)} />
       )}
+      {wybor && <WyborStref user={user} ukryte={ukryte} wpisy={wpisy} onClose={() => setWybor(false)} />}
     </div>
   )
 }
@@ -132,7 +152,7 @@ function Legenda({ tryb }) {
       {nazwy.map((n, i) => (
         <li key={n}><i style={{ background: wypelnienie(nasycenie[i]) }} />{n}</li>
       ))}
-      <li><i style={{ background: wypelnienie(null) }} />brak danych</li>
+      <li><i style={{ background: wypelnienie(null) }} />brak</li>
     </ul>
   )
 }
