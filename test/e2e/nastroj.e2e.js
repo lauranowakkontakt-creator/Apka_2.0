@@ -19,7 +19,8 @@ const dzien = (n) => format(subDays(new Date(), n), 'yyyy-MM-dd')
 // Otwiera formularz przez „+” i przełącza datę na dzień bez wpisu (wpis wstecz)
 async function nowyDzien(strona, data) {
   await strona.locator('.hdr-btn.accent:visible').first().click()
-  await strona.locator('.mood-date input').first().fill(data)
+  const pole = strona.locator('.mood-date input').first()
+  await pole.fill(data); await pole.blur()
   await strona.waitForTimeout(150)
   // Dzień bez wpisu otwiera się od razu na nowej chwili
   assert.equal(await strona.locator('.mood-time input').count(), 1, 'nowy dzień powinien otworzyć formularz chwili')
@@ -56,6 +57,26 @@ test('wpis wstecz trafia na wybrany dzień, a dzisiejszy wpis zostaje na miejscu
   // „+” otwierał dzisiejszy wpis — zmiana daty nie może go przenieść
   await dzienWKalendarzu(strona, format(new Date(), 'yyyy-MM-dd'))
   assert.equal(await strona.locator('.mood-day .mood-log').count(), 1, 'dzisiejszy wpis zniknął')
+  assert.deepEqual(bledy, [])
+  await strona.close()
+})
+
+test('dzień wpisu wpisany ręcznie nie wraca do dzisiejszego', async () => {
+  const { strona, bledy } = await otworzModul(ctx, 'mood', KOMPUTER)
+  await strona.locator('.hdr-btn.accent:visible').first().click()
+  const pole = strona.locator('.mood-date input').first()
+  // Skasowanie fragmentu daty chwilowo opróżnia pole — wcześniej od razu wracała dzisiejsza.
+  await pole.click({ position: { x: 30, y: 10 } })
+  await strona.keyboard.press('Backspace')
+  assert.equal(await pole.inputValue(), '', 'pole wróciło do dzisiejszej daty po skasowaniu fragmentu')
+  const data = dzien(401)
+  await pole.fill(data); await pole.blur(); await strona.waitForTimeout(150)
+  assert.equal(await strona.locator('.mood-date input').first().inputValue(), data)
+  // Niepełna data po wyjściu z pola wraca do obowiązującej, a formularz zostaje na tym dniu
+  const pole2 = strona.locator('.mood-date input').first()
+  await pole2.click({ position: { x: 30, y: 10 } })
+  await strona.keyboard.press('Backspace'); await pole2.blur(); await strona.waitForTimeout(150)
+  assert.equal(await strona.locator('.mood-date input').first().inputValue(), data)
   assert.deepEqual(bledy, [])
   await strona.close()
 })

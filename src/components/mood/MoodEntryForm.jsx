@@ -39,6 +39,37 @@ const moodZWartosci = (v) => MOODS.find(m => m.value === v) || moodDla(v)
  * wywołują różne emocje (10:00 praca → złość, 18:00 spotkanie → radość).
  * Na poziomie dnia: data, ocena relacji, kalendarz, energia i ciało, notatka.
  */
+/**
+ * Wybór dnia wpisu. Pole ma własny szkic: przy wpisywaniu ręcznie bywa chwilowo
+ * puste albo niepełne, a gdyby trzymać je wprost na `dzien`, React od razu
+ * cofałby je do poprzedniej daty (zwykle dzisiejszej). Zmiana dnia otwiera
+ * formularz od nowa, więc nie robimy jej w trakcie pisania — dopiero po wyjściu
+ * z pola, Enterze albo chwili bez zmian. Niepełna lub przyszła data po wyjściu
+ * z pola wraca do obowiązującej.
+ */
+const pelnaData = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && v >= '1900-01-01' && v <= TODAY()
+function PoleDnia({ dzien, onZmien }) {
+  const [szkic, setSzkic] = useState(dzien)
+  const czekaj = useRef(null)
+  useEffect(() => { setSzkic(dzien) }, [dzien])
+  useEffect(() => () => clearTimeout(czekaj.current), [])
+  const zatwierdz = (v) => {
+    clearTimeout(czekaj.current)
+    if (pelnaData(v) && v !== dzien) onZmien?.(v)
+    else if (v !== dzien) setSzkic(dzien)
+  }
+  const zmien = (v) => {
+    setSzkic(v)
+    clearTimeout(czekaj.current)
+    if (pelnaData(v) && v !== dzien) czekaj.current = setTimeout(() => zatwierdz(v), 900)
+  }
+  return (
+    <input type="date" value={szkic} max={TODAY()} onChange={e => zmien(e.target.value)}
+      onBlur={e => zatwierdz(e.target.value)}
+      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); zatwierdz(e.currentTarget.value) } }} />
+  )
+}
+
 export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [], initialMood = null, edit = null, onZmienDzien, onSaved }) {
   const dzien = date
   const [chwile, setChwile]     = useState(() => (edit ? chwileWpisu(edit) : []))
@@ -143,7 +174,7 @@ export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [],
           <div className="mood-day-bar">
             <label className="mood-date">
               <span>Dzień</span>
-              <input type="date" value={dzien} max={TODAY()} onChange={e => e.target.value && e.target.value <= TODAY() && onZmienDzien?.(e.target.value)} />
+              <PoleDnia dzien={dzien} onZmien={onZmienDzien} />
             </label>
             {chwile.length > (istniejaca ? 1 : 0) && <span className="mood-day-bar-info">{chwile.length} {chwile.length === 1 ? 'chwila' : 'chwile'} tego dnia</span>}
           </div>
@@ -160,7 +191,7 @@ export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [],
       <div className="mood-day-bar">
         <label className="mood-date">
           <span>Dzień</span>
-          <input type="date" value={dzien} max={TODAY()} onChange={e => e.target.value && e.target.value <= TODAY() && onZmienDzien?.(e.target.value)} />
+          <PoleDnia dzien={dzien} onZmien={onZmienDzien} />
         </label>
         {suma && <span className="mood-day-bar-info">średnio <b>{moodDla(suma.moodValue).label}</b></span>}
       </div>
