@@ -25,6 +25,7 @@ const SINGLE_DOCS = [
   ['settings', 'habitPauses'],
   ['settings', 'mood'],
   ['settings', 'car'],
+  ['settings', 'ipl'],
 ]
 
 // Firestore Timestamp → ISO string (czytelne i odtwarzalne)

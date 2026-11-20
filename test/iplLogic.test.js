@@ -19,21 +19,29 @@ test('strefy: unikalne id, każda w istniejącej grupie, jest ich dużo', () => 
   for (const z of ZONY) assert.ok(grupy.has(z.group), `strefa ${z.id} w nieznanej grupie ${z.group}`)
 })
 
-test('strefy: każda strefa ma kształt na modelu i odwrotnie', () => {
+test('strefy: każda strefa ma kształt na modelu lub na twarzy i odwrotnie', () => {
   const ids = ZONY.map(z => z.id).sort()
-  assert.deepEqual(Object.keys(G.KSZTALTY).sort(), ids)
+  const naCiele = Object.keys(G.KSZTALTY), naTwarzy = Object.keys(G.TWARZ_KSZTALTY)
+  assert.deepEqual([...naCiele, ...naTwarzy].sort(), ids)
+  assert.deepEqual(naTwarzy.sort(), ZONY.filter(z => z.group === 'twarz').map(z => z.id).sort(), 'na twarzy mają być wszystkie strefy twarzy i tylko one')
 })
 
 test('strefy: pary prawa/lewa są po obu stronach osi rysunku', () => {
-  const x = (d) => Number(/M(-?[\d.]+)/.exec(d)[1])
   for (const z of ZONY.filter(z => z.strona)) {
-    const k = G.KSZTALTY[z.id]
-    const srodek = z.group === 'twarz' ? G.TWARZ.cx : G.SRODEK   // twarz to osobna wstawka z własną osią
-    const sr = k.typ === 'ellipse' ? k.cx : k.typ === 'rect' ? k.x + k.w / 2 : x(k.d)
-    // tułowiowe połówki zaczynają się przy osi, więc sprawdzamy tylko kierunek
-    if (z.baza === 'bikini') { assert.ok(z.strona === 'p' ? k.x < srodek : k.x >= srodek, z.id); continue }
-    assert.ok(z.strona === 'p' ? sr < srodek : sr > srodek, `${z.id}: prawa ma być z lewej strony rysunku`)
+    const k = G.KSZTALTY[z.id] || G.TWARZ_KSZTALTY[z.id]
+    const os = z.group === 'twarz' ? G.TWARZ_WIDOK.w / 2 : G.SRODEK   // twarz to osobny rysunek z własną osią
+    if (z.baza === 'bikini') { assert.ok(z.strona === 'p' ? k.x < os : k.x >= os, z.id); continue }
+    assert.ok(z.strona === 'p' ? k.srodekX < os : k.srodekX > os, `${z.id}: prawa ma być z lewej strony rysunku`)
   }
+})
+
+test('strefy: każda przycina się do istniejącej części ciała', () => {
+  for (const [id, k] of Object.entries(G.KSZTALTY)) {
+    const klip = G.klipDlaStrefy(id, k)
+    assert.ok(G.KLIPY[klip], `strefa ${id}: brak klipu ${klip}`)
+    for (const czesc of G.KLIPY[klip]) assert.ok(G.CZESCI[czesc], `klip ${klip}: brak części ${czesc}`)
+  }
+  for (const d of Object.values(G.CZESCI)) assert.ok(!d.includes('NaN'), 'obrys z NaN — błąd w geometrii')
 })
 
 test('dniMiedzy: liczy dni kalendarzowe, także przez zmianę czasu i lata', () => {
@@ -138,6 +146,29 @@ test('wpisyStrefy: tylko ta strefa, od najnowszego', () => {
   assert.deepEqual(l.map(x => x.date), ['2026-03-01', '2026-01-01'])
 })
 
+test('wyłączone strefy: znikają z liczników i z listy, zapisane zabiegi zostają', () => {
+  const { aktywneStrefy, czyAktywna, oczyscUkryte, strefyGrupy } = L
+  const ukryte = ['wasik', 'broda', 'policzek-p', 'policzek-l']
+  assert.equal(aktywneStrefy(ukryte).length, ZONY.length - 4)
+  assert.equal(aktywneStrefy().length, ZONY.length)
+  assert.equal(czyAktywna('szyja', ukryte), true)
+  assert.equal(czyAktywna('wasik', ukryte), false)
+  assert.equal(czyAktywna('nieznana'), false)
+  assert.deepEqual(strefyGrupy('twarz', ukryte), [])
+  assert.equal(strefyGrupy('twarz').length, 4)
+  // zabieg w wyłączonej strefie nie liczy się do „stref zrobionych”, ale do zabiegów tak
+  const p = podsumowanie([w('wasik', '2026-11-02'), w('szyja', '2026-11-02')], '2026-11-05', ukryte)
+  assert.equal(p.strefyZrobione, 1)
+  assert.equal(p.strefyRazem, ZONY.length - 4)
+  assert.equal(p.zabiegi, 1)
+  // historia wyłączonej strefy dalej się liczy
+  assert.equal(statStrefy([w('wasik', '2026-10-01', 2)], 'wasik', '2026-11-01').liczba, 1)
+  // ustawienie z bazy może zawierać śmieci
+  assert.deepEqual(oczyscUkryte(['szyja', 'szyja', 'xx', 5, null]), ['szyja'])
+  assert.deepEqual(oczyscUkryte(undefined), [])
+  assert.deepEqual(oczyscUkryte('szyja'), [])
+})
+
 test('moduł IPL jest podpięty: aplikacja, Pulpit, kopia, czyszczenie, demo', () => {
   const r = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8')
   assert.match(r('src/App.jsx'), /id: 'ipl'/)
@@ -145,5 +176,8 @@ test('moduł IPL jest podpięty: aplikacja, Pulpit, kopia, czyszczenie, demo', (
   assert.match(r('src/components/Pulpit.jsx'), /shows\('ipl'\)/)
   assert.match(r('src/utils/dataExport.js'), /'iplZabiegi'/)
   assert.match(r('src/utils/moduleData.js'), /iplZabiegi/)
+  assert.match(r('src/utils/moduleData.js'), /\['settings', 'ipl'\]/, 'ustawienie stref nie jest przypisane do modułu')
+  assert.match(r('src/utils/dataExport.js'), /\['settings', 'ipl'\]/, 'ustawienie stref nie trafia do kopii')
   assert.match(r('src/demo/seed.js'), /iplZabiegi/)
+  assert.match(r('src/components/ipl/IplDashboard.jsx'), /WyborStref/, 'brak wyboru śledzonych stref')
 })

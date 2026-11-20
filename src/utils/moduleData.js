@@ -29,7 +29,7 @@ export const MODULE_DATA = {
     label: 'Auto', what: 'tankowania, naprawy oraz dane auta z terminami OC i przeglądu',
     collections: ['carFuel', 'carRepairs'], docs: [['settings', 'car']],
   },
-  ipl: { label: 'IPL', what: 'zabiegi depilatorem IPL: strefy ciała, daty, owłosienie i szybkość odrastania', collections: ['iplZabiegi'], docs: [] },
+  ipl: { label: 'IPL', what: 'zabiegi depilatorem IPL (daty, owłosienie, szybkość odrastania) i wybór śledzonych stref', collections: ['iplZabiegi'], docs: [['settings', 'ipl']] },
   mood: {
     label: 'Nastrój', what: 'wpisy nastroju, zapisy snu, cykl oraz własne emocje, czynniki i okresy',
     collections: ['moodLogs', 'sleepLogs', 'cycleLogs'], docs: [['settings', 'mood']],

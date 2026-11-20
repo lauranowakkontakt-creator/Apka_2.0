@@ -5,7 +5,7 @@ import { db } from '../../firebase/config'
 import { toast } from '../Toast'
 import { IconClose } from '../Icons'
 import {
-  GRUPY, ZONY, strefyGrupy, nazwaStrefy, OWLOSIENIE, ODRASTANIE, wpisyZabiegu, strefyWord,
+  GRUPY, ZONY, strefyGrupy, czyAktywna, nazwaStrefy, OWLOSIENIE, ODRASTANIE, wpisyZabiegu, strefyWord,
   statStrefy, dawnoTemu,
 } from '../../utils/iplLogic'
 import { TODAY } from './wspolne'
@@ -14,9 +14,9 @@ import { TODAY } from './wspolne'
 // stref naraz zapisuje się jako osobny wpis dla każdej strefy (z tą samą datą).
 // Przy edycji zmieniasz jeden wpis — strefy wtedy się nie zmieniają.
 
-export default function ZabiegForm({ user, wpisy, startStrefy = [], wpis, onClose }) {
+export default function ZabiegForm({ user, wpisy, ukryte = [], startStrefy = [], wpis, onClose }) {
   const [date, setDate]         = useState(wpis?.date || TODAY())
-  const [strefy, setStrefy]     = useState(wpis ? [wpis.zone] : startStrefy)
+  const [strefy, setStrefy]     = useState(wpis ? [wpis.zone] : startStrefy.filter(id => czyAktywna(id, ukryte)))
   const [hair, setHair]         = useState(Number.isInteger(wpis?.hair) ? wpis.hair : null)
   const [regrowth, setRegrowth] = useState(Number.isInteger(wpis?.regrowth) ? wpis.regrowth : null)
   const [note, setNote]         = useState(wpis?.note || '')
@@ -24,7 +24,7 @@ export default function ZabiegForm({ user, wpisy, startStrefy = [], wpis, onClos
 
   const przelacz = (id) => setStrefy(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id])
   const grupaWszystkie = (grupa) => {
-    const ids = strefyGrupy(grupa).map(z => z.id)
+    const ids = strefyGrupy(grupa, ukryte).map(z => z.id)
     setStrefy(s => ids.every(id => s.includes(id)) ? s.filter(id => !ids.includes(id)) : [...new Set([...s, ...ids])])
   }
 
@@ -69,10 +69,11 @@ export default function ZabiegForm({ user, wpisy, startStrefy = [], wpis, onClos
             </div>
           ) : (
             <div className="form-group">
-              <label>Strefy ({strefy.length} z {ZONY.length})</label>
+              <label>Strefy ({strefy.length} z {ZONY.length - ukryte.filter(id => czyAktywna(id)).length})</label>
               <div className="ipl-wybor">
                 {GRUPY.map(g => {
-                  const lista = strefyGrupy(g.id)
+                  const lista = strefyGrupy(g.id, ukryte)
+                  if (lista.length === 0) return null
                   const wszystkie = lista.every(z => strefy.includes(z.id))
                   return (
                     <div key={g.id} className="ipl-wybor-grupa">
