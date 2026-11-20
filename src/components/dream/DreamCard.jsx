@@ -1,11 +1,11 @@
 import PersonBubble from '../PersonBubble'
-import { dreamPeopleIds, findDreamCategory, getEmotion } from '../../utils/dreams'
+import { dreamPeopleIds, findDreamCategory, findDreamEmotion } from '../../utils/dreams'
 import { IconCalendar, IconChevronRight } from '../Icons'
 import { Chip, fmtDate, SymbolChip } from './wspolne'
 
 // Kafelek snu na liście.
 
-export default function DreamCard({ dream: d, categories, peopleById, symbolsById, onClick }) {
+export default function DreamCard({ dream: d, categories, emotions, peopleById, symbolsById, onClick }) {
   const cat = findDreamCategory(categories, d.category)
   const linked = dreamPeopleIds(d).map(id => peopleById[id]).filter(Boolean)
   const syms = (d.symbolIds || []).map(id => symbolsById[id]).filter(Boolean)
@@ -34,7 +34,7 @@ export default function DreamCard({ dream: d, categories, peopleById, symbolsByI
       {(d.emotions?.length > 0 || syms.length > 0 || linked.length > 0) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           {d.emotions?.slice(0, 3).map(eid => {
-            const e = getEmotion(eid); if (!e) return null
+            const e = findDreamEmotion(emotions, eid); if (!e) return null
             return <Chip key={eid} color={e.color}>{e.label}</Chip>
           })}
           {syms.slice(0, 3).map(s => <SymbolChip key={s.id} symbol={s} />)}

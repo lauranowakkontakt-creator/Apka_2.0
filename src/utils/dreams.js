@@ -10,7 +10,7 @@ import { db } from '../firebase/config'
 // dzięki czemu można ją testować. Tutaj re-eksport + operacje na bazie.
 export {
   DREAM_EMOTIONS, DREAM_CATEGORIES, SYMBOL_COLORS,
-  getEmotion, getCategory, mergeDreamCategories, findDreamCategory, parseMentions, parseSymbols, symbolForms, parseAliasInput, symbolMatchesQuery, dreamPeopleIds, nameStem, personForms,
+  getEmotion, getCategory, mergeDreamCategories, mergeDreamEmotions, findDreamCategory, findDreamEmotion, parseMentions, parseSymbols, symbolForms, parseAliasInput, symbolMatchesQuery, dreamPeopleIds, nameStem, personForms,
   detectTrigger, tokenizeDreamText, formMatch, bestPersonMatch,
 } from './dreamLogic'
 

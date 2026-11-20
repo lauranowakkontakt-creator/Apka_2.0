@@ -22,7 +22,7 @@ export const MODULE_DATA = {
   prayer: { label: 'Modlitwa', what: 'intencje modlitewne', collections: ['prayerIntentions'], docs: [] },
   bible: { label: 'Biblia', what: 'notatki i postęp czytania', collections: ['bibleNotes'], docs: [['bible', 'progress']] },
   people: { label: 'Osoby', what: 'osoby (znikną też z kalendarza, modlitwy i snów)', collections: ['calendarPeople'], docs: [] },
-  dream: { label: 'Sen', what: 'sny, kategorie, symbole i ćwiczenia pamięci', collections: ['dreams', 'dreamCategories', 'dreamSymbols', 'dreamMemory'], docs: [] },
+  dream: { label: 'Sen', what: 'sny, kategorie, symbole i ćwiczenia pamięci', collections: ['dreams', 'dreamCategories', 'dreamEmotions', 'dreamSymbols', 'dreamMemory'], docs: [] },
   gratitude: { label: 'Wdzięcznik', what: 'wpisy wdzięczności', collections: ['gratitude'], docs: [] },
   wspomnik: { label: 'Wspomnik', what: 'zapisane wspomnienia o tym, co Bóg zrobił', collections: ['remembrances'], docs: [] },
   auto: {

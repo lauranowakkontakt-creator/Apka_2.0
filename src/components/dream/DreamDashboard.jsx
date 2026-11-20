@@ -1,5 +1,5 @@
 import { db } from '../../firebase/config'
-import { SYMBOL_COLORS, mergeDreamCategories } from '../../utils/dreams'
+import { SYMBOL_COLORS, mergeDreamCategories, mergeDreamEmotions } from '../../utils/dreams'
 import { bladSubskrypcji } from '../../utils/polaczenie'
 import useFallbackTimeout from '../../utils/useFallbackTimeout'
 import { confirmDialog } from '../ConfirmModal'
@@ -24,6 +24,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
   const [dreams, setDreams]   = useState([])
   const [people, setPeople]   = useState([])
   const [symbols, setSymbols] = useState([])
+  const [customEmos, setCustomEmos] = useState([])
   const [loading, setLoading] = useState(true)
   useFallbackTimeout(() => setLoading(false))
   const [tab, setTab]         = useState('dreams') // 'dreams' | 'symbols'
@@ -50,6 +51,10 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
     const q = query(collection(db, 'users', user.uid, 'dreamCategories'), orderBy('createdAt', 'asc'))
     return onSnapshot(q, snap => setCustomCats(snap.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('dreamCategories'))
   }, [user.uid])
+  useEffect(() => {
+    const q = query(collection(db, 'users', user.uid, 'dreamEmotions'), orderBy('createdAt', 'asc'))
+    return onSnapshot(q, snap => setCustomEmos(snap.docs.map(d => ({ id: d.id, ...d.data() }))), bladSubskrypcji('dreamEmotions'))
+  }, [user.uid])
 
   // Wejście z innego modułu (np. z karty osoby w „Osoby")
   useEffect(() => {
@@ -58,6 +63,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
 
   // Wbudowane kategorie + własne — jedna lista dla kafelków, szczegółów i formularza.
   const categories  = useMemo(() => mergeDreamCategories(customCats), [customCats])
+  const emotions    = useMemo(() => mergeDreamEmotions(customEmos), [customEmos])
   const peopleById  = useMemo(() => Object.fromEntries(people.map(p => [p.id, p])), [people])
   const symbolsById = useMemo(() => Object.fromEntries(symbols.map(s => [s.id, s])), [symbols])
 
@@ -109,7 +115,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
         <div className="rev-subhead">
           <button className="rev-back" onClick={() => { setTab('dreams'); setSelectedSymbolId(null) }} title="Wróć"><IconChevronLeft size={18} /></button>
           <div className="rev-subhead-title">
-            {tab === 'symbols' ? 'Symbole' : tab === 'categories' ? 'Kategorie snów' : tab === 'memory' ? 'Ćwiczenie pamięci' : tab === 'import' ? 'Import snów' : 'Statystyki'}
+            {tab === 'symbols' ? 'Symbole' : tab === 'categories' ? 'Kategorie i emocje' : tab === 'memory' ? 'Ćwiczenie pamięci' : tab === 'import' ? 'Import snów' : 'Statystyki'}
           </div>
         </div>
       )}
@@ -117,7 +123,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
       {selected ? (
         <DreamDetail
           dream={selected}
-          categories={categories}
+          categories={categories} emotions={emotions}
           peopleById={peopleById}
           symbolsById={symbolsById}
           onBack={() => setSelectedId(null)}
@@ -130,7 +136,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
       ) : tab === 'memory' ? (
         <DreamMemory user={user} />
       ) : tab === 'stats' ? (
-        <DreamStats dreams={dreams} categories={categories} />
+        <DreamStats dreams={dreams} categories={categories} emotions={emotions} />
       ) : tab === 'categories' ? (
         <DreamCategoryManager user={user} />
       ) : tab === 'symbols' ? (
@@ -139,7 +145,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
           symbols={symbols}
           dreams={dreams}
           counts={symbolCounts}
-          categories={categories}
+          categories={categories} emotions={emotions}
           peopleById={peopleById}
           symbolsById={symbolsById}
           selectedSymbolId={selectedSymbolId}
@@ -155,7 +161,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
               <p className="list-empty-hint">Zapisz, co Ci się śniło — emocje, kategorię, osoby (@) i symbole (#)</p>
             </div>
           ) : dreams.map(d => (
-            <DreamCard key={d.id} dream={d} categories={categories} peopleById={peopleById} symbolsById={symbolsById} onClick={() => setSelectedId(d.id)} />
+            <DreamCard key={d.id} dream={d} categories={categories} emotions={emotions} peopleById={peopleById} symbolsById={symbolsById} onClick={() => setSelectedId(d.id)} />
           ))}
         </div>
       )}
@@ -163,7 +169,7 @@ export default function DreamDashboard({ user, focusId, onFocusConsumed, setHead
       {showForm && (
         <DreamForm
           user={user}
-          categories={categories}
+          categories={categories} emotions={emotions}
           people={people}
           symbols={symbols}
           onCreateSymbol={createSymbol}
