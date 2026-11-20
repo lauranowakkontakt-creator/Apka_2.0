@@ -17,6 +17,7 @@ const GratitudeDashboard = lazy(() => import('./components/gratitude/GratitudeDa
 const WspomnikDashboard = lazy(() => import('./components/wspomnik/WspomnikDashboard'))
 const MoodDashboard = lazy(() => import('./components/mood/MoodDashboard'))
 const AutoDashboard = lazy(() => import('./components/auto/AutoDashboard'))
+const IplDashboard = lazy(() => import('./components/ipl/IplDashboard'))
 // Te same importy co wyżej — bundler łączy je w jeden chunk; lista służy do
 // dociągnięcia kodu modułów w wolnej chwili (patrz efekt w App).
 const MODULY_DO_DOCIAGNIECIA = [
@@ -32,12 +33,13 @@ const MODULY_DO_DOCIAGNIECIA = [
   () => import('./components/wspomnik/WspomnikDashboard'),
   () => import('./components/mood/MoodDashboard'),
   () => import('./components/auto/AutoDashboard'),
+  () => import('./components/ipl/IplDashboard'),
 ]
 import SettingsDrawer from './components/SettingsDrawer'
 import MoreSheet from './components/MoreSheet'
 import ErrorBoundary from './components/ErrorBoundary'
 import PasekPolaczenia from './components/PasekPolaczenia'
-import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun, IconMood, IcCar, IcStones } from './components/Icons'
+import { IconBudget, IconHabits, IconTodo, IconCalendar, IconPrayer, IconBook, IconSettings, IconHome, IconMore, IconUsers, IconMoon, IcSun, IconMood, IcCar, IcStones, IcSparkles } from './components/Icons'
 import { getModuleIcons, resolveIcon } from './utils/iconPrefs'
 import { getLayout, saveLayout, applyLayout, visibleModules, navModules } from './utils/moduleLayout'
 import { getCurrencyCode } from './utils/currency'
@@ -86,6 +88,7 @@ function buildModules() {
     { id: 'wspomnik', label: 'Wspomnik',  Icon: resolveIcon(prefs.wspomnik, IcStones) },
     { id: 'mood',     label: 'Nastrój',   Icon: resolveIcon(prefs.mood, IconMood) },
     { id: 'auto',     label: 'Auto',      Icon: resolveIcon(prefs.auto, IcCar) },
+    { id: 'ipl',      label: 'IPL',       Icon: resolveIcon(prefs.ipl, IcSparkles) },
   ]
 }
 
@@ -327,6 +330,7 @@ export default function App() {
             {activeModule === 'wspomnik' && <WspomnikDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'mood'     && <MoodDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             {activeModule === 'auto'     && <AutoDashboard user={user} setHeaderExtras={setHeaderExtras} />}
+            {activeModule === 'ipl'      && <IplDashboard user={user} setHeaderExtras={setHeaderExtras} />}
             </Suspense>
             </ErrorBoundary>
           </div>
