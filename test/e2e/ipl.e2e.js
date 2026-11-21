@@ -107,3 +107,22 @@ test('wygląd: nic nie nachodzi i nie wystaje w bok (telefon i komputer, dane de
     await strona.close()
   }
 })
+
+test('data zabiegu wpisana ręcznie nie wraca do dzisiejszej', async () => {
+  const { strona, bledy } = await pusteIpl(KOMPUTER)
+  await strona.locator('.hdr-btn.accent:visible').first().click()
+  const pole = strona.locator('#ipl-data')
+  const dzis = await pole.inputValue()
+  // Skasowanie fragmentu daty chwilowo opróżnia pole — wcześniej React od razu wstawiał dzisiejszą.
+  await pole.click({ position: { x: 30, y: 10 } })
+  await strona.keyboard.press('Backspace')
+  assert.equal(await pole.inputValue(), '', 'pole wróciło do dzisiejszej daty po skasowaniu fragmentu')
+  await pole.fill('2026-01-15')
+  await strona.locator('.modal .ipl-chip', { hasText: 'Szyja' }).first().click()
+  await strona.locator('.modal .btn-save').click(); await strona.waitForTimeout(500)
+  await strona.locator('[role=tab]', { hasText: 'Zabiegi' }).click(); await strona.waitForTimeout(250)
+  assert.match(await strona.locator('.ipl-dzien').first().innerText(), /15 Stycznia 2026/i)
+  assert.notEqual(dzis, '2026-01-15')
+  assert.deepEqual(bledy, [])
+  await strona.close()
+})
