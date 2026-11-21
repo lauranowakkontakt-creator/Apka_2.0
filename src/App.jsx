@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth, USE_EMULATORS } from './firebase/config'
 import Login from './components/Login'
@@ -50,6 +50,7 @@ import { usePolaDaty } from './utils/usePolaDaty'
 import { MODULE_ACCENTS } from './utils/moduleColors'
 import { useZamykanieWstecz } from './utils/useZamykanieWstecz'
 import { useSynchronizujWalute, zapiszWaluteWBazie } from './utils/useSynchronizujWalute'
+import { useSynchronizujUklad, zapiszUkladWBazie } from './utils/useSynchronizujUklad'
 
 // Tryb lokalny (emulatory): logowanie Google jest pominięte — apka sama loguje
 // się do emulatora Auth na jedno stałe konto lokalne. Zawsze to samo konto =
@@ -94,6 +95,8 @@ function buildModules() {
   ]
 }
 
+const MODULE_IDS = buildModules().map(m => m.id)
+
 export default function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -117,13 +120,17 @@ export default function App() {
   // Cleanup odpala się przy zmianie modułu — przed montażem efektu nowego modułu.
   useEffect(() => () => setHeaderExtras(null), [activeModule])
   const [baseModules, setBaseModules] = useState(() => buildModules())
-  const [layout, setLayout] = useState(() => getLayout(buildModules().map(m => m.id)))
+  const [layout, setLayout] = useState(() => getLayout(MODULE_IDS))
   const modules = useMemo(() => applyLayout(baseModules, layout), [baseModules, layout])
   const shown = useMemo(() => visibleModules(modules), [modules])
 
+  // Układ zapamiętany do wysłania, gdy użytkownik jeszcze się nie zalogował
+  // (w praktyce zawsze jest zalogowany — Ustawienia są dostępne tylko po wejściu).
+  const uidRef = useRef(null)
   const handleLayoutChange = useCallback((next) => {
     saveLayout(next)
     setLayout(next)
+    zapiszUkladWBazie(uidRef.current, next)
   }, [])
 
   // Gdy użytkownik ukryje moduł, w którym właśnie jest — wracamy na Pulpit,
@@ -135,7 +142,17 @@ export default function App() {
 
   const openDream = (dreamId) => { setDreamFocus(dreamId); setActiveModule('dream'); setMoreOpen(false) }
 
-  const handleModuleIconChange = () => setBaseModules(buildModules())
+  const handleModuleIconChange = () => {
+    setBaseModules(buildModules())
+    zapiszUkladWBazie(user?.uid, layout)
+  }
+  uidRef.current = user?.uid || null
+  // Układ i ikony zmienione na innym urządzeniu: tylko zastosuj (bez odsyłania).
+  const zastosujZdalnyUklad = useCallback((next, ikonyZmienione) => {
+    setLayout(next)
+    if (ikonyZmienione) setBaseModules(buildModules())
+  }, [])
+  useSynchronizujUklad(user?.uid, MODULE_IDS, zastosujZdalnyUklad)
 
   // Auto-księgowanie regularnych płatności w tle — działa zawsze, nie tylko w zakładce „Regularne"
   useRegularPaymentsProcessor(user?.uid)

@@ -1,6 +1,6 @@
 // Układ modułów: kolejność i ukrywanie — sterowane przez użytkownika.
-// Trzymane lokalnie (jak preferencje ikon), bo lista modułów jest po stronie
-// klienta i nie ma sensu jej synchronizować przez Firestore.
+// Trzymane w localStorage (szybki start) i kopiowane do Firestore, żeby
+// telefon i komputer miały ten sam układ — patrz useSynchronizujUklad.js.
 //
 //   { order: ['home', 'prayer', 'budget', ...], hidden: ['dream', ...] }
 //
@@ -92,3 +92,29 @@ export function toggleHidden(layout, id) {
 }
 
 export const isHidden = (layout, id) => (layout?.hidden || []).includes(id)
+
+// ─── Wspólny układ dla wszystkich urządzeń.
+// localStorage zostaje szybkim źródłem przy starcie, a kopia leży w
+// users/{uid}/settings/moduleLayout — dzięki temu kolejność ustawiona na
+// komputerze jest taka sama na telefonie (i odwrotnie). Ikony modułów
+// jadą w tym samym dokumencie, bo też są częścią paska.
+
+export const teSameListy = (a = [], b = []) => a.length === b.length && a.every((x, i) => x === b[i])
+
+export function teSameIkony(a = {}, b = {}) {
+  const ka = Object.keys(a || {}).filter(k => a[k]), kb = Object.keys(b || {}).filter(k => b[k])
+  return ka.length === kb.length && ka.every(k => a[k] === b[k])
+}
+
+// Czy zdalny układ różni się od lokalnego (po normalizacji względem modułów).
+export function innyUklad(zdalny, lokalny, allIds) {
+  const z = normalizeLayout(zdalny, allIds)
+  const l = normalizeLayout(lokalny, allIds)
+  return !teSameListy(z.order, l.order)
+    || !teSameListy([...z.hidden].sort(), [...l.hidden].sort())
+}
+
+export function czyscIkony(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  return Object.fromEntries(Object.entries(raw).filter(([k, v]) => typeof k === 'string' && typeof v === 'string' && v))
+}
