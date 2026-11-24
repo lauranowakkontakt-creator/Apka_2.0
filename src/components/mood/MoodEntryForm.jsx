@@ -8,7 +8,7 @@ import { db } from '../../firebase/config'
 import PersonBubble from '../PersonBubble'
 import EmotionWheel from './EmotionWheel'
 import { DOMYSLNE_CZYNNIKI } from '../../utils/moodFactors'
-import { chwileWpisu, podsumujDzien, posortujChwile, nowaChwilaId } from '../../utils/moodEntry'
+import { chwileWpisu, podsumujDzien, posortujChwile, nowaChwilaId, polaczChwile, polaczNotatki } from '../../utils/moodEntry'
 import { MOODS, MoodFace, moodDla, kicker, ChipPicker, Skala5, AddChip, INNE_EMOCJE, RATING_CATS, RATING_W_FORMULARZU,
   CUSTOM_COLORS, TODAY, idZNazwy, findFactor, findEmotion } from './wspolne'
 
@@ -42,13 +42,17 @@ const moodZWartosci = (v) => MOODS.find(m => m.value === v) || moodDla(v)
 /**
  * Wybór dnia wpisu. Pole ma własny szkic: przy wpisywaniu ręcznie bywa chwilowo
  * puste albo niepełne, a gdyby trzymać je wprost na `dzien`, React od razu
- * cofałby je do poprzedniej daty (zwykle dzisiejszej). Zmiana dnia otwiera
- * formularz od nowa, więc nie robimy jej w trakcie pisania — dopiero po wyjściu
- * z pola, Enterze albo chwili bez zmian. Niepełna lub przyszła data po wyjściu
- * z pola wraca do obowiązującej.
+ * cofałby je do poprzedniej daty (zwykle dzisiejszej). Niepełna lub przyszła
+ * data po wyjściu z pola wraca do obowiązującej.
+ *
+ * `odRazu` — dzień należy do tego formularza (nowy wpis albo przenoszony), więc
+ * pełna data trafia do niego od razu: zapis zaraz po wyborze daty idzie już na
+ * nowy dzień. Bez tego zmiana dnia otwiera formularz od nowa, więc robimy ją
+ * dopiero po wyjściu z pola, Enterze albo chwili bez zmian — inaczej pole
+ * traciłoby kursor w trakcie pisania.
  */
 const pelnaData = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && v >= '1900-01-01' && v <= TODAY()
-function PoleDnia({ dzien, onZmien }) {
+function PoleDnia({ dzien, onZmien, odRazu = false }) {
   const [szkic, setSzkic] = useState(dzien)
   const czekaj = useRef(null)
   useEffect(() => { setSzkic(dzien) }, [dzien])
@@ -61,7 +65,9 @@ function PoleDnia({ dzien, onZmien }) {
   const zmien = (v) => {
     setSzkic(v)
     clearTimeout(czekaj.current)
-    if (pelnaData(v) && v !== dzien) czekaj.current = setTimeout(() => zatwierdz(v), 900)
+    if (!pelnaData(v) || v === dzien) return
+    if (odRazu) onZmien?.(v)
+    else czekaj.current = setTimeout(() => zatwierdz(v), 900)
   }
   return (
     <input type="date" value={szkic} max={TODAY()} onChange={e => zmien(e.target.value)}
@@ -70,8 +76,8 @@ function PoleDnia({ dzien, onZmien }) {
   )
 }
 
-export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [], initialMood = null, edit = null, onZmienDzien, onSaved }) {
-  const dzien = date
+export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [], initialMood = null, edit = null, przenosWpis = false, wpisDnia, onZmienDzien, onPrzelaczDzien, onSaved }) {
+  const [dzien, setDzien]       = useState(date)
   const [chwile, setChwile]     = useState(() => (edit ? chwileWpisu(edit) : []))
   // Widok: 'dzien' (przegląd) albo id edytowanej chwili / 'nowa'
   const [widok, setWidok]       = useState(() => (initialMood || !edit ? 'nowa' : 'dzien'))
@@ -91,6 +97,17 @@ export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [],
   }, [edit?.eventId, user.uid])
 
   const isToday = dzien === TODAY()
+  // Inny wpis na wybrany dzień (po zmianie daty) — przy zapisie chwile trafią do niego.
+  const wpisCelu = (d) => { const w = wpisDnia?.(d); return w && w.id !== edit?.id ? w : null }
+  const zajety = wpisCelu(dzien)
+  // Dzień należy do formularza przy nowym wpisie i przy edycji konkretnego wpisu
+  // (wtedy zmiana daty przenosi wpis, np. z dziś na wczoraj). Gdy „+” otworzył
+  // dzisiejszy wpis, zmiana daty przełącza na tamten dzień — dzisiejszy zostaje.
+  const dzienWlasny = !edit || przenosWpis
+  const zmienDzien = (d) => {
+    if (!dzienWlasny && onPrzelaczDzien) { onPrzelaczDzien(d); return }
+    setDzien(d); onZmienDzien?.(d)
+  }
   const dateLabel = format(new Date(dzien + 'T12:00:00'), 'd MMM', { locale: pl })
 
   const suma = podsumujDzien(chwile)
@@ -112,19 +129,29 @@ export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [],
   const usunWlasne = (pole) => (id) => zapiszUst({ [pole]: (ust[pole] || []).filter(e => e.id !== id) })
 
   const zapisz = async (listaChwil = chwile) => {
-    const p = podsumujDzien(listaChwil)
+    let p = podsumujDzien(listaChwil)
     if (!p) { setBlad('Dodaj przynajmniej jedną chwilę z nastrojem'); return }
     setSaving(true); setBlad('')
     const osobyDnia = people.filter(o => p.peopleIds.includes(o.id))
     const kalTak = (kalRecznie ? kal : (kal || p.factors.includes('spotkanie'))) && osobyDnia.length > 0
-    const cleanRatings = Object.fromEntries(Object.entries(ratings).filter(([, v]) => v > 0))
     const evRef = (id) => doc(db, 'users', user.uid, 'calendarEvents', id)
+    // Wybrany dzień ma już inny wpis: łączymy oba w jego wpisie (jeden wpis na dzień),
+    // a przenoszony wpis znika.
+    const cel = wpisCelu(dzien)
+    if (cel) {
+      listaChwil = polaczChwile(chwileWpisu(cel), listaChwil)
+      p = podsumujDzien(listaChwil)
+    }
+    const cleanRatings = Object.fromEntries(Object.entries({ ...(cel?.ratings || {}), ...ratings }).filter(([, v]) => v > 0))
     const posort = posortujChwile(listaChwil)
     const dniowy = moodDla(p.moodValue)
     const ostatni = moodZWartosci(p.ostatnia)
     try {
       // Wydarzenie w kalendarzu: założyć, poprawić albo usunąć.
-      let eventId = edit?.eventId || null
+      let eventId = cel ? (cel.eventId || edit?.eventId || null) : (edit?.eventId || null)
+      if (cel?.eventId && edit?.eventId && edit.eventId !== cel.eventId) {
+        await deleteDoc(evRef(edit.eventId)).catch(() => { /* już usunięte w kalendarzu */ })
+      }
       if (kalTak) {
         const pierwsza = osobyDnia[0]
         const dane = {
@@ -152,9 +179,12 @@ export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [],
         mood: ostatni.id, moodValue: p.moodValue, moodLabel: dniowy.label, moodColor: dniowy.color,
         moments: posort,
         emotions: p.emotions, emotionTimes: p.emotionTimes, factors: p.factors, peopleIds: p.peopleIds,
-        eventId, ratings: cleanRatings, note: note.trim(),
+        eventId, ratings: cleanRatings, note: cel ? polaczNotatki(cel.note, note) : note.trim(),
       }
-      if (edit) await updateDoc(doc(db, 'users', user.uid, 'moodLogs', edit.id), { ...dane, updatedAt: Timestamp.now() })
+      if (cel) {
+        await updateDoc(doc(db, 'users', user.uid, 'moodLogs', cel.id), { ...dane, updatedAt: Timestamp.now() })
+        if (edit) await deleteDoc(doc(db, 'users', user.uid, 'moodLogs', edit.id))
+      } else if (edit) await updateDoc(doc(db, 'users', user.uid, 'moodLogs', edit.id), { ...dane, updatedAt: Timestamp.now() })
       else await addDoc(collection(db, 'users', user.uid, 'moodLogs'), { ...dane, createdAt: Timestamp.now() })
       onSaved?.()
     } catch {
@@ -174,9 +204,10 @@ export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [],
           <div className="mood-day-bar">
             <label className="mood-date">
               <span>Dzień</span>
-              <PoleDnia dzien={dzien} onZmien={onZmienDzien} />
+              <PoleDnia dzien={dzien} onZmien={zmienDzien} odRazu={dzienWlasny} />
             </label>
-            {chwile.length > (istniejaca ? 1 : 0) && <span className="mood-day-bar-info">{chwile.length} {chwile.length === 1 ? 'chwila' : 'chwile'} tego dnia</span>}
+            {zajety ? <span className="mood-day-bar-info">ten dzień ma już wpis — chwile zostaną do niego dopisane</span>
+              : chwile.length > (istniejaca ? 1 : 0) && <span className="mood-day-bar-info">{chwile.length} {chwile.length === 1 ? 'chwila' : 'chwile'} tego dnia</span>}
           </div>
         )}
         onDzien={(c) => { if (c) setChwile(wstaw(c)); setWidok('dzien') }}
@@ -191,9 +222,10 @@ export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [],
       <div className="mood-day-bar">
         <label className="mood-date">
           <span>Dzień</span>
-          <PoleDnia dzien={dzien} onZmien={onZmienDzien} />
+          <PoleDnia dzien={dzien} onZmien={zmienDzien} odRazu={dzienWlasny} />
         </label>
-        {suma && <span className="mood-day-bar-info">średnio <b>{moodDla(suma.moodValue).label}</b></span>}
+        {zajety ? <span className="mood-day-bar-info">ten dzień ma już wpis — chwile zostaną do niego dopisane</span>
+          : suma && <span className="mood-day-bar-info">średnio <b>{moodDla(suma.moodValue).label}</b></span>}
       </div>
 
       {/* Chwile dnia */}
@@ -282,7 +314,8 @@ export default function MoodEntryForm({ user, date, ust, zapiszUst, people = [],
  * „Cały dzień” wraca do przeglądu (oceny, notatka, kolejne chwile).
  */
 function ChwilaForm({ chwila, initialMood, isToday, ust, people, dodajWlasne, usunWlasne, naglowek, saving, blad, onDzien, onZapisz }) {
-  const [time, setTime]         = useState(chwila?.time || (isToday ? format(new Date(), 'HH:mm') : ''))
+  // Godzina startowa; dalej pole żyje samo (patrz niżej).
+  const [startTime] = useState(() => chwila?.time || (isToday ? format(new Date(), 'HH:mm') : ''))
   const [value, setValue]       = useState(chwila?.value || MOODS.find(m => m.id === initialMood)?.value || null)
   const [emotions, setEmotions] = useState(() => new Set(chwila?.emotions || []))
   const [factors, setFactors]   = useState(() => new Set(chwila?.factors || []))
@@ -290,16 +323,19 @@ function ChwilaForm({ chwila, initialMood, isToday, ust, people, dodajWlasne, us
   const [wszyscy, setWszyscy]   = useState(false)
   const timeRef = useRef(null)
 
-  // Ręcznie wpisana godzina nie zawsze trafia do stanu przed kliknięciem „Zapisz”
-  // (Safari i część przeglądarek zgłaszają zmianę dopiero po wyjściu z pola),
-  // więc przy zapisie bierzemy to, co faktycznie widać w polu. Niepełny wpis
-  // (np. same godziny) daje pustą wartość — wtedy zostaje ostatnia poprawna.
+  // Pole godziny jest niekontrolowane: React go nie nadpisuje. Kontrolowane pole
+  // przy każdej zmianie dostawało wartość ze stanu, a niepełna godzina (same
+  // godziny bez minut) ma pustą wartość — na telefonie kółko wyboru skakało,
+  // a zaznaczona godzina potrafiła zniknąć. Przy zapisie bierzemy to, co widać
+  // w polu; niepełny wpis daje ostatnią pełną godzinę.
+  const ostatniaPelna = useRef(startTime)
+  const zapamietaj = (v) => { if (/^\d{2}:\d{2}/.test(v) || v === '') ostatniaPelna.current = v.slice(0, 5) }
   const odczytajGodzine = () => {
     const el = timeRef.current
-    if (!el) return time
+    if (!el) return ostatniaPelna.current
     const v = el.value
     if (/^\d{2}:\d{2}/.test(v)) return v.slice(0, 5)
-    return el.validity?.badInput ? time : v
+    return el.validity?.badInput ? ostatniaPelna.current : v
   }
 
   const przelacz = (setter) => (id) => setter(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -319,11 +355,13 @@ function ChwilaForm({ chwila, initialMood, isToday, ust, people, dodajWlasne, us
       <div>
         <div className="mood-chwila-top">
           {kicker(isToday && !chwila ? 'Jak się masz teraz?' : 'Jak się czułaś?')}
-          <label className="mood-time">
-            <span>godz.</span>
-            <input ref={timeRef} type="time" value={time} aria-label="Godzina chwili"
-              onChange={e => setTime(e.target.value)} onInput={e => setTime(e.target.value)} onBlur={e => setTime(e.target.value)} />
-          </label>
+          {/* <div>, nie <label>: na iPhonie dotknięcie etykiety drugi raz „klika” pole
+              i zamyka wybór godziny, zanim da się ją zaznaczyć. */}
+          <div className="mood-time">
+            <span aria-hidden="true">godz.</span>
+            <input ref={timeRef} type="time" defaultValue={startTime} aria-label="Godzina chwili"
+              onChange={e => zapamietaj(e.target.value)} onBlur={e => zapamietaj(e.target.value)} />
+          </div>
         </div>
         <div className="mood-faces">
           {MOODS.map(m => {

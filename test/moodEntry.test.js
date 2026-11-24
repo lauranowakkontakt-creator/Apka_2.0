@@ -39,3 +39,18 @@ test('chwileDoAnalizy — każda chwila osobno, z własnym nastrojem', () => {
   assert.deepEqual(praca, [2, 3])
   assert.equal(new Set(a.map(x => x.date)).size, 4, 'klucze chwil są unikalne')
 })
+
+const { polaczChwile, polaczNotatki } = await import('../src/utils/moodEntry.js')
+
+test('polaczChwile: dokłada chwile i zmienia powtórzone id', () => {
+  let n = 0
+  const wynik = polaczChwile([{ id: 'm0', value: 3 }], [{ id: 'm0', value: 5 }, { id: 'x', value: 4 }], () => `n${n++}`)
+  assert.deepEqual(wynik.map(c => c.id), ['m0', 'n0', 'x'])
+  assert.deepEqual(wynik.map(c => c.value), [3, 5, 4])
+})
+
+test('polaczNotatki: obie notatki, bez pustych i powtórzeń', () => {
+  assert.equal(polaczNotatki('rano', 'wieczór'), 'rano\n\nwieczór')
+  assert.equal(polaczNotatki('', 'wieczór'), 'wieczór')
+  assert.equal(polaczNotatki('to samo', 'to samo '), 'to samo')
+})
