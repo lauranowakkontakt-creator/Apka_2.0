@@ -1,12 +1,13 @@
 import PersonBubble from '../PersonBubble'
-import { dreamPeopleIds, findDreamCategory, findDreamEmotion } from '../../utils/dreams'
+import { dreamCategoryIds, dreamPeopleIds, findDreamCategory, findDreamEmotion } from '../../utils/dreams'
 import { IconCalendar, IconChevronRight } from '../Icons'
 import { Chip, fmtDate, SymbolChip } from './wspolne'
 
 // Kafelek snu na liście.
 
 export default function DreamCard({ dream: d, categories, emotions, peopleById, symbolsById, onClick }) {
-  const cat = findDreamCategory(categories, d.category)
+  const cats = dreamCategoryIds(d).map(id => findDreamCategory(categories, id)).filter(Boolean)
+  const cat = cats[0]
   const linked = dreamPeopleIds(d).map(id => peopleById[id]).filter(Boolean)
   const syms = (d.symbolIds || []).map(id => symbolsById[id]).filter(Boolean)
   return (
@@ -23,7 +24,11 @@ export default function DreamCard({ dream: d, categories, emotions, peopleById, 
             <IconCalendar size={11} /> {fmtDate(d.date)}
           </p>
         </div>
-        {cat && <Chip color={cat.color}>{cat.label}</Chip>}
+        {cats.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 4, maxWidth: '50%' }}>
+            {cats.map(c => <Chip key={c.id} color={c.color}>{c.label}</Chip>)}
+          </div>
+        )}
         <IconChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: 4 }} />
       </div>
       {d.text && (

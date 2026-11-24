@@ -1,5 +1,5 @@
 import PersonBubble from '../PersonBubble'
-import { findDreamCategory, findDreamEmotion } from '../../utils/dreams'
+import { dreamCategoryIds, findDreamCategory, findDreamEmotion } from '../../utils/dreams'
 import { IconCalendar, IconChevronLeft, IconEdit, IconMoon, IconTag, IconTrash, IconUsers } from '../Icons'
 import { Chip, DreamText, fmtDate, SymbolChip } from './wspolne'
 import { DiagramView, MindMapView, SpiralView } from './DreamDrawings'
@@ -11,7 +11,7 @@ import {
 // Pojedynczy sen w całości, z podświetlonymi osobami i symbolami.
 
 export default function DreamDetail({ dream, categories, emotions, peopleById, symbolsById, onBack, onOpenSymbol, onEdit, onDelete }) {
-  const cat = findDreamCategory(categories, dream.category)
+  const cats = dreamCategoryIds(dream).map(id => findDreamCategory(categories, id)).filter(Boolean)
   const participants = (dream.peopleIds || []).map(id => peopleById[id]).filter(Boolean)
   const mentioned = (dream.mentionIds || []).filter(id => !(dream.peopleIds || []).includes(id))
     .map(id => peopleById[id]).filter(Boolean)
@@ -55,9 +55,9 @@ export default function DreamDetail({ dream, categories, emotions, peopleById, s
         <button className="t-btn delete" title="Usuń" onClick={onDelete}><IconTrash size={15} /></button>
       </div>
 
-      {(cat || dream.emotions?.length > 0) && (
+      {(cats.length > 0 || dream.emotions?.length > 0) && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {cat && <Chip color={cat.color} active>{cat.label}</Chip>}
+          {cats.map(c => <Chip key={c.id} color={c.color} active>{c.label}</Chip>)}
           {dream.emotions?.map(eid => {
             const e = findDreamEmotion(emotions, eid); if (!e) return null
             return <Chip key={eid} color={e.color} active>{e.label}</Chip>

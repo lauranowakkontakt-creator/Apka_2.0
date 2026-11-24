@@ -350,3 +350,11 @@ test('symbole z połączonymi formami — #forma przypina ten sam symbol, wyszuk
   const segs = tokenizeDreamText('Widziałam #drzewa nad rzeką', [], [drzewo])
   assert.ok(segs.some(s => s.kind === 'symbol' && s.id === 'd1' && s.t === 'drzewa'))
 })
+
+test('dreamCategoryIds: nowa lista, stare pojedyncze pole i brak kategorii', async () => {
+  const { dreamCategoryIds } = await import('../src/utils/dreamLogic.js')
+  assert.deepEqual(dreamCategoryIds({ categories: ['zwykly', 'koszmar'], category: 'zwykly' }), ['zwykly', 'koszmar'])
+  assert.deepEqual(dreamCategoryIds({ category: 'koszmar' }), ['koszmar'])
+  assert.deepEqual(dreamCategoryIds({ categories: [], category: null }), [])
+  assert.deepEqual(dreamCategoryIds(null), [])
+})

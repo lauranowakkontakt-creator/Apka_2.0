@@ -18,7 +18,7 @@ import { CIRCLES, circleOf, circleCounts, visiblePeople } from '../../utils/pers
 import SegTabs from '../SegTabs'
 import { PERSON_COLORS } from '../../utils/personColors'
 import { IconPicker, ColorPicker } from '../Pickers'
-import { getCategory, dreamPeopleIds } from '../../utils/dreams'
+import { getCategory, dreamCategoryIds, dreamPeopleIds } from '../../utils/dreams'
 import { debtsForPerson, debtSummary, todosForPerson, linkCountsByPerson } from '../../utils/personLinks'
 import { fmt } from '../../utils/currency'
 import { bladSubskrypcji } from '../../utils/polaczenie'
@@ -359,7 +359,7 @@ function PersonDetail({ uid, person, events, intentions, dreams = [], debts = []
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <Paged items={personDreams}>{d => {
-              const cat = getCategory(d.category)
+              const cat = getCategory(dreamCategoryIds(d)[0])
               return (
                 <div key={d.id} onClick={() => onOpenDream?.(d.id)} style={{
                   display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
