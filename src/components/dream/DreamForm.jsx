@@ -1,6 +1,6 @@
 import PersonBubble from '../PersonBubble'
 import { db } from '../../firebase/config'
-import { symbolMatchesQuery, symbolForms, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
+import { dreamCategoryIds, symbolMatchesQuery, symbolForms, bestPersonMatch, detectTrigger, nameStem, parseMentions, personForms } from '../../utils/dreams'
 import { IconClose, IconPlus, IconTag } from '../Icons'
 import { toast } from '../Toast'
 import { Chip, TODAY } from './wspolne'
@@ -22,7 +22,7 @@ export default function DreamForm({ user, categories, emotions: emotionList, peo
   const [title, setTitle]       = useState(editData?.title || '')
   const [date, setDate]         = useState(editData?.date || TODAY())
   const [text, setText]         = useState(editData?.text || '')
-  const [category, setCategory] = useState(editData?.category || '')
+  const [cats, setCats]         = useState(dreamCategoryIds(editData))
   const [emotions, setEmotions] = useState(editData?.emotions || [])
   const [interpretation, setInterpretation] = useState(editData?.interpretation || '')
   const [peopleIds, setPeopleIds] = useState(editData?.peopleIds || [])
@@ -167,7 +167,7 @@ export default function DreamForm({ user, categories, emotions: emotionList, peo
     const data = {
       title: title.trim(), date, text: text.trim(),
       interpretation: interpretation.trim(),
-      category: category || null, emotions, peopleIds, mentionIds, symbolIds,
+      categories: cats, category: cats[0] || null, emotions, peopleIds, mentionIds, symbolIds,
       position: position || null, origin: origin || null, kinds, sphere: sphere || null, vividness: vividness || null,
       atmosphere, elements, context: context.trim(), wakeTime: wakeTime || null,
       colors, mainElement: mainElement.trim(), numbers: numbers.trim(), beforeSleep,
@@ -183,7 +183,7 @@ export default function DreamForm({ user, categories, emotions: emotionList, peo
         const prev = {
           title: editData.title ?? '', date: editData.date ?? date, text: editData.text ?? '',
           interpretation: editData.interpretation ?? '',
-          category: editData.category ?? null, emotions: editData.emotions ?? [],
+          categories: dreamCategoryIds(editData), category: editData.category ?? null, emotions: editData.emotions ?? [],
           peopleIds: editData.peopleIds ?? [], mentionIds: editData.mentionIds ?? [],
           symbolIds: editData.symbolIds ?? [],
           position: editData.position ?? null, origin: editData.origin ?? null, kinds: dreamKindIds(editData),
@@ -299,11 +299,11 @@ export default function DreamForm({ user, categories, emotions: emotionList, peo
           </div>
 
           <div className="form-group">
-            <label>Kategoria snu</label>
+            <label>Kategoria snu <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— można wybrać kilka</span></label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {categories.map(c => (
-                <Chip key={c.id} color={c.color} active={category === c.id}
-                  onClick={() => setCategory(category === c.id ? '' : c.id)}>
+                <Chip key={c.id} color={c.color} active={cats.includes(c.id)}
+                  onClick={() => toggle(cats, setCats, c.id)}>
                   {c.label}
                 </Chip>
               ))}

@@ -62,3 +62,24 @@ export function chwileDoAnalizy(logi) {
   }
   return out
 }
+
+/**
+ * Przeniesienie wpisu na dzień, który ma już swój wpis: chwile obu dni trafiają
+ * do jednego wpisu (jeden wpis na dzień). Chwile o tym samym id (np. „m0" ze
+ * starych wpisów) dostają nowe id, żeby się nie nadpisały.
+ */
+export function polaczChwile(istniejace, dodawane, noweId = nowaChwilaId) {
+  const zajete = new Set(istniejace.map(c => c.id))
+  const dodane = dodawane.map(c => {
+    if (!zajete.has(c.id)) { zajete.add(c.id); return c }
+    let id = noweId()
+    while (zajete.has(id)) id = noweId()
+    zajete.add(id)
+    return { ...c, id }
+  })
+  return [...istniejace, ...dodane]
+}
+
+/** Notatki dwóch wpisów jednego dnia — obie zostają, bez powtórzeń. */
+export const polaczNotatki = (a, b) =>
+  [...new Set([(a || '').trim(), (b || '').trim()].filter(Boolean))].join('\n\n')

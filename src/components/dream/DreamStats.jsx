@@ -3,7 +3,7 @@ import { addDays, addMonths, format, getDaysInMonth, parseISO, startOfMonth, sub
 import { pl } from 'date-fns/locale'
 import { useMemo, useState } from 'react'
 import { AnalizaRoku, Rozwijana, Ranking, Kafle, TabelaLat } from '../Analityka'
-import { findDreamCategory } from '../../utils/dreamLogic'
+import { dreamCategoryIds, findDreamCategory } from '../../utils/dreamLogic'
 import { rozbijWgLat } from '../../utils/analityka'
 import { MODULE_ACCENTS } from '../../utils/moduleColors'
 
@@ -32,23 +32,28 @@ export default function DreamStats({ dreams, categories }) {
   const shade = (lvl) => lvl === 0 ? 'var(--surface2)' : `color-mix(in oklab, var(--accent) ${28 + lvl * 22}%, var(--surface2))`
 
   const wpisy = useMemo(() => dreams.filter(d => d.date).map(d => ({ klucz: d.date })), [dreams])
-  // Rodzaj snu (koszmar, zwykły, przyjemny, duchowy…) — bez kategorii liczy się jako „Bez rodzaju".
-  const rodzaj = (d) => {
-    const c = d.category ? findDreamCategory(categories, d.category) : null
-    return { nazwa: c?.label || (d.category ? d.category : 'Bez rodzaju'), kolor: c?.color || '#9E9E9E' }
+  // Rodzaje snu (koszmar, zwykły, przyjemny, duchowy…) — sen z kilkoma kategoriami liczy się w każdej,
+  // bez kategorii liczy się jako „Bez rodzaju".
+  const rodzaje = (d) => {
+    const ids = dreamCategoryIds(d)
+    if (!ids.length) return [{ nazwa: 'Bez rodzaju', kolor: '#9E9E9E' }]
+    return ids.map(id => {
+      const c = findDreamCategory(categories, id)
+      return { nazwa: c?.label || id, kolor: c?.color || '#9E9E9E' }
+    })
   }
   const rodzajeRoku = (rok) => {
     const m = {}
-    dreams.filter(d => d.date?.startsWith(String(rok))).forEach(d => {
-      const r = rodzaj(d)
+    dreams.filter(d => d.date?.startsWith(String(rok))).flatMap(rodzaje).forEach(r => {
       m[r.nazwa] = m[r.nazwa] || { nazwa: r.nazwa, kolor: r.kolor, wartosc: 0 }
       m[r.nazwa].wartosc++
     })
     return Object.values(m).sort((a, b) => b.wartosc - a.wartosc)
   }
-  const kolorRodzaju = useMemo(() => Object.fromEntries(dreams.map(rodzaj).map(r => [r.nazwa, r.kolor])), [dreams, categories]) // eslint-disable-line react-hooks/exhaustive-deps
-  const wLatach = useMemo(() => rozbijWgLat(dreams.filter(d => d.date).map(d => ({ nazwa: rodzaj(d).nazwa, rok: Number(d.date.slice(0, 4)) }))), [dreams, categories]) // eslint-disable-line react-hooks/exhaustive-deps
-  const sumyLat = wLatach.lata.map(r => ({ rok: r, n: wLatach.wiersze.reduce((s, w) => s + (w.poLatach[r] || 0), 0) }))
+  const kolorRodzaju = useMemo(() => Object.fromEntries(dreams.flatMap(rodzaje).map(r => [r.nazwa, r.kolor])), [dreams, categories]) // eslint-disable-line react-hooks/exhaustive-deps
+  const wLatach = useMemo(() => rozbijWgLat(dreams.filter(d => d.date).flatMap(d => rodzaje(d).map(r => ({ nazwa: r.nazwa, rok: Number(d.date.slice(0, 4)) })))), [dreams, categories]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Liczba snów w roku (nie suma kategorii — sen z dwiema kategoriami to nadal jeden sen).
+  const sumyLat = wLatach.lata.map(r => ({ rok: r, n: dreams.filter(d => d.date?.startsWith(String(r))).length }))
   const razemSnow = sumyLat.reduce((a, b) => a + b.n, 0)
   const najRok = sumyLat.reduce((p, c) => (!p || c.n > p.n ? c : p), null)
   const topRodzaj = wLatach.wiersze[0]

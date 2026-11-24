@@ -45,6 +45,8 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
   const [entryDate, setEntryDate] = useState(null) // otwiera modal wpisu dla danego dnia
   const [entryMood, setEntryMood] = useState(null) // nastrój wybrany buźką na karcie „dziś”
   const [entryEdit, setEntryEdit] = useState(null) // edytowany wpis (jeden wpis na dzień)
+  const [entryDzien, setEntryDzien] = useState(null) // dzień wybrany w formularzu (do nagłówka)
+  const [entryPrzenos, setEntryPrzenos] = useState(false) // edycja konkretnego wpisu — zmiana daty go przenosi
   const [selDate, setSelDate]     = useState(TODAY()) // wybrany dzień (kalendarz) — dzielony z „+" w rogu
   const [view, setView]           = useState('main') // main | stats (analiza pod ikoną w belce)
   const [senForm, setSenForm]     = useState(null)
@@ -67,8 +69,11 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
     const istniejacy = log || logsRef.current
       .filter(l => l.date === dzien)
       .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0] || null
-    setEntryMood(m); setEntryEdit(istniejacy); setEntryDate(dzien)
+    setEntryMood(m); setEntryEdit(istniejacy); setEntryDate(dzien); setEntryDzien(dzien); setEntryPrzenos(!!log)
   }
+  const wpisDnia = (d) => logsRef.current
+    .filter(l => l.date === d)
+    .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))[0] || null
 
   // Górna belka („Apka"): [analiza][＋ Dodaj] — spójnie z innymi modułami.
   // „+” dodaje to, co pasuje do otwartej zakładki. Hook przed early-returnem.
@@ -103,7 +108,8 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
 
   if (loading) return <div className="list-loading">Ładowanie...</div>
 
-  const entryLabel = entryDate ? format(new Date(entryDate + 'T12:00:00'), 'd MMMM', { locale: pl }) : ''
+  const naglowekDzien = entryDzien || entryDate
+  const entryLabel = naglowekDzien ? format(new Date(naglowekDzien + 'T12:00:00'), 'd MMMM', { locale: pl }) : ''
 
   return (
     <div className="mood-dashboard">
@@ -132,14 +138,17 @@ export default function MoodDashboard({ user, setHeaderExtras }) {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setEntryDate(null)}>
           <div className="modal">
             <div className="modal-header">
-              <h3>{entryDate === TODAY() ? 'Dziś' : entryLabel}{entryEdit ? ' · zmień lub dopisz' : ' · nowy wpis'}</h3>
+              <h3>{naglowekDzien === TODAY() ? 'Dziś' : entryLabel}{entryEdit ? ' · zmień lub dopisz' : ' · nowy wpis'}</h3>
               <button className="modal-close" aria-label="Zamknij" onClick={() => setEntryDate(null)}><IconClose size={16} /></button>
             </div>
             <MoodEntryForm key={entryDate + (entryMood || '') + (entryEdit?.id || '')} user={user} date={entryDate} initialMood={entryMood} edit={entryEdit}
               ust={ust} zapiszUst={zapiszUst} people={osoby}
-              // Zmiana daty w formularzu przełącza na TEN dzień: jego wpis albo nowy.
-              // (Wcześniej przenosiłaby otwarty wpis — np. dzisiejszy — na inny dzień.)
-              onZmienDzien={(d) => otworz(d, entryMood)}
+              // Edycja wpisu: zmiana daty przenosi go przy zapisie (gdy tamten dzień ma
+              // już wpis, chwile obu się łączą). Po „+” zmiana daty przełącza na ten
+              // dzień — dzisiejszy wpis zostaje na miejscu.
+              przenosWpis={entryPrzenos} wpisDnia={wpisDnia}
+              onZmienDzien={setEntryDzien}
+              onPrzelaczDzien={(d) => otworz(d, entryMood)}
               onSaved={() => setEntryDate(null)} />
           </div>
         </div>

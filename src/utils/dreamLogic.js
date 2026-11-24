@@ -77,6 +77,9 @@ export const mergeDreamEmotions = (custom = []) => mergeItems(DREAM_EMOTIONS, cu
 // wywołania nie wybuchały.
 export const findDreamCategory = (cats, id) =>
   (Array.isArray(cats) && cats.length ? cats : DREAM_CATEGORIES).find(c => c.id === id)
+// Kategorie snu jako lista. Stare sny mają jedno pole `category`, nowe — `categories`.
+export const dreamCategoryIds = (d) => d?.categories?.length ? d.categories : (d?.category ? [d.category] : [])
+
 export const findDreamEmotion = (emos, id) =>
   (Array.isArray(emos) && emos.length ? emos : DREAM_EMOTIONS).find(c => c.id === id)
 
